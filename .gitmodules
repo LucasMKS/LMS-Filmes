@@ -1,0 +1,6 @@
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/LucasMKS/LMS-Films-Frontend.git
+[submodule "lmsfilmes"]
+	path = lmsfilmes
+	url = https://github.com/LucasMKS/LMS-Filmes-Backend.git
