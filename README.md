@@ -275,7 +275,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - [The Movie Database (TMDB)](https://www.themoviedb.org/) pelos dados de filmes e séries
 - [shadcn/ui](https://ui.shadcn.com/) pelos componentes UI
 - [Lucide](https://lucide.dev/) pelos ícones
-- Comunidade open source pelo suporte e inspiração
 
 ---
 
