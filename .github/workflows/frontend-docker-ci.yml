@@ -30,8 +30,8 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v5
         with:
-          context: ./caminho/para/seu/frontend # Altere para o caminho real do submodule
-          file: ./caminho/para/seu/frontend/Dockerfile # Altere para o caminho real do Dockerfile
+          context: ./frontend # Altere para o caminho real do submodule
+          file: ./frontend/Dockerfile # Altere para o caminho real do Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/seu_frontend_image_name:${{ github.sha }}, ${{ secrets.DOCKER_HUB_USERNAME }}/seu_frontend_image_name:latest
 
