@@ -93,3 +93,5 @@ replay_pid*
 # Docs
 docs/
 docs/**
+
+application-dev.yml
