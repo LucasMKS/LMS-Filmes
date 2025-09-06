@@ -41,7 +41,6 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-Dockerfile
 node_modules
 dist
 dist-ssr
