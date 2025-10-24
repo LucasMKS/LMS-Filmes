@@ -1,0 +1,48 @@
+server:
+  port: ${SERVER_PORT_FILMES}
+
+spring:
+  application:
+    name: lms-filmes
+
+  cache:
+    type: redis
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URL}
+      database: ${MONGODB_DATABASE}
+
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+jwt:
+  auth:
+    secret: ${JWT_SECRET}
+    expiration: 86400000
+
+tmdb:
+  api:
+    url: ${TMDB_API_URL}
+    key: ${TMDB_API_KEY}
+
+logging:
+  level:
+    org:
+      springframework:
+        cache: DEBUG
+        data:
+          mongodb: DEBUG
+          redis: DEBUG

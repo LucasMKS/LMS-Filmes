@@ -1,0 +1,33 @@
+server:
+  port: ${SERVER_PORT_EMAIL}
+
+spring:
+  application:
+    name: lms-email
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: /
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+# 587
+frontend:
+  base-url: ${FRONTEND_URL}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}

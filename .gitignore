@@ -1,0 +1,64 @@
+# ===============================================
+# Configurações Gerais do Git
+# ===============================================
+.DS_Store
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+target/
+.project
+.classpath
+.settings/
+
+# ===============================================
+# Regras para Projetos Java (Spring Boot)
+# Aplicam-se a todas as subpastas Spring Boot
+# ===============================================
+### Build ###
+**/target/
+**/*.jar
+**/*.war
+**/*.ear
+**/build/
+**/*.class
+
+### Logs ###
+**/logs/
+**/*.log
+**/error.log
+
+### Ficheiros de Configuração Sensíveis e Específicos de Ambiente ###
+**/application-prod.yml
+**/application-dev.yml
+**/application-test.yml
+**/.env
+**/.env.*
+**/credentials.properties
+**/secrets.properties
+
+# ===============================================
+# Node.js/Frontend (Next.js)
+# ===============================================
+**/node_modules/
+**/.next/
+**/.vercel/
+**/npm-debug.log
+**/yarn-debug.log
+**/yarn-error.log
+
+# ===============================================
+# Ficheiros Docker e Compose
+# ===============================================
+**/docker-compose.override.yml
+.dockerignore
+
+# ===============================================
+# Outros Ficheiros e Pastas Temporários/Gerados
+# ===============================================
+**/tmp/
+**/*.tmp
+**/*.swp
+*~
+

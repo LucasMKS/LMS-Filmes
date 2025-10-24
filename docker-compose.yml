@@ -1,0 +1,249 @@
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: lms-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS}
+      MONGO_INITDB_DATABASE: lmsfilmes
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./lmsfilmes/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - lms-network
+
+  # MongoDB Express - Database Admin UI
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: lms-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASS}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASS}@mongodb:27017/
+      ME_CONFIG_BASICAUTH: false
+    depends_on:
+      - mongodb
+    networks:
+      - lms-network
+
+  # Redis (Cache / Message Broker leve)
+  redis:
+    image: redis:7.2
+    container_name: lms-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lms-network
+
+  # RabbitMQ (Message Broker)
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: lms-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - lms-network
+
+  # Frontend (Next.js)
+  frontend:
+    build: ./frontend
+    container_name: lms-frontend-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./.env
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    depends_on:
+      - lmsfilmes
+      - gateway
+    networks:
+      - lms-network
+
+    # lmsfilmes API (Spring Boot - lmsfilmes)
+  lmsfilmes:
+    build: ./lmsfilmes
+    container_name: lms-filmes
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./.env
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: ${EUREKA_URL}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+      MONGO_HOST: ${MONGO_HOST}
+      MONGO_PORT: ${MONGO_PORT}
+      MONGO_DATABASE: ${MONGODB_DATABASE}
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: /
+      JWT_SECRET: ${JWT_SECRET}
+      TMDB_API_KEY: ${TMDB_API_KEY}
+    depends_on:
+      - eureka
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - lms-network
+
+  # Serviço de E-mail
+  lms-email-service:
+    build: ./lms-email-service
+    container_name: lms-email
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    env_file:
+      - ./.env
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: ${EUREKA_URL}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - eureka
+      - rabbitmq
+    networks:
+      - lms-network
+
+  # Eureka Server (Service Discovery)
+  eureka:
+    build: ./eureka
+    container_name: lms-eureka-server
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    env_file:
+      - ./.env
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - lms-network
+
+  # API Gateway (Spring Cloud Gateway)
+  gateway:
+    build: ./gateway
+    container_name: lms-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./.env
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: ${EUREKA_URL}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+      SPRING_APPLICATION_NAME: gateway
+      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED: true
+      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_LOWER_CASE_SERVICE_ID: true
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - eureka
+    networks:
+      - lms-network
+
+  # Microsserviço de Favoritos
+  lmsfavorite:
+    build: ./lmsfavorite
+    container_name: lms-favorite
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    env_file:
+      - ./.env
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: ${EUREKA_URL}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+      MONGO_HOST: ${MONGO_HOST}
+      MONGO_PORT: ${MONGO_PORT}
+      MONGO_DATABASE: ${MONGODB_DATABASE}
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: /
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - eureka
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - lms-network
+
+  # Microsserviço de Avaliações
+  lmsrating:
+    build: ./lmsrating
+    container_name: lms-rating
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./.env
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: ${EUREKA_URL}
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: true
+      MONGO_HOST: ${MONGO_HOST}
+      MONGO_PORT: ${MONGO_PORT}
+      MONGO_DATABASE: ${MONGODB_DATABASE}
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: /
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - eureka
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - lms-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  lms-network:
+    driver: bridge

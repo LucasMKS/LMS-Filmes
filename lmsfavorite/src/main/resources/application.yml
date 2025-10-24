@@ -1,0 +1,43 @@
+server:
+  port: ${SERVER_PORT_FAVORITE}
+
+spring:
+  application:
+    name: lms-favorite
+
+  cache:
+    type: redis
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URL}
+      database: ${MONGODB_DATABASE}
+
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
+jwt:
+  auth:
+    secret: ${JWT_SECRET}
+    expiration: 86400000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+logging:
+  level:
+    org:
+      springframework:
+        cache: DEBUG
+        data:
+          mongodb: DEBUG
+          redis: DEBUG

@@ -1,0 +1,57 @@
+server:
+  port: ${SERVER_PORT_GATEWAY}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true # Habilita a busca de serviços no Eureka
+              lower-case-service-id: true # Converte o nome do serviço para minúsculas na rota
+          # routes:
+          #   - id: lms-filmes-route # Um ID único para a rota
+          #     uri: lb://lms-filmes # 'lb' significa Load Balancer. Ele vai usar o Eureka para achar o serviço 'lms-filmes'
+          #     predicates:
+          #       - Path=/lms-filmes/** # O padrão de URL que aciona esta rota
+          #     filters:
+          #       - StripPrefix=1 # Remove o primeiro segmento do path (/lms-filmes) antes de enviar para o serviço
+
+          #   # Você pode adicionar rotas para seus outros serviços aqui
+          #   - id: lms-rating-route
+          #     uri: lb://lms-rating
+          #     predicates:
+          #       - Path=/lms-rating/**
+          #     filters:
+          #       - StripPrefix=1
+
+          #   - id: lms-favorite-route
+          #     uri: lb://lms-favorite
+          #     predicates:
+          #       - Path=/lms-favorite/**
+          #     filters:
+          #       - StripPrefix=1
+      globalcors:
+        corsConfigurations:
+          "[/**]":
+            allowedOrigins:
+              - "${FRONTEND_URL}"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+              - Accept
+            allowCredentials: true
