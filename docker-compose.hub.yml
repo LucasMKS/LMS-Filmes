@@ -1,0 +1,94 @@
+services:
+  # ===============================================
+  # INFRAESTRUTURA
+  # ===============================================
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin123
+
+  # ===============================================
+  # MICROSSERVIÇOS
+  # ===============================================
+
+  eureka:
+    image: lucasmks/lms-filmes-eureka:latest
+    ports:
+      - "8761:8761"
+    env_file: .env
+
+  gateway:
+    image: lucasmks/lms-filmes-gateway:latest
+    ports:
+      - "8080:8080"
+    env_file: .env
+    depends_on:
+      - eureka
+
+  lmsfilmes:
+    image: lucasmks/lms-filmes-lmsfilmes:latest
+    ports:
+      - "8081:8081"
+    env_file: .env
+    depends_on:
+      - mongodb
+      - eureka
+      - rabbitmq
+
+  lmsrating:
+    image: lucasmks/lms-filmes-lmsrating:latest
+    ports:
+      - "8082:8082"
+    env_file: .env
+    depends_on:
+      - mongodb
+      - eureka
+
+  lmsfavorite:
+    image: lucasmks/lms-filmes-lmsfavorite:latest
+    ports:
+      - "8083:8083"
+    env_file: .env
+    depends_on:
+      - mongodb
+      - eureka
+
+  lms-email-service:
+    image: lucasmks/lms-filmes-lms-email:latest
+    ports:
+      - "8084:8084"
+    env_file: .env
+    depends_on:
+      - rabbitmq
+      - eureka
+
+  frontend:
+    # 'build:
+    image: lucasmks/lms-filmes-frontend:latest
+    ports:
+      - "3000:3000"
+    env_file: .env
+    depends_on:
+      - gateway
+
+volumes:
+  mongo-data:

@@ -118,14 +118,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-3 sm:p-4">
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+      <div className="absolute inset-0 " />
 
       <div className="relative w-full max-w-sm sm:max-w-md">
-        <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm shadow-2xl">
+        <Card className="bg-gray-900 !border-gray-800 border-2 shadow-2xl shadow-zinc-950">
           <CardHeader className="text-center space-y-3 sm:space-y-4 pb-4 sm:pb-6 px-4 sm:px-6">
-            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-pink-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gray-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Film className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </div>
             <div>
@@ -320,7 +320,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-pink-500 to-violet-600 hover:from-pink-600 hover:to-violet-700 text-white font-medium py-2.5 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2.5 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <div className="flex items-center space-x-2">
@@ -354,6 +354,17 @@ export default function LoginPage() {
                 ? "Não tem uma conta? Registre-se"
                 : "Já tem uma conta? Faça login"}
             </Button>
+
+            {isLogin && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => router.push("/reset-password")}
+                className="w-full text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200"
+              >
+                Esqueci minha senha
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

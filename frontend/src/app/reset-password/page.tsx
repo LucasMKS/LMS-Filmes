@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import AuthService from "@/lib/auth";
 import { toast } from "sonner";
 import { useState, Suspense, useEffect } from "react";
+import { ErrorHandler } from "@/lib/errorHandler";
 
 // Esquema para SOLICITAR a redefinição de senha
 const requestResetSchema = z.object({
@@ -61,11 +62,24 @@ function ResetPasswordForm() {
       toast.success("Senha redefinida com sucesso!");
       router.push("/login");
     } catch (err: any) {
-      toast.error(err.message || "Erro ao redefinir senha", {
-        description: err.details || "O link pode ter expirado ou é inválido.",
-      });
+      const apiError = ErrorHandler.createApiError(err);
+
+      if (
+        apiError.status === 400 ||
+        apiError.status === 401 ||
+        apiError.status === 404
+      ) {
+        toast.error("Link inválido ou expirado", {
+          description: "Você será redirecionado para a tela de login.",
+        });
+      } else {
+        toast.error(apiError.message || "Erro ao redefinir senha", {
+          description: "Por favor, tente novamente mais tarde.",
+        });
+      }
     } finally {
       setLoading(false);
+      router.push("/login");
     }
   };
 
@@ -100,7 +114,7 @@ function ResetPasswordForm() {
   // CENÁRIO 1: Token EXISTE. Mostrar formulário de redefinição.
   if (token) {
     return (
-      <div className="w-full max-w-md space-y-6 bg-card p-6 rounded-xl shadow-lg">
+      <div className="w-full max-w-md space-y-6 p-6 rounded-xl bg-gray-900 !border-gray-800 border-2 shadow-2xl shadow-zinc-950">
         <h1 className="text-2xl font-semibold text-center">Redefinir senha</h1>
 
         <form
@@ -131,8 +145,21 @@ function ResetPasswordForm() {
             </p>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
+          >
             {loading ? "Redefinindo..." : "Redefinir senha"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => router.push("/login")}
+            className="w-full text-slate-300 hover:text-white"
+            disabled={loading}
+          >
+            Voltar
           </Button>
         </form>
       </div>
@@ -142,19 +169,28 @@ function ResetPasswordForm() {
   // CENÁRIO 2: Token NÃO existe, e a solicitação JÁ FOI ENVIADA.
   if (requestSent) {
     return (
-      <div className="w-full max-w-md space-y-4 bg-card p-6 rounded-xl shadow-lg text-center">
+      <div className="w-full max-w-md space-y-4 p-6 rounded-xl text-center bg-gray-900 !border-gray-800 border-2 shadow-2xl shadow-zinc-950">
         <h1 className="text-2xl font-semibold">Verifique seu e-mail</h1>
         <p className="text-muted-foreground">
           Se uma conta com este e-mail existir, enviamos um link para
           redefinição de senha.
         </p>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => router.push("/login")}
+          className="w-full text-slate-300 hover:text-white"
+          disabled={loading}
+        >
+          Voltar
+        </Button>
       </div>
     );
   }
 
   // CENÁRIO 3: Token NÃO existe. Mostrar formulário de solicitação.
   return (
-    <div className="w-full max-w-md space-y-6 bg-card p-6 rounded-xl shadow-lg">
+    <div className="w-full max-w-md space-y-6 p-6 rounded-xl bg-gray-900 !border-gray-800 border-2 shadow-2xl shadow-zinc-950">
       <div className="space-y-2 text-center">
         <h1 className="text-2xl font-semibold">Esqueceu sua senha?</h1>
         <p className="text-muted-foreground text-sm">
@@ -178,8 +214,21 @@ function ResetPasswordForm() {
             {requestForm.formState.errors.email.message}
           </p>
         )}
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2.5"
+          disabled={loading}
+        >
           {loading ? "Enviando..." : "Enviar link de redefinição"}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => router.push("/login")}
+          className="w-full text-slate-300 hover:text-white"
+          disabled={loading}
+        >
+          Voltar
         </Button>
       </form>
     </div>

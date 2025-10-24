@@ -53,6 +53,8 @@ target/
 # ===============================================
 **/docker-compose.override.yml
 .dockerignore
+**/docker-compose.local.yml
+**/docker-manager.local.bat
 
 # ===============================================
 # Outros Ficheiros e Pastas Temporários/Gerados

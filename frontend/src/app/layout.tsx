@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LMS Films",
+  title: "LMS Filmes",
   description: "Sistema de avaliação de filmes e séries",
 };
 
@@ -28,6 +28,7 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning={true}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased `}
+        suppressHydrationWarning={true}
       >
         <AppLayout>
           <div className="bg-gradient-to-br from-slate-900 to-zinc-950">

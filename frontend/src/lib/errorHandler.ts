@@ -131,17 +131,22 @@ export class ErrorHandler {
   /**
    * Logging de erros (pode ser expandido para enviar para serviços de monitoramento)
    */
-  static logError(error: ApiError, context?: string): void {
-    const logData = {
-      ...error,
-      context,
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-    };
-
-    console.error("API Error:", logData);
-
-    // Aqui você pode adicionar integração com serviços como Sentry, LogRocket, etc.
-    // Example: Sentry.captureException(error);
+  // CORREÇÃO: Removido "function" e adicionado "static" para ser um método da classe
+  static logError(error: any): void {
+    // Verificação comum para erros do Axios
+    if (error.response) {
+      // A requisição foi feita e o servidor respondeu com um status de erro
+      console.error("API Error [Response]:", {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers,
+      });
+    } else if (error.request) {
+      // A requisição foi feita mas nenhuma resposta foi recebida
+      console.error("API Error [Request]:", error.request);
+    } else {
+      // Algo aconteceu ao configurar a requisição que disparou um Erro
+      console.error("API Error [General]:", error.message);
+    }
   }
 }
