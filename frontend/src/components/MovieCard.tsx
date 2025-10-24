@@ -8,7 +8,7 @@ interface MovieCardProps {
   movie: TmdbMovie;
   onClick: () => void;
   userRating?: {
-    myVote: string;
+    rating: string;
     comment?: string;
   } | null;
   showFavoriteButton?: boolean;
@@ -49,7 +49,7 @@ export function MovieCard({
           {userRating && (
             <div className="absolute top-2 right-2 bg-blue-600/90 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
               <Star className="w-3 h-3 fill-current" />
-              {userRating.myVote}
+              {userRating.rating}
             </div>
           )}
 

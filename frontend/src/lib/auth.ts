@@ -1,95 +1,61 @@
 import axios from "axios";
 import Cookies from "js-cookie";
-import { AuthDTO, AuthResponse, User } from "./types";
+import { authApi } from "./api";
+import { AuthDTO, User } from "./types";
 import { ErrorHandler } from "./errorHandler";
 
-const API_GATEWAY_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
-const API_LMS_FILMES_BASE = `${API_GATEWAY_URL}/lms-filmes`;
-
-const authApi = axios.create({
-  baseURL: API_LMS_FILMES_BASE,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true,
-});
+const TOKEN_KEY = "auth_token";
+const USER_KEY = "user_data";
 
 class AuthService {
   private readonly TOKEN_KEY = "auth_token";
   private readonly USER_KEY = "user_data";
 
   // Fazer login
-  async login(credentials: AuthDTO): Promise<AuthResponse> {
-    try {
-      const response = await authApi.post("/auth/login", credentials);
-
-      const token = response.data;
-
-      Cookies.set(this.TOKEN_KEY, token, { expires: 7 });
-
-      const userData = this.parseJwt(token);
-      Cookies.set(this.USER_KEY, JSON.stringify(userData), { expires: 7 });
-
-      return {
-        token,
-        user: userData,
-      };
-    } catch (error: any) {
-      const apiError = ErrorHandler.createApiError(error);
-      ErrorHandler.logError(apiError, "AuthService.login");
-      throw apiError;
+  async login(payload: AuthDTO) {
+    const response = await authApi.login(payload);
+    if (response.token && response.user) {
+      this.setSession(response.token, response.user);
+    } else {
+      throw new Error("Resposta de login inválida do servidor.");
     }
   }
 
   // Fazer registro
-  async register(userData: AuthDTO): Promise<string> {
-    try {
-      const response = await authApi.post("/auth/register", userData);
-      return response.data;
-    } catch (error: any) {
-      const apiError = ErrorHandler.createApiError(error);
-      ErrorHandler.logError(apiError, "AuthService.register");
-      throw apiError;
-    }
+  async register(payload: AuthDTO) {
+    const response = await authApi.register(payload);
+    return response;
   }
 
-  // Solicitar redefinição de senha
-  async requestPasswordReset(email: string): Promise<any> {
-    try {
-      const response = await authApi.post("/auth/forgot-password", { email });
-      return response.data;
-    } catch (error: any) {
-      const apiError = ErrorHandler.createApiError(error);
-      ErrorHandler.logError(apiError, "AuthService.requestPasswordReset");
-      throw apiError;
-    }
+  async requestPasswordReset(email: string) {
+    const response = await authApi.requestPasswordReset(email);
+    return response;
   }
 
-  // Redefinir a senha
-  async resetPassword(token: string, newPassword: string): Promise<any> {
-    try {
-      const response = await authApi.post("/auth/reset-password", {
-        token,
-        newPassword,
-      });
-      return response.data;
-    } catch (error: any) {
-      const apiError = ErrorHandler.createApiError(error);
-      ErrorHandler.logError(apiError, "AuthService.resetPassword");
-      throw apiError;
-    }
+  async resetPassword(token: string, newPassword: string) {
+    const response = await authApi.resetPassword(token, newPassword);
+    return response;
+  }
+
+  setSession(token: string, user: User) {
+    Cookies.set(TOKEN_KEY, token, {
+      expires: 1,
+      secure: true,
+      sameSite: "Lax",
+    });
+    Cookies.set(USER_KEY, JSON.stringify(user), {
+      expires: 1,
+      secure: true,
+      sameSite: "Lax",
+    });
   }
 
   // Fazer logout
   logout(): void {
-    Cookies.remove(this.TOKEN_KEY);
-    Cookies.remove(this.USER_KEY);
+    Cookies.remove(TOKEN_KEY);
+    Cookies.remove(USER_KEY);
 
-    if (!window.location.pathname.includes("/login")) {
-      window.location.href = "/login";
-    }
+    window.location.href = "/login";
   }
 
   clearTokens(): void {
@@ -98,61 +64,22 @@ class AuthService {
   }
 
   isAuthenticated(): boolean {
-    const token = Cookies.get(this.TOKEN_KEY);
-    if (!token) return false;
+    const token = Cookies.get(TOKEN_KEY);
+    return !!token;
+  }
 
-    try {
-      const payload = this.parseJwt(token);
-      const currentTime = Date.now() / 1000;
-
-      if (payload.exp <= currentTime) {
-        this.clearTokens();
-        return false;
+  getUser(): User | null {
+    const userCookie = Cookies.get(USER_KEY);
+    if (userCookie) {
+      try {
+        return JSON.parse(userCookie) as User;
+      } catch (e) {
+        console.error("Erro ao parsear cookie de usuário:", e);
+        this.logout();
+        return null;
       }
-
-      return true;
-    } catch {
-      this.clearTokens();
-      return false;
     }
-  }
-
-  //Obter token
-  getToken(): string | undefined {
-    return Cookies.get(this.TOKEN_KEY);
-  }
-
-  // Obter dados do usuário
-  getCurrentUser(): User | null {
-    try {
-      const userData = Cookies.get(this.USER_KEY);
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  // Verificar se é admin
-  isAdmin(): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === "ADMIN";
-  }
-
-  // Função auxiliar para decodificar JWT
-  private parseJwt(token: string): any {
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join("")
-      );
-      return JSON.parse(jsonPayload);
-    } catch {
-      throw new Error("Token inválido");
-    }
+    return null;
   }
 }
 

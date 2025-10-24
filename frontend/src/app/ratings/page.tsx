@@ -160,8 +160,9 @@ export default function RatingsPage() {
           .includes(searchTerm.toLowerCase()) ||
         item.tmdbData?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
+      // REATORADO: usa 'item.rating' (number)
       const matchesRating =
-        ratingFilter === null || item.myVote === ratingFilter;
+        ratingFilter === null || item.rating === ratingFilter;
 
       const matchesType =
         typeFilter === "all" ||
@@ -174,10 +175,8 @@ export default function RatingsPage() {
 
   const getAverageRating = (items: (RatedMovie | RatedSerie)[]) => {
     if (items.length === 0) return 0;
-    const sum = items.reduce(
-      (acc, item) => acc + parseFloat(item.myVote || "0"),
-      0
-    );
+    // REATORADO: usa 'item.rating' (number) diretamente
+    const sum = items.reduce((acc, item) => acc + (item.rating || 0), 0);
     return (sum / items.length).toFixed(1);
   };
 
@@ -452,7 +451,7 @@ export default function RatingsPage() {
                           movie={item.tmdbData}
                           onClick={() => handleMovieClick(item)}
                           userRating={{
-                            myVote: item.myVote,
+                            rating: item.rating,
                             comment: item.comment,
                           }}
                         />
@@ -464,7 +463,7 @@ export default function RatingsPage() {
                           serie={item.tmdbData}
                           onClick={() => handleSerieClick(item)}
                           userRating={{
-                            myVote: item.myVote,
+                            rating: item.rating,
                             comment: item.comment,
                           }}
                         />

@@ -5,7 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Getter;
@@ -13,22 +13,23 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@CompoundIndex(def = "{'userId': 1, 'token': 1}", unique = true)
 @Document(collection = "passwordResetTokens")
 public class PasswordResetToken {
 
     @Id
     private String id;
 
+    @Indexed(unique = true)
     private String token;
 
+    @Indexed
     private String userId;
 
     private Instant expiryDate;
 
     public PasswordResetToken() {
         this.token = UUID.randomUUID().toString();
-        this.expiryDate = Instant.now().plus(15, ChronoUnit.MINUTES);
+        this.expiryDate = Instant.now().plus(30, ChronoUnit.MINUTES);
     }
 
     public boolean isExpired() {

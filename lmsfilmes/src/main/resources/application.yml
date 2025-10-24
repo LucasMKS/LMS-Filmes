@@ -38,6 +38,9 @@ tmdb:
     url: ${TMDB_API_URL}
     key: ${TMDB_API_KEY}
 
+frontend:
+  base-url: ${FRONTEND_URL}
+
 logging:
   level:
     org:

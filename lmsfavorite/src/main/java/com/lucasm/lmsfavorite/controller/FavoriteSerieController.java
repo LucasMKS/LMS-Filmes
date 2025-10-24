@@ -1,19 +1,19 @@
 package com.lucasm.lmsfavorite.controller;
 
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.lucasm.lmsfavorite.dto.ApiResponse;
+import com.lucasm.lmsfavorite.dto.FavoriteSerieStatusResponse;
 import com.lucasm.lmsfavorite.model.FavoriteSerie;
 import com.lucasm.lmsfavorite.service.FavoriteSerieService;
 
@@ -23,43 +23,48 @@ public class FavoriteSerieController {
 
     private static final Logger logger = LoggerFactory.getLogger(FavoriteSerieController.class);
 
-    @Autowired
-    private FavoriteSerieService favoriteService;
+    private final FavoriteSerieService favoriteService;
+
+    public FavoriteSerieController(FavoriteSerieService favoriteService) {
+        this.favoriteService = favoriteService;
+    }
 
     // Método para adicionar/remover uma série dos favoritos.
-    @PostMapping("/")
-    public ResponseEntity<String> toggleFavoriteSerie(@RequestParam String serieId) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        logger.info("CONTROLLER SÉRIE: Recebida requisição para toggle favorito - SerieID: {}, Email: {}", serieId, email);
+    @PostMapping("")
+    public ResponseEntity<FavoriteSerieStatusResponse> toggleFavoriteSerie(
+            @RequestParam String serieId,
+            Authentication authentication) {
 
-        favoriteService.toggleFavoriteSerie(serieId, email);
-        return ResponseEntity.ok("Favorite status updated");
+        String email = authentication.getName();
+        boolean newStatus = favoriteService.toggleFavoriteSerie(serieId, email);
+
+        return ResponseEntity.ok(new FavoriteSerieStatusResponse(serieId, newStatus));
     }
 
     // Método para verificar se uma série é favorita.
     @GetMapping("/status")
-    public ResponseEntity<Boolean> getFavoriteStatusSeries(@RequestParam String serieId) {
-        // Pega o email do usuário logado
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    public ResponseEntity<Boolean> getFavoriteStatusSeries(
+            @RequestParam String serieId,
+            Authentication authentication) {
 
+        String email = authentication.getName();
         boolean isFavorite = favoriteService.isFavoriteSerie(serieId, email);
         return ResponseEntity.ok(isFavorite);
     }
 
     // Método para obter todas as séries favoritas de um usuário.
     @GetMapping("/")
-    public ResponseEntity<?> getAllFavoritesSeries() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    public ResponseEntity<ApiResponse<List<FavoriteSerie>>> getAllFavoritesSeries(
+            Authentication authentication) {
+
+        String email = authentication.getName();
         List<FavoriteSerie> favorites = favoriteService.getAllFavoritesSeries(email);
 
-    if (favorites.isEmpty()) {
-            return ResponseEntity
-                    .ok(Map.of("message", "Nenhum filme favoritado encontrado", "data", favorites));
-        }
-        
-        return ResponseEntity
-            .ok(Map.of("message", "Filmes favoritados encontrados", "data", favorites));
+        String message = favorites.isEmpty()
+                ? "Nenhuma série favoritada encontrada"
+                : "Séries favoritadas encontradas";
+
+        return ResponseEntity.ok(new ApiResponse<>(message, favorites));
     }
 
-    
 }

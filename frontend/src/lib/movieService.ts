@@ -3,12 +3,18 @@ import {
   favoriteMoviesApi,
   ratingSeriesApi,
   favoriteSeriesApi,
-} from "./api";
-import { Movie, FavoriteMovie, Serie, FavoriteSerie } from "./types";
+} from "../lib/api";
+import {
+  Movie,
+  FavoriteMovie,
+  Serie,
+  FavoriteSerie,
+  FavoriteStatusResponse,
+  FavoriteSerieStatusResponse,
+} from "../lib/types";
 import { toast } from "sonner";
 
 class MovieService {
-  // Buscar filmes avaliados pelo usuário
   async getUserMovies(): Promise<Movie[]> {
     try {
       return await ratingMoviesApi.getRatedMovies();
@@ -17,22 +23,22 @@ class MovieService {
     }
   }
 
-  // Avaliar um filme
   async rateMovie(
     movieId: string | number,
-    rating: string,
+    rating: number,
     title: string,
     poster_path: string,
     comment?: string
   ): Promise<Movie> {
     try {
-      const response = await ratingMoviesApi.rateMovie(
-        movieId,
+      const payload = {
+        movieId: String(movieId),
         rating,
         title,
         poster_path,
-        comment
-      );
+        comment,
+      };
+      const response = await ratingMoviesApi.rateMovie(payload);
 
       toast.success("Filme avaliado!", {
         description: `Avaliação salva para "${title}"`,
@@ -44,7 +50,6 @@ class MovieService {
     }
   }
 
-  // Buscar filmes favoritos
   async getFavoriteMovies(): Promise<FavoriteMovie[]> {
     try {
       return await favoriteMoviesApi.getFavoriteMovies();
@@ -53,16 +58,20 @@ class MovieService {
     }
   }
 
-  // Adicionar/remover filme dos favoritos
-  async toggleFavoriteMovie(movieId: string, title?: string): Promise<void> {
+  async toggleFavoriteMovie(
+    movieId: string,
+    title?: string
+  ): Promise<FavoriteStatusResponse> {
     try {
-      await favoriteMoviesApi.toggleFavorite(movieId);
+      const response = await favoriteMoviesApi.toggleFavorite(movieId);
 
+      const action = response.isFavorite ? "adicionado aos" : "removido dos";
       toast.success("Favorito atualizado!", {
         description: title
-          ? `"${title}" foi atualizado nos favoritos`
-          : "Lista de favoritos atualizada",
+          ? `"${title}" foi ${action} favoritos.`
+          : "Lista de favoritos atualizada.",
       });
+      return response;
     } catch (error: any) {
       throw error;
     }
@@ -72,7 +81,6 @@ class MovieService {
   // MÉTODOS PARA SÉRIES
   // =====================
 
-  // Buscar séries avaliadas pelo usuário
   async getUserSeries(): Promise<Serie[]> {
     try {
       return await ratingSeriesApi.getRatedSeries();
@@ -81,22 +89,28 @@ class MovieService {
     }
   }
 
-  // Avaliar uma série
   async rateSerie(
     serieId: string | number,
-    rating: string,
+    rating: number,
     title: string,
     poster_path: string,
     comment?: string
   ): Promise<Serie> {
     try {
-      const response = await ratingSeriesApi.rateSerie(
-        serieId,
+      const payload = {
+        serieId: String(serieId),
         rating,
         title,
         poster_path,
-        comment
+        comment,
+      };
+
+      console.log(
+        "Enviando payload para /rate/series:",
+        JSON.stringify(payload, null, 2)
       );
+
+      const response = await ratingSeriesApi.rateSerie(payload);
 
       toast.success("Série avaliada!", {
         description: `Avaliação salva para "${title}"`,
@@ -108,7 +122,6 @@ class MovieService {
     }
   }
 
-  // Buscar séries favoritas
   async getFavoriteSeries(): Promise<FavoriteSerie[]> {
     try {
       return await favoriteSeriesApi.getFavoriteSeries();
@@ -117,16 +130,21 @@ class MovieService {
     }
   }
 
-  // Adicionar/remover série dos favoritos
-  async toggleFavoriteSerie(serieId: string, title?: string): Promise<void> {
+  async toggleFavoriteSerie(
+    serieId: string,
+    title?: string
+  ): Promise<FavoriteSerieStatusResponse> {
     try {
-      await favoriteSeriesApi.toggleFavorite(serieId);
+      const response = await favoriteSeriesApi.toggleFavorite(serieId);
 
+      const action = response.isFavorite ? "adicionada aos" : "removida dos";
       toast.success("Favorito atualizado!", {
         description: title
-          ? `"${title}" foi atualizado nos favoritos`
-          : "Lista de favoritos atualizada",
+          ? `"${title}" foi ${action} favoritos.`
+          : "Lista de favoritos atualizada.",
       });
+
+      return response;
     } catch (error: any) {
       throw error;
     }

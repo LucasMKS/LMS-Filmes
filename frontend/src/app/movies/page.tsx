@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import { MovieCard } from "../../components/MovieCard";
 import { MovieDialog } from "../../components/MovieDialog";
-import { TmdbMovie } from "../../lib/types";
+import { TmdbMovie, TmdbPage } from "../../lib/types";
 import { moviesApi, favoriteMoviesApi } from "../../lib/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,7 +63,6 @@ export default function MoviesPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Verificar autenticação
     if (!AuthService.isAuthenticated()) {
       router.push("/login");
       return;
@@ -74,42 +73,38 @@ export default function MoviesPage() {
   }, [router]);
 
   const loadMoviesByCategory = async (
-    category: "popular" | "now-playing" | "top-rated" | "upcoming",
+    category: MovieCategory,
     page: number
   ) => {
     try {
-      console.log(
-        `Carregando filmes por categoria: ${category} - página:`,
-        page
-      );
-      let movies;
+      let response: TmdbPage<TmdbMovie>;
 
       switch (category) {
         case "popular":
-          movies = await moviesApi.getPopularMovies(page);
+          response = await moviesApi.getPopularMovies(page);
           break;
         case "now-playing":
-          movies = await moviesApi.getNowPlayingMovies(page);
+          response = await moviesApi.getNowPlayingMovies(page);
           break;
         case "top-rated":
-          movies = await moviesApi.getTopRatedMovies(page);
+          response = await moviesApi.getTopRatedMovies(page);
           break;
         case "upcoming":
-          movies = await moviesApi.getUpcomingMovies(page);
+          response = await moviesApi.getUpcomingMovies(page);
           break;
         default:
-          movies = await moviesApi.getPopularMovies(page);
+          response = await moviesApi.getPopularMovies(page);
       }
 
       console.log("Filmes recebidos:", movies);
 
       if (page === 1) {
-        setMovies(movies);
+        setMovies(response.results);
       } else {
-        setMovies((prev) => [...prev, ...movies]);
+        setMovies((prev) => [...prev, ...response.results]);
       }
 
-      await loadFavoriteStatus(movies);
+      await loadFavoriteStatus(response.results);
 
       setCurrentPage(page);
     } catch (error: any) {
@@ -206,18 +201,17 @@ export default function MoviesPage() {
 
   const handleToggleFavorite = async (movieId: number) => {
     try {
-      console.log("Tentando alterar favorito para filme:", movieId);
-      await favoriteMoviesApi.toggleFavorite(movieId.toString());
-
-      // Buscar o status atualizado diretamente do servidor para garantir consistência
-      const updatedStatus = await favoriteMoviesApi.getFavoriteStatus(
+      const response = await favoriteMoviesApi.toggleFavorite(
         movieId.toString()
       );
-      setFavoriteStatus((prev) => ({ ...prev, [movieId]: updatedStatus }));
 
-      console.log("Status alterado com sucesso:", updatedStatus);
+      setFavoriteStatus((prev) => ({
+        ...prev,
+        [movieId]: response.isFavorite,
+      }));
+
       toast.success(
-        updatedStatus
+        response.isFavorite
           ? "Filme adicionado aos favoritos!"
           : "Filme removido dos favoritos!"
       );
@@ -240,19 +234,15 @@ export default function MoviesPage() {
     setIsSearchMode(true);
 
     try {
-      console.log("Buscar filmes:", searchQuery);
-      const searchData = await moviesApi.searchMovies(searchQuery, 1);
-      console.log("Resultados da busca completos:", searchData);
-      console.log("Tipo de searchData:", typeof searchData);
-      console.log("É array?", Array.isArray(searchData));
+      const response = await moviesApi.searchMovies(searchQuery, 1);
 
-      const results = Array.isArray(searchData) ? searchData : [];
+      const results = Array.isArray(response.results) ? response.results : [];
+
       setSearchResults(results);
       setCurrentPage(1);
 
       await loadFavoriteStatus(results);
 
-      console.log("Estado após setSearchResults:", results);
       toast.success(
         `Encontrados ${results.length} resultados para "${searchQuery}"`
       );

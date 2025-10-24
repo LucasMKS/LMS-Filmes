@@ -12,7 +12,7 @@ import com.lucasm.lmsrating.model.Movies;
 @Repository
 public interface MovieRepository extends MongoRepository<Movies, String> {
 
-    List<Movies> findAllByEmail(String email);
+    List<Movies> findAllByEmailOrderByCreatedAtDesc(String email);
 
     Optional<Movies> findByMovieIdAndEmail(String movieId, String email);
 

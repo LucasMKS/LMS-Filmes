@@ -2,7 +2,8 @@ package com.lucasm.lmsfilmes.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -10,10 +11,15 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.lucasm.lmsfilmes.dto.AuthDTO;
+import com.lucasm.lmsfilmes.dto.AuthResponseDTO;
 import com.lucasm.lmsfilmes.dto.EmailRequestDTO;
+import com.lucasm.lmsfilmes.dto.LoginRequestDTO;
+import com.lucasm.lmsfilmes.dto.RegisterRequestDTO;
 import com.lucasm.lmsfilmes.dto.ResetPasswordDTO;
+import com.lucasm.lmsfilmes.dto.UserResponseDTO;
 import com.lucasm.lmsfilmes.model.PasswordResetToken;
 import com.lucasm.lmsfilmes.model.User;
 import com.lucasm.lmsfilmes.repository.PasswordResetTokenRepository;
@@ -25,36 +31,36 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final RabbitMQProducer rabbitMQProducer;
+    private final UserRepository usersRepo;
+    private final PasswordResetTokenRepository tokenRepository;
+    private final JWTUtils jwtUtils;
+    private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
+    private final String frontendBaseUrl;
 
-    @Autowired
-    private UserRepository usersRepo;
-
-    @Autowired
-    private PasswordResetTokenRepository tokenRepository;
-
-    @Autowired
-    private JWTUtils jwtUtils;
-
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    AuthService(RabbitMQProducer rabbitMQProducer) {
+    public AuthService(RabbitMQProducer rabbitMQProducer, UserRepository usersRepo,
+                       PasswordResetTokenRepository tokenRepository, JWTUtils jwtUtils,
+                       AuthenticationManager authenticationManager, PasswordEncoder passwordEncoder,
+                       @Value("${frontend.base-url}") String frontendBaseUrl) {
         this.rabbitMQProducer = rabbitMQProducer;
+        this.usersRepo = usersRepo;
+        this.tokenRepository = tokenRepository;
+        this.jwtUtils = jwtUtils;
+        this.authenticationManager = authenticationManager;
+        this.passwordEncoder = passwordEncoder;
+        this.frontendBaseUrl = frontendBaseUrl;
     }
 
     @Transactional
-    public String register(AuthDTO registrationRequest) {
+    public AuthResponseDTO register(RegisterRequestDTO registrationRequest) {
         if (usersRepo.findByEmail(registrationRequest.email()).isPresent()) {
             log.warn("Tentativa de registro falhou: E-mail já cadastrado ({})", registrationRequest.email());
-            throw new IllegalArgumentException("E-mail já cadastrado.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "E-mail já cadastrado.");
         }
 
         if (usersRepo.findByNickname(registrationRequest.nickname()).isPresent()) {
             log.warn("Tentativa de registro falhou: Nickname já cadastrado ({})", registrationRequest.nickname());
-            throw new IllegalArgumentException("Username já cadastrado.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nickname já cadastrado.");
         }
 
         User ourUser = new User();
@@ -65,12 +71,13 @@ public class AuthService {
 
         User savedUser = usersRepo.save(ourUser);
         rabbitMQProducer.sendUserRegistered(savedUser);
+        
         var jwt = jwtUtils.generateToken(savedUser);
-
-        return jwt;
+        
+        return new AuthResponseDTO(jwt, new UserResponseDTO(savedUser));
     }
 
-    public String login(AuthDTO loginRequest) {
+    public AuthResponseDTO login(LoginRequestDTO loginRequest) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password()));
@@ -86,47 +93,40 @@ public class AuthService {
                 });
 
         var jwt = jwtUtils.generateToken(user);
-        return jwt;
+        
+        return new AuthResponseDTO(jwt, new UserResponseDTO(user));
     }
 
     @Transactional
     public void forgotPassword(EmailRequestDTO requestDTO) {
         String email = requestDTO.email();
         
-        User user = usersRepo.findByEmail(email).orElse(null);
+        usersRepo.findByEmail(email).ifPresent(user -> {
+            log.info("Iniciando processo de reset de senha para: {}", email);
+            
+            tokenRepository.findByUserId(user.getId()).ifPresent(token -> {
+                tokenRepository.delete(token);
+                log.debug("Token antigo de reset de senha removido para o usuário: {}", user.getEmail());
+            });
 
-        if (user == null) {
-            log.warn(
-                    "Reset Silencioso: Email não encontrado no sistema. Nenhuma ação tomada para prevenir enumeração de usuários. Email: {}",
-                    email);
-            return;
-        }
+            PasswordResetToken tokenEntity = new PasswordResetToken();
+            tokenEntity.setUserId(user.getId());
+            tokenRepository.save(tokenEntity);
 
-        tokenRepository.findByUserId(user.getId()).ifPresent(token -> {
-            tokenRepository.delete(token);
-            log.debug("Token antigo de reset de senha removido para o usuário: {}", user.getEmail());
+            String resetUrl = frontendBaseUrl + "/reset-password?token=" + tokenEntity.getToken();
+
+            rabbitMQProducer.sendPasswordReset(user.getEmail(), resetUrl);
         });
 
-        PasswordResetToken tokenEntity = new PasswordResetToken();
-        tokenEntity.setUserId(user.getId());
-
-        tokenRepository.save(tokenEntity);
-
-        // Constrói o link de reset (o frontend roda em http://localhost:3000)
-        String resetUrl = "http://localhost:3000/reset-password?token=" + tokenEntity.getToken();
-
-        rabbitMQProducer.sendPasswordReset(user.getEmail(), resetUrl);
-        
+        if (usersRepo.findByEmail(email).isEmpty()) {
+            log.warn("Reset Silencioso: Email não encontrado: {}. Nenhuma ação tomada.", email);
+        }
     }
 
     @Transactional
     public void resetPassword(ResetPasswordDTO resetPasswordDTO) {
         String token = resetPasswordDTO.getToken();
         String newPassword = resetPasswordDTO.getNewPassword();
-
-        if (token == null || token.trim().isEmpty()) {
-            throw new BadCredentialsException("Token é obrigatório");
-        }
 
         if (newPassword == null || newPassword.length() < 6) {
             throw new BadCredentialsException("A senha deve ter no mínimo 6 caracteres");
@@ -152,6 +152,8 @@ public class AuthService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         usersRepo.save(user);
+        
         tokenRepository.delete(tokenEntity);
+        log.info("Senha resetada com sucesso para o usuário: {}", user.getEmail());
     }
 }

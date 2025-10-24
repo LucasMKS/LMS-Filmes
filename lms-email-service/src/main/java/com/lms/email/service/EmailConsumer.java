@@ -2,16 +2,15 @@ package com.lms.email.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 import com.lms.email.config.RabbitMQConfig;
+import com.lms.email.dto.PasswordResetDTO;
+import com.lms.email.dto.UserRegistrationDTO;
 
-record UserRegistrationDTO(String nickname, String email, String timestamp) {
-}
-
-record PasswordResetDTO(String recipientEmail, String resetLink) {
-}
+import jakarta.mail.MessagingException;
 
 @Service
 public class EmailConsumer {
@@ -26,35 +25,37 @@ public class EmailConsumer {
 
     @RabbitListener(queues = RabbitMQConfig.USER_REGISTERED_QUEUE)
     public void consumeUserRegistration(UserRegistrationDTO userDTO) {
-        logger.info("Nome: {}, Email: {}", userDTO.nickname(), userDTO.email());
-        logger.info("Enviando email de boas-vindas para {} ({})...", userDTO.nickname(), userDTO.email());
         try {
-            
             emailSender.sendWelcomeEmail(userDTO.email(), userDTO.nickname());
 
-            logger.info("Email enviado com sucesso para: {}", userDTO.email());
-
+        } catch (MessagingException e) {
+            logger.error("Erro de mensageria ao enviar email de boas-vindas para {}: {}", 
+                         userDTO.email(), e.getMessage());
+            
+            throw new AmqpRejectAndDontRequeueException("Falha na mensageria do email de registro.", e);
+        
         } catch (Exception e) {
-            logger.error("Erro ao enviar email de boas-vindas para {}: {}", userDTO.email(), e.getMessage());
-            throw new RuntimeException("Falha no processamento do email de registro.", e);
+            logger.error("Erro inesperado ao processar registro de {}: {}", 
+                         userDTO.email(), e.getMessage());
+            
+            throw new AmqpRejectAndDontRequeueException("Falha inesperada.", e);
         }
     }
 
     @RabbitListener(queues = RabbitMQConfig.USER_RESET_QUEUE)
     public void consumePasswordReset(PasswordResetDTO resetDTO) {
-        logger.warn("Evento de Reset de Senha Recebido para: {}", resetDTO.recipientEmail());
-
         try {
-            logger.warn("Enviando email de reset para {} com link: {}",
-                    resetDTO.recipientEmail(), resetDTO.resetLink());
-
             emailSender.sendPasswordResetEmail(resetDTO.recipientEmail(), resetDTO.resetLink());
 
-            logger.warn("Email de reset de senha enviado com sucesso.");
-
+        } catch (MessagingException e) {
+            logger.error("Erro de mensageria ao enviar email de reset para {}: {}", 
+                         resetDTO.recipientEmail(), e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("Falha na mensageria do email de reset.", e);
+        
         } catch (Exception e) {
-            logger.error("Erro ao enviar email de reset para {}: {}", resetDTO.recipientEmail(), e.getMessage());
-            throw new RuntimeException("Falha no processamento do email de reset.", e);
+            logger.error("Erro inesperado ao enviar email de reset para {}: {}", 
+                         resetDTO.recipientEmail(), e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("Falha inesperada no email de reset.", e);
         }
     }
 }

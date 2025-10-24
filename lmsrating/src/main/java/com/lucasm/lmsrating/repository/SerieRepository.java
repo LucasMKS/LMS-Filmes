@@ -11,7 +11,7 @@ import com.lucasm.lmsrating.model.Series;
 @Repository
 public interface SerieRepository extends MongoRepository<Series, String>  {
 
-    List<Series> findAllByEmail(String email);
+    List<Series> findAllByEmailOrderByCreatedAtDesc(String email);
 
     Optional<Series> findBySerieIdAndEmail(String serieId, String email);
 }

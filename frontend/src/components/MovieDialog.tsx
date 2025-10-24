@@ -8,10 +8,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { RatingDialog } from "./RatingDialog";
-import { TmdbMovie } from "@/lib/types";
+import { TmdbMovie, Movie } from "@/lib/types";
 import { Star, Calendar, Clock, DollarSign, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
+import MovieService from "@/lib/movieService";
 import { ratingMoviesApi } from "@/lib/api";
+import { toast } from "sonner";
 
 interface MovieDialogProps {
   movie: TmdbMovie;
@@ -27,24 +29,32 @@ export function MovieDialog({
   onClose,
 }: MovieDialogProps) {
   const [isRatingOpen, setIsRatingOpen] = useState(false);
-  const [userRating, setUserRating] = useState<any>(null);
+  const [userRating, setUserRating] = useState<Movie | null>(null);
   const [loadingRating, setLoadingRating] = useState(false);
-  const displayMovie = movieDetails || movie;
+
+  const displayMovie = movieDetails ?? movie;
 
   useEffect(() => {
-    if (isOpen) {
-      loadUserRating();
+    if (isOpen && displayMovie) {
+      loadUserRating(String(displayMovie.id));
+    } else {
+      setUserRating(null);
     }
-  }, [isOpen, displayMovie.id]);
+  }, [isOpen, displayMovie?.id]);
 
-  const loadUserRating = async () => {
+  const loadUserRating = async (movieId: string) => {
+    if (loadingRating) return;
+
     setLoadingRating(true);
+    setUserRating(null);
     try {
-      const rating = await ratingMoviesApi.getMovieRating(displayMovie.id);
+      const rating = await ratingMoviesApi.getMovieRating(movieId);
       console.log("Avaliação carregada loadUserRating:", rating);
       setUserRating(rating);
-    } catch (error) {
-      console.error("Erro ao carregar avaliação:", error);
+    } catch (error: any) {
+      if (error?.status !== 404) {
+        console.error("Erro ao carregar avaliação do filme:", error);
+      }
       setUserRating(null);
     } finally {
       setLoadingRating(false);
@@ -73,16 +83,27 @@ export function MovieDialog({
     return `${hours}h ${mins}min`;
   };
 
-  const handleRateMovie = async (rating: string, comment?: string) => {
-    await ratingMoviesApi.rateMovie(
-      displayMovie.id,
-      rating,
-      displayMovie.title || "",
-      displayMovie.poster_path || "",
-      comment
-    );
-    // Recarregar a avaliação após enviar
-    await loadUserRating();
+  const handleRateMovie = async (ratingString: string, comment?: string) => {
+    if (!displayMovie) {
+      toast.error("Erro", { description: "Dados do filme não encontrados." });
+      return;
+    }
+
+    try {
+      const ratingValue = parseFloat(ratingString);
+
+      const updatedRating = await MovieService.rateMovie(
+        displayMovie.id,
+        ratingValue,
+        displayMovie.title || "Filme Desconhecido",
+        displayMovie.poster_path || "",
+        comment
+      );
+
+      setUserRating(updatedRating);
+    } catch (error) {
+      console.error("Erro capturado no Dialog ao submeter avaliação:", error);
+    }
   };
 
   return (
@@ -276,7 +297,7 @@ export function MovieDialog({
                 <div className="flex items-center gap-2 mt-1">
                   <Star className="w-4 h-4 text-yellow-400 fill-current drop-shadow-sm" />
                   <span className="text-slate-300 font-medium">
-                    {userRating.myVote}/10
+                    {userRating.rating}/10
                   </span>
                 </div>
                 {userRating.comment && (
@@ -305,7 +326,14 @@ export function MovieDialog({
           itemTitle={displayMovie.title || ""}
           itemType="filme"
           itemId={displayMovie.id}
-          currentRating={userRating}
+          currentRating={
+            userRating
+              ? {
+                  myVote: String(userRating.rating),
+                  comment: userRating.comment,
+                }
+              : null
+          }
         />
       </DialogContent>
     </Dialog>

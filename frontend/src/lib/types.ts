@@ -8,13 +8,7 @@ export interface AuthDTO {
 
 export interface AuthResponse {
   token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    nickname: string;
-    role: string;
-  };
+  user: User;
 }
 
 export interface User {
@@ -25,19 +19,65 @@ export interface User {
   role: string;
 }
 
-// Tipos para filmes
+// --------------------
+// Tipos de Avaliação (Rating)
+// --------------------
+
 export interface Movie {
   id: string;
   title: string;
   movieId: string;
-  myVote: string;
+  rating: number;
   comment?: string;
-  nickname: string;
+  email: string;
   poster_path: string;
-  created_at: string;
+  createdAt: string;
+  modifiedAt?: string;
+}
+export interface Serie {
+  id: string;
+  title: string;
+  serieId: string;
+  rating: number;
+  comment?: string;
+  email: string;
+  poster_path: string;
+  createdAt: string;
+  modifiedAt?: string;
 }
 
-// Tipo para dados do TMDB
+// --------------------
+// Tipos de Favoritos
+// --------------------
+
+export interface FavoriteMovie {
+  id: string;
+  movieId: string;
+  email: string;
+  favorite: boolean;
+}
+
+export interface FavoriteSerie {
+  id: string;
+  serieId: string;
+  email: string;
+  favorite: boolean;
+}
+
+export interface FavoriteStatusResponse {
+  movieId: string;
+  isFavorite: boolean;
+}
+
+export interface FavoriteSerieStatusResponse {
+  serieId: string;
+  isFavorite: boolean;
+}
+
+// --------------------
+// Tipos do TMDB (Externo)
+// --------------------
+
 export interface TmdbMovie {
   id: number;
   title: string;
@@ -67,7 +107,6 @@ export interface TmdbMovie {
   }>;
 }
 
-// Tipo para dados de séries do TMDB
 export interface TmdbSerie {
   id: number;
   name: string;
@@ -131,39 +170,37 @@ export interface TmdbSerie {
   }>;
 }
 
-export interface FavoriteMovie {
-  id: string;
-  movieId: string;
-  title: string;
-  nickname: string;
-  favorite: boolean;
+// --------------------
+// Tipos de UI (Enriquecidos)
+// --------------------
+
+export interface FavoriteMovieEnriched extends FavoriteMovie {
+  tmdbData?: TmdbMovie;
 }
 
-// Tipos para séries
-export interface Serie {
-  id: string;
-  title: string;
-  serieId: string;
-  myVote: string;
-  comment?: string;
-  nickname: string;
-  poster_path: string;
-  created_at: string;
+export interface FavoriteSerieEnriched extends FavoriteSerie {
+  tmdbData?: TmdbSerie;
 }
 
-export interface FavoriteSerie {
-  id: string;
-  serieId: string;
-  title: string;
-  nickname: string;
-  favorite: boolean;
+export interface AppApiResponse<T> {
+  data: T;
+  message: string;
 }
 
-// Tipos de resposta da API com tratamento de erro melhorado
+export interface SimpleApiResponse {
+  message: string;
+}
+
+export interface TmdbPage<T> {
+  page: number;
+  results: T[];
+  total_pages: number;
+  total_results: number;
+}
+
 export interface ApiResponse<T> {
   data: T;
-  message?: string;
-  status: number;
+  message: string;
 }
 
 export interface ApiError {
@@ -186,38 +223,4 @@ export interface RegisterFormData {
   nickname: string;
   password: string;
   confirmPassword: string;
-}
-
-// Tipos para favoritos
-export interface FavoriteMovie {
-  id: string;
-  movieId: string;
-  email: string;
-  favorite: boolean;
-}
-
-export interface FavoriteSerie {
-  id: string;
-  serieId: string;
-  email: string;
-  favorite: boolean;
-}
-
-// Interface para favoritos enriquecidos com dados do TMDB
-export interface FavoriteMovieEnriched extends FavoriteMovie {
-  tmdbData?: TmdbMovie;
-}
-
-export interface FavoriteSerieEnriched extends FavoriteSerie {
-  tmdbData?: TmdbSerie;
-}
-
-// Tipos para notificações Toast
-export type ToastType = "success" | "error" | "warning" | "info";
-
-export interface ToastOptions {
-  title?: string;
-  description?: string;
-  type: ToastType;
-  duration?: number;
 }

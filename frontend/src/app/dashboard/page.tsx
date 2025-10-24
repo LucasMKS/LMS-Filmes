@@ -121,7 +121,7 @@ export default function Dashboard() {
       return;
     }
 
-    const userData = AuthService.getCurrentUser();
+    const userData = AuthService.getUser();
     setUser(userData);
     // setLoading(false);
 

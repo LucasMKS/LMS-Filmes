@@ -1,8 +1,11 @@
 package com.lucasm.lmsfilmes.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lucasm.lmsfilmes.dto.TmdbDTO;
+import com.lucasm.lmsfilmes.dto.TmdbPageDTO;
 import com.lucasm.lmsfilmes.exceptions.ResourceNotFoundException;
+import com.lucasm.lmsfilmes.exceptions.TmdbApiException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +20,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.net.URLEncoder;
 
 @Service
@@ -37,42 +39,54 @@ public class MovieService {
         this.apiKey = apiKey;
     }
 
-    @Cacheable(value = "searchMovies", key = "#query + '_' + #page")
-    public List<TmdbDTO> searchMovies(String query, int page) {
-        try {
-            String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8.toString());
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI(tmdbApiUrl + "/search/movie?query=" + encodedQuery + "&include_adult=false&language=pt-BR&page=" + page))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
+    private HttpRequest buildRequest(String path) throws URISyntaxException {
+        URI uri = new URI(tmdbApiUrl + path + (path.contains("?") ? "&" : "?") + "language=pt-BR");
+        
+        return HttpRequest.newBuilder()
+                .uri(uri)
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+    }
 
+    private TmdbPageDTO<TmdbDTO> fetchPaginatedData(String path, String cacheKey) {
+        try {
+            HttpRequest request = buildRequest(path);
+            
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                MovieSearchResponse searchResponse = objectMapper.readValue(response.body(), MovieSearchResponse.class);
-                return searchResponse.results();
+                // Usamos TypeReference para desserializar a resposta genérica TmdbPageDTO<TmdbDTO>
+                return objectMapper.readValue(response.body(), new TypeReference<TmdbPageDTO<TmdbDTO>>() {});
             } else {
-                logger.warn("Nenhum filme encontrado para a query '{}', status code {}", query, response.statusCode());
-                throw new ResourceNotFoundException("Nenhum filme encontrado para a busca: " + query);
+                logger.error("Erro ao buscar dados do TMDB ({}): status {}", path, response.statusCode());
+                throw new TmdbApiException("Erro ao buscar dados do TMDB: status " + response.statusCode());
             }
 
         } catch (IOException | InterruptedException | URISyntaxException e) {
-            logger.error("Erro ao buscar filmes: {}", e.getMessage(), e);
-            throw new RuntimeException("Erro ao buscar filmes: " + e.getMessage(), e);
+            logger.error("Erro de sistema ao buscar dados do TMDB ({}): {}", path, e.getMessage(), e);
+            throw new TmdbApiException("Erro ao buscar dados do TMDB: " + e.getMessage(), e);
+        }
+    }
+
+    @Cacheable(value = "searchMovies", key = "#query + '_' + #page")
+    public TmdbPageDTO<TmdbDTO> searchMovies(String query, int page) {
+        try {
+            String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8.toString());
+            String path = "/search/movie?query=" + encodedQuery + "&include_adult=false&page=" + page;
+            return fetchPaginatedData(path, "searchMovies::" + query + "::" + page);
+        } catch (java.io.UnsupportedEncodingException e) {
+             logger.error("Erro ao encodar query: {}", query, e);
+             throw new TmdbApiException("Query de busca inválida.", e);
         }
     }
 
     @Cacheable(value = "movieDetails", key = "#movieId")
-    public TmdbDTO getMoviesDetails(String movieId) {
+    public TmdbDTO getMovieDetails(String movieId) {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI(tmdbApiUrl + "/movie/" + movieId + "?language=pt-BR"))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
+            String path = "/movie/" + movieId;
+            HttpRequest request = buildRequest(path);
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
@@ -83,117 +97,36 @@ public class MovieService {
                 throw new ResourceNotFoundException("Filme não encontrado: " + movieId);
             } else {
                 logger.error("Erro ao buscar detalhes do filme {}: status {}", movieId, response.statusCode());
-                throw new RuntimeException("Erro ao buscar detalhes do filme: status " + response.statusCode());
+                throw new TmdbApiException("Erro ao buscar detalhes do filme: status " + response.statusCode());
             }
         } catch (IOException | InterruptedException | URISyntaxException e) {
             logger.error("Erro ao buscar detalhes do filme {}: {}", movieId, e.getMessage(), e);
-            throw new RuntimeException("Erro ao buscar detalhes do filme: " + e.getMessage(), e);
+            throw new TmdbApiException("Erro ao buscar detalhes do filme: " + e.getMessage(), e);
         }
     }
 
     @Cacheable(value = "moviePopular", key = "#page")
-    public List<TmdbDTO> moviePopular(int page) {
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI(tmdbApiUrl + "/movie/popular?language=pt-BR&page=" + page + "&region=BR"))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                MovieSearchResponse searchResponse = objectMapper.readValue(response.body(), MovieSearchResponse.class);
-                return searchResponse.results();
-            } else {
-                logger.error("Erro ao buscar filmes populares: status {}", response.statusCode());
-                throw new RuntimeException("Erro ao buscar filmes populares: status " + response.statusCode());
-            }
-
-        } catch (IOException | InterruptedException | URISyntaxException e) {
-            logger.error("Erro ao buscar filmes populares: {}", e.getMessage(), e);
-            throw new RuntimeException("Erro ao buscar filmes populares: " + e.getMessage(), e);
-        }
+    public TmdbPageDTO<TmdbDTO> getPopularMovies(int page) {
+        String path = "/movie/popular?page=" + page + "&region=BR";
+        return fetchPaginatedData(path, "moviePopular::" + page);
     }
 
     @Cacheable(value = "moviesNowPlaying", key = "#page")
-    public List<TmdbDTO> nowPlayingMovies(int page) {
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI(tmdbApiUrl + "/movie/now_playing?language=pt-BR&page=" + page + "&region=BR"))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                MovieSearchResponse searchResponse = objectMapper.readValue(response.body(), MovieSearchResponse.class);
-                return searchResponse.results();
-            } else {
-                logger.error("Erro ao buscar filmes em cartaz: status {}", response.statusCode());
-                throw new RuntimeException("Erro ao buscar filmes em cartaz: status " + response.statusCode());
-            }
-
-        } catch (IOException | InterruptedException | URISyntaxException e) {
-            logger.error("Erro ao buscar filmes em cartaz: {}", e.getMessage(), e);
-            throw new RuntimeException("Erro ao buscar filmes em cartaz: " + e.getMessage(), e);
-        }
+    public TmdbPageDTO<TmdbDTO> getNowPlayingMovies(int page) {
+        String path = "/movie/now_playing?page=" + page + "&region=BR";
+        return fetchPaginatedData(path, "moviesNowPlaying::" + page);
     }
 
     @Cacheable(value = "moviesTopRated", key = "#page")
-    public List<TmdbDTO> topRatedMovies(int page) {
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI(tmdbApiUrl + "/movie/top_rated?language=pt-BR&page=" + page))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                MovieSearchResponse searchResponse = objectMapper.readValue(response.body(), MovieSearchResponse.class);
-                return searchResponse.results();
-            } else {
-                logger.error("Erro ao buscar filmes mais bem avaliados: status {}", response.statusCode());
-                throw new RuntimeException("Erro ao buscar filmes mais bem avaliados: status " + response.statusCode());
-            }
-
-        } catch (IOException | InterruptedException | URISyntaxException e) {
-            logger.error("Erro ao buscar filmes mais bem avaliados: {}", e.getMessage(), e);
-            throw new RuntimeException("Erro ao buscar filmes mais bem avaliados: " + e.getMessage(), e);
-        }
+    public TmdbPageDTO<TmdbDTO> getTopRatedMovies(int page) {
+        String path = "/movie/top_rated?page=" + page; // Top Rated é global, remover region=BR
+        return fetchPaginatedData(path, "moviesTopRated::" + page);
     }
 
     @Cacheable(value = "moviesUpcoming", key = "#page")
-    public List<TmdbDTO> upcomingMovies(int page) {
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI(tmdbApiUrl + "/movie/upcoming?language=pt-BR&page=" + page + "&region=BR"))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                MovieSearchResponse searchResponse = objectMapper.readValue(response.body(), MovieSearchResponse.class);
-                return searchResponse.results();
-            } else {
-                logger.error("Erro ao buscar filmes em breve: status {}", response.statusCode());
-                throw new RuntimeException("Erro ao buscar filmes em breve: status " + response.statusCode());
-            }
-
-        } catch (IOException | InterruptedException | URISyntaxException e) {
-            logger.error("Erro ao buscar filmes em breve: {}", e.getMessage(), e);
-            throw new RuntimeException("Erro ao buscar filmes em breve: " + e.getMessage(), e);
-        }
+    public TmdbPageDTO<TmdbDTO> getUpcomingMovies(int page) {
+        String path = "/movie/upcoming?page=" + page + "&region=BR";
+        return fetchPaginatedData(path, "moviesUpcoming::" + page);
     }
 
-    private static record MovieSearchResponse(List<TmdbDTO> results) {}
 }

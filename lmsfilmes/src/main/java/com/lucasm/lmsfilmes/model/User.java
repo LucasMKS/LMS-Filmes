@@ -3,20 +3,30 @@ package com.lucasm.lmsfilmes.model;
 import java.util.Collection;
 import java.util.List;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Setter
+@Getter
+@Document(collection = "user")
 public class User implements UserDetails {
+
+    @Id
     private String id;
 
     private String name;
 
+    @Indexed(unique = true)
     private String email;
 
+    @Indexed(unique = true)
     private String nickname;
 
     private String password;

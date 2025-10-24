@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import { SerieCard } from "../../components/SerieCard";
 import { SerieDialog } from "../../components/SerieDialog";
-import { TmdbSerie } from "../../lib/types";
+import { TmdbSerie, TmdbPage } from "../../lib/types";
 import { seriesApi, favoriteSeriesApi } from "../../lib/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,7 +65,6 @@ export default function SeriesPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Verificar autenticação
     if (!AuthService.isAuthenticated()) {
       router.push("/login");
       return;
@@ -77,42 +76,38 @@ export default function SeriesPage() {
   }, [router]);
 
   const loadSeriesByCategory = async (
-    category: "popular" | "airing-today" | "on-the-air" | "top-rated",
+    category: SerieCategory,
     page: number
   ) => {
     try {
-      console.log(
-        `Carregando séries por categoria: ${category} - página:`,
-        page
-      );
-      let series;
+      let response: TmdbPage<TmdbSerie>;
 
       switch (category) {
         case "popular":
-          series = await seriesApi.getPopularSeries(page);
+          response = await seriesApi.getPopularSeries(page);
           break;
         case "airing-today":
-          series = await seriesApi.getAiringTodaySeries(page);
+          response = await seriesApi.getAiringTodaySeries(page);
           break;
         case "on-the-air":
-          series = await seriesApi.getOnTheAirSeries(page);
+          response = await seriesApi.getOnTheAirSeries(page);
           break;
         case "top-rated":
-          series = await seriesApi.getTopRatedSeries(page);
+          response = await seriesApi.getTopRatedSeries(page);
           break;
         default:
-          series = await seriesApi.getPopularSeries(page);
+          response = await seriesApi.getPopularSeries(page);
       }
 
-      console.log("Séries recebidas:", series);
+      console.log("Séries recebidas (objeto Page):", response);
 
       if (page === 1) {
-        setSeries(series);
+        setSeries(response.results);
       } else {
-        setSeries((prev) => [...prev, ...series]);
+        setSeries((prev) => [...prev, ...response.results]);
       }
 
-      await loadFavoriteStatus(series);
+      await loadFavoriteStatus(response.results);
 
       setCurrentPage(page);
     } catch (error: any) {
@@ -143,14 +138,16 @@ export default function SeriesPage() {
 
   const loadMoreSearchResults = async () => {
     try {
-      const searchData = await seriesApi.searchSeries(
+      const response = await seriesApi.searchSeries(
         searchQuery,
         currentPage + 1
       );
-      const newResults = Array.isArray(searchData) ? searchData : [];
+      const newResults = Array.isArray(response.results)
+        ? response.results
+        : [];
 
       setSearchResults((prev) => [...prev, ...newResults]);
-      setCurrentPage(currentPage + 1);
+      setCurrentPage(response.page);
 
       await loadFavoriteStatus(newResults);
     } catch (error: any) {
@@ -192,17 +189,17 @@ export default function SeriesPage() {
 
   const handleToggleFavorite = async (serieId: number) => {
     try {
-      console.log("Tentando alterar favorito para série:", serieId);
-      await favoriteSeriesApi.toggleFavorite(serieId.toString());
-
-      const updatedStatus = await favoriteSeriesApi.getFavoriteStatus(
+      const response = await favoriteSeriesApi.toggleFavorite(
         serieId.toString()
       );
-      setFavoriteStatus((prev) => ({ ...prev, [serieId]: updatedStatus }));
 
-      console.log("Status alterado com sucesso:", updatedStatus);
+      setFavoriteStatus((prev) => ({
+        ...prev,
+        [serieId]: response.isFavorite,
+      }));
+
       toast.success(
-        updatedStatus
+        response.isFavorite
           ? "Série adicionada aos favoritos!"
           : "Série removida dos favoritos!"
       );
@@ -242,19 +239,14 @@ export default function SeriesPage() {
     setIsSearchMode(true);
 
     try {
-      console.log("Buscar séries:", searchQuery);
-      const searchData = await seriesApi.searchSeries(searchQuery, 1);
-      console.log("Resultados da busca completos:", searchData);
-      console.log("Tipo de searchData:", typeof searchData);
-      console.log("É array?", Array.isArray(searchData));
+      const response = await seriesApi.searchSeries(searchQuery, 1);
 
-      const results = Array.isArray(searchData) ? searchData : [];
+      const results = Array.isArray(response.results) ? response.results : [];
       setSearchResults(results);
       setCurrentPage(1);
 
       await loadFavoriteStatus(results);
 
-      console.log("Estado após setSearchResults:", results);
       toast.success(
         `Encontrados ${results.length} resultados para "${searchQuery}"`
       );

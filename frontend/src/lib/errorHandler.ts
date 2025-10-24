@@ -132,7 +132,7 @@ export class ErrorHandler {
    * Logging de erros (pode ser expandido para enviar para serviços de monitoramento)
    */
   // CORREÇÃO: Removido "function" e adicionado "static" para ser um método da classe
-  static logError(error: any): void {
+  static logError(error: any, p0: string): void {
     // Verificação comum para erros do Axios
     if (error.response) {
       // A requisição foi feita e o servidor respondeu com um status de erro

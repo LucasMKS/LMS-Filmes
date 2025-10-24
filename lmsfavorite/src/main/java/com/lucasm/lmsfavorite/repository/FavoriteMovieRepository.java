@@ -11,11 +11,8 @@ import java.util.Optional;
 @Repository
 public interface FavoriteMovieRepository extends MongoRepository<FavoriteMovie, String> {
 
-    List<FavoriteMovie> findAllByEmail(String email);
+    List<FavoriteMovie> findByEmailAndFavorite(String email, boolean favorite);
 
     Optional<FavoriteMovie> findByMovieIdAndEmail(String movieId, String email);
 
-    Optional<FavoriteMovie> findByEmailAndMovieId(String email, String movieId);
-
-    List<FavoriteMovie> findByEmailAndFavorite(String email, boolean favorite);
 }

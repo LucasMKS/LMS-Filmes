@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { RatingDialog } from "./RatingDialog";
-import { TmdbSerie } from "@/lib/types";
+import { TmdbSerie, Serie } from "@/lib/types";
 import {
   Star,
   Calendar,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ratingSeriesApi } from "@/lib/api";
+import MovieService from "@/lib/movieService";
 
 interface SerieDialogProps {
   isOpen: boolean;
@@ -36,27 +37,34 @@ export function SerieDialog({
   serieDetails,
 }: SerieDialogProps) {
   const [isRatingOpen, setIsRatingOpen] = useState(false);
-  const [userRating, setUserRating] = useState<any>(null);
+  const [userRating, setUserRating] = useState<Serie | null>(null);
   const [loadingRating, setLoadingRating] = useState(false);
 
   if (!serie) return null;
 
-  const serieData = serieDetails || serie;
+  const serieData = serieDetails ?? serie;
 
   useEffect(() => {
-    if (isOpen) {
-      loadUserRating();
+    if (isOpen && serieData) {
+      loadUserRating(String(serieData.id));
+    } else {
+      setUserRating(null);
     }
-  }, [isOpen, serieData.id]);
+  }, [isOpen, serieData?.id]);
 
-  const loadUserRating = async () => {
+  const loadUserRating = async (serieId: string) => {
+    if (loadingRating) return;
+
     setLoadingRating(true);
+    setUserRating(null);
     try {
-      const rating = await ratingSeriesApi.getSerieRating(serieData.id);
+      const rating = await ratingSeriesApi.getSerieRating(serieId);
       console.log("Avaliação carregada loadUserRating:", rating);
       setUserRating(rating);
-    } catch (error) {
-      console.error("Erro ao carregar avaliação:", error);
+    } catch (error: any) {
+      if (error?.status !== 404) {
+        console.error("Erro ao carregar avaliação:", error);
+      }
       setUserRating(null);
     } finally {
       setLoadingRating(false);
@@ -92,16 +100,27 @@ export function SerieDialog({
     );
   };
 
-  const handleRateSerie = async (rating: string, comment?: string) => {
-    await ratingSeriesApi.rateSerie(
-      serieData.id,
-      rating,
-      serieData.name || "",
-      serieData.poster_path || "",
-      comment
-    );
-    // Recarregar a avaliação após enviar
-    await loadUserRating();
+  const handleRateSerie = async (ratingString: string, comment?: string) => {
+    if (!serieData) {
+      // toast.error("Erro", { description: "Dados da série não encontrados." });
+      return;
+    }
+
+    try {
+      const ratingValue = parseFloat(ratingString);
+
+      const updatedRating = await MovieService.rateSerie(
+        serieData.id,
+        ratingValue,
+        serieData.name || "Série Desconhecida",
+        serieData.poster_path || "",
+        comment
+      );
+
+      setUserRating(updatedRating);
+    } catch (error) {
+      console.error("Erro capturado no Dialog ao submeter avaliação:", error);
+    }
   };
 
   return (
@@ -401,7 +420,7 @@ export function SerieDialog({
                 <div className="flex items-center gap-2 mt-1">
                   <Star className="w-4 h-4 text-yellow-400 fill-current drop-shadow-sm" />
                   <span className="text-slate-300 font-medium">
-                    {userRating.myVote}/10
+                    {userRating.rating}/10
                   </span>
                 </div>
                 {userRating.comment && (
@@ -430,7 +449,14 @@ export function SerieDialog({
           itemTitle={serieData.name || ""}
           itemType="série"
           itemId={serieData.id}
-          currentRating={userRating}
+          currentRating={
+            userRating
+              ? {
+                  myVote: String(userRating.rating), // Converte rating (number) para string
+                  comment: userRating.comment,
+                }
+              : null
+          }
         />
       </DialogContent>
     </Dialog>

@@ -18,7 +18,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const userData = AuthService.getCurrentUser();
+    const userData = AuthService.getUser();
     setUser(userData);
   }, []);
 
