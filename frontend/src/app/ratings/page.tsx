@@ -30,6 +30,11 @@ interface RatedSerie extends Serie {
 }
 
 export default function RatingsPage() {
+  const [moviePage, setMoviePage] = useState(0);
+  const [hasMoreMovies, setHasMoreMovies] = useState(true);
+  const [seriePage, setSeriePage] = useState(0);
+  const [hasMoreSeries, setHasMoreSeries] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [ratedMovies, setRatedMovies] = useState<RatedMovie[]>([]);
   const [ratedSeries, setRatedSeries] = useState<RatedSerie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,9 +47,78 @@ export default function RatingsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">(
-    "all"
+    "all",
   );
   const router = useRouter();
+
+  const MAX_CONCURRENT_DETAILS = 6;
+  const DETAIL_RETRY_COUNT = 2;
+  const DETAIL_RETRY_DELAY_MS = 500;
+
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  const mapWithConcurrency = async <T, R>(
+    items: T[],
+    limit: number,
+    mapper: (item: T) => Promise<R>,
+  ): Promise<R[]> => {
+    const results: R[] = new Array(items.length);
+    let index = 0;
+
+    const runWorker = async () => {
+      while (index < items.length) {
+        const currentIndex = index++;
+        results[currentIndex] = await mapper(items[currentIndex]);
+      }
+    };
+
+    const workers = Array.from(
+      { length: Math.min(limit, items.length) },
+      runWorker,
+    );
+    await Promise.all(workers);
+    return results;
+  };
+
+  const fetchWithRetry = async <T,>(
+    fetcher: () => Promise<T>,
+    retries: number,
+  ): Promise<T> => {
+    try {
+      return await fetcher();
+    } catch (error) {
+      if (retries <= 0) {
+        throw error;
+      }
+      await sleep(DETAIL_RETRY_DELAY_MS);
+      return fetchWithRetry(fetcher, retries - 1);
+    }
+  };
+
+  const buildFallbackMovie = (movie: Movie): TmdbMovie => {
+    const id = Number(movie.movieId);
+    return {
+      id: Number.isFinite(id) ? id : 0,
+      title: movie.title || "Filme desconhecido",
+      original_title: movie.title || "Filme desconhecido",
+      poster_path: movie.poster_path || undefined,
+      release_date: undefined,
+      vote_average: movie.rating || undefined,
+    };
+  };
+
+  const buildFallbackSerie = (serie: Serie): TmdbSerie => {
+    const id = Number(serie.serieId);
+    return {
+      id: Number.isFinite(id) ? id : 0,
+      name: serie.title || "Serie desconhecida",
+      original_name: serie.title || "Serie desconhecida",
+      poster_path: serie.poster_path || undefined,
+      first_air_date: undefined,
+      vote_average: serie.rating || undefined,
+    };
+  };
 
   useEffect(() => {
     // Verificar autenticação
@@ -53,62 +127,86 @@ export default function RatingsPage() {
       return;
     }
 
-    loadRatings();
+    loadRatings(0, true);
   }, [router]);
 
-  const loadRatings = async () => {
-    setLoading(true);
+  const loadRatings = async (page: number, isInitial = false) => {
+    if (isInitial) setLoading(true);
+    else setLoadingMore(true);
+
     try {
-      // Carregar filmes e séries avaliados
-      const [moviesResponse, seriesResponse] = await Promise.all([
-        ratingMoviesApi.getRatedMovies(),
-        ratingSeriesApi.getRatedSeries(),
+      const [moviesRes, seriesRes] = await Promise.all([
+        ratingMoviesApi.getRatedMoviesPaged(page, 20),
+        ratingSeriesApi.getRatedSeriesPaged(page, 20),
       ]);
 
-      // Enriquecer com dados do TMDB
-      const enrichedMovies = await Promise.all(
-        (moviesResponse || []).map(async (movie: Movie) => {
-          try {
-            const tmdbData = await moviesApi.getMovieDetails(
-              parseInt(movie.movieId)
-            );
-            return { ...movie, tmdbData };
-          } catch (error) {
-            console.error(
-              `Erro ao buscar detalhes do filme ${movie.movieId}:`,
-              error
-            );
-            return movie;
-          }
-        })
-      );
+      const newMoviesRaw = moviesRes.content || [];
+      const newSeriesRaw = seriesRes.content || [];
 
-      const enrichedSeries = await Promise.all(
-        (seriesResponse || []).map(async (serie: Serie) => {
-          try {
-            const tmdbData = await seriesApi.getSerieDetails(
-              parseInt(serie.serieId)
-            );
-            return { ...serie, tmdbData };
-          } catch (error) {
-            console.error(
-              `Erro ao buscar detalhes da série ${serie.serieId}:`,
-              error
-            );
-            return serie;
-          }
-        })
-      );
+      const [enrichedMovies, enrichedSeries] = await Promise.all([
+        mapWithConcurrency(
+          newMoviesRaw,
+          MAX_CONCURRENT_DETAILS,
+          async (m: Movie) => {
+            if (!m.movieId) return { ...m, tmdbData: buildFallbackMovie(m) };
 
-      setRatedMovies(enrichedMovies);
-      setRatedSeries(enrichedSeries);
+            try {
+              const tmdbData = await fetchWithRetry(
+                () => moviesApi.getMovieDetails(m.movieId),
+                DETAIL_RETRY_COUNT,
+              );
+              return { ...m, tmdbData };
+            } catch (error) {
+              console.error(`Erro ao enriquecer filme ID ${m.movieId}:`, error);
+              return { ...m, tmdbData: buildFallbackMovie(m) };
+            }
+          },
+        ),
+        mapWithConcurrency(
+          newSeriesRaw,
+          MAX_CONCURRENT_DETAILS,
+          async (s: Serie) => {
+            if (!s.serieId) return { ...s, tmdbData: buildFallbackSerie(s) };
+
+            try {
+              const tmdbData = await fetchWithRetry(
+                () => seriesApi.getSerieDetails(s.serieId),
+                DETAIL_RETRY_COUNT,
+              );
+              return { ...s, tmdbData };
+            } catch (error) {
+              console.error(`Erro ao enriquecer série ID ${s.serieId}:`, error);
+              return { ...s, tmdbData: buildFallbackSerie(s) };
+            }
+          },
+        ),
+      ]);
+
+      if (isInitial) {
+        setRatedMovies(enrichedMovies);
+        setRatedSeries(enrichedSeries);
+      } else {
+        setRatedMovies((prev) => [...prev, ...enrichedMovies]);
+        setRatedSeries((prev) => [...prev, ...enrichedSeries]);
+      }
+
+      setMoviePage(page);
+      setSeriePage(page);
+      setHasMoreMovies(!moviesRes.last);
+      setHasMoreSeries(!seriesRes.last);
     } catch (error) {
-      console.error("Erro ao carregar avaliações:", error);
-      toast.error("Erro ao carregar suas avaliações", {
-        description: "Tente novamente mais tarde",
-      });
+      console.error("Falha crítica no carregamento:", error);
+      toast.error("Erro ao carregar dados. Verifique sua conexão.");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // Função para o botão "Carregar Mais"
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMoreMovies) {
+      loadRatings(moviePage + 1);
     }
   };
 
@@ -150,7 +248,7 @@ export default function RatingsPage() {
     items: any[],
     searchTerm: string,
     ratingFilter: number | null,
-    itemType: "movie" | "serie"
+    itemType: "movie" | "serie",
   ) => {
     return items.filter((item) => {
       const matchesSearch =
@@ -189,10 +287,10 @@ export default function RatingsPage() {
     const avgOverall = getAverageRating([...ratedMovies, ...ratedSeries]);
 
     const moviesWithComments = ratedMovies.filter(
-      (m) => m.comment && m.comment.trim()
+      (m) => m.comment && m.comment.trim(),
     ).length;
     const seriesWithComments = ratedSeries.filter(
-      (s) => s.comment && s.comment.trim()
+      (s) => s.comment && s.comment.trim(),
     ).length;
 
     return {
@@ -212,13 +310,13 @@ export default function RatingsPage() {
     ratedMovies,
     searchQuery,
     filterRating,
-    "movie"
+    "movie",
   );
   const filteredSeries = filterItems(
     ratedSeries,
     searchQuery,
     filterRating,
-    "serie"
+    "serie",
   );
 
   const ContentGridLoader = () => (
@@ -471,6 +569,29 @@ export default function RatingsPage() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+            {(hasMoreMovies || hasMoreSeries) && !loading && (
+              <div className="flex justify-center mt-8 mb-12">
+                <Button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  variant="outline"
+                  size="lg"
+                  className="bg-gray-900 border-gray-700 text-slate-300 hover:bg-gray-800 hover:text-white min-w-[200px]"
+                >
+                  {loadingMore ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                      Carregando...
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp className="w-4 h-4 mr-2 text-yellow-400" />
+                      Carregar Mais Avaliações
+                    </>
+                  )}
+                </Button>
               </div>
             )}
           </>

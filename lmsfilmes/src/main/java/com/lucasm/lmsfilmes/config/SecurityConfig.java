@@ -31,18 +31,14 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception{
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth-> auth
-                        .requestMatchers("/auth/**", "/series/**", "/movies/**", "/actuator/health").permitAll()
-                        .requestMatchers("/admin/**").hasAnyAuthority("ADMIN")
-                        .requestMatchers("/user/**").hasAnyAuthority("USER", "ADMIN")
-                        .requestMatchers("/rate/**").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers("/lms-filmes/auth/**").permitAll()
-                        .requestMatchers("/lms-filmes/series/**").permitAll()
-                        .requestMatchers("/lms-filmes/movies/**").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/lms-filmes/admin/**").hasAnyAuthority("ADMIN")
-                        .requestMatchers("/lms-filmes/user/**").hasAnyAuthority("USER", "ADMIN")
-                        .requestMatchers("/lms-filmes/rate/**").hasAnyAuthority("ADMIN", "USER")
-                        .anyRequest().authenticated()
+                    .requestMatchers(
+                        "/auth/**", "/series/**", "/movies/**", "/actuator/health",
+                        "/lms-filmes/auth/**", "/lms-filmes/series/**", "/lms-filmes/movies/**"
+                    ).permitAll()
+                    .requestMatchers("/admin/**", "/lms-filmes/admin/**").hasAnyAuthority("ADMIN")
+                    .requestMatchers("/user/**", "/lms-filmes/user/**").hasAnyAuthority("USER", "ADMIN")
+                    .requestMatchers("/rate/**", "/lms-filmes/rate/**").hasAnyAuthority("ADMIN", "USER")
+                    .anyRequest().authenticated()
                 )
                 .sessionManagement(manager->manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)

@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.lucasm.lmsrating.dto.RatingRequestDTO;
@@ -28,7 +30,7 @@ public class RateMovieService {
         this.movieRepository = movieRepository;
     }
 
-    @CacheEvict(value = "userRatedMovies", key = "#email")
+    @CacheEvict(value = "userRatedMovies", allEntries = true)
     public Movies rateMovie(RatingRequestDTO request, String email) {
         try {
             Movies movie = movieRepository.findByMovieIdAndEmail(request.getMovieId(), email)
@@ -57,6 +59,14 @@ public class RateMovieService {
             logger.error("Erro ao buscar filmes avaliados para o usuário {}: {}", email, e.getMessage(), e);
             throw new MovieServiceException("Erro ao buscar filmes avaliados: " + e.getMessage(), e);
         }
+    }
+
+    public Page<Movies> searchRatedMoviesPaged(String email, Pageable pageable) {
+        return movieRepository.findAllByEmail(email, pageable);
+    }
+
+    public Page<Movies> searchRatedMoviesByTitle(String email, String title, Pageable pageable) {
+        return movieRepository.findByEmailAndTitleContainingIgnoreCase(email, title, pageable);
     }
 
     public Movies getMovieRating(String movieId, String email) {

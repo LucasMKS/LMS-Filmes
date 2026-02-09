@@ -31,7 +31,7 @@ public class JWTAuthFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
 
-        if (authHeader == null || authHeader.isBlank()) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -41,9 +41,6 @@ public class JWTAuthFilter extends OncePerRequestFilter {
         
         try {
             userEmail = jwtUtils.extractUsername(jwtToken);
-        } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            filterChain.doFilter(request, response);
-            return;
         } catch (Exception e) {
             filterChain.doFilter(request, response);
             return;

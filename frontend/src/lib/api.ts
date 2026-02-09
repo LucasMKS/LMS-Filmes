@@ -39,7 +39,7 @@ const attachAuthInterceptor = (apiInstance: any) => {
     (config: any) => {
       const publicEndpoints = ["/auth/login", "/auth/register"];
       const isPublic = publicEndpoints.some((endpoint) =>
-        config.url?.includes(endpoint)
+        config.url?.includes(endpoint),
       );
       if (!isPublic) {
         const token = Cookies.get("auth_token");
@@ -47,7 +47,7 @@ const attachAuthInterceptor = (apiInstance: any) => {
       }
       return config;
     },
-    (error: any) => Promise.reject(ErrorHandler.createApiError(error))
+    (error: any) => Promise.reject(ErrorHandler.createApiError(error)),
   );
 
   apiInstance.interceptors.response.use(
@@ -64,7 +64,7 @@ const attachAuthInterceptor = (apiInstance: any) => {
         }
       }
       return Promise.reject(apiError);
-    }
+    },
   );
 };
 
@@ -92,7 +92,7 @@ export const authApi = {
 
   resetPassword: (
     token: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<SimpleApiResponse> =>
     apiLmsFilmes
       .post("/auth/reset-password", { token, newPassword })
@@ -119,7 +119,7 @@ export const moviesApi = {
 
   searchMovies: (
     query: string,
-    page: number = 1
+    page: number = 1,
   ): Promise<TmdbPage<TmdbMovie>> =>
     apiLmsFilmes
       .get(`/movies/search?query=${encodeURIComponent(query)}&page=${page}`)
@@ -146,7 +146,7 @@ export const seriesApi = {
 
   searchSeries: (
     query: string,
-    page: number = 1
+    page: number = 1,
   ): Promise<TmdbPage<TmdbSerie>> =>
     apiLmsFilmes
       .get(`/series/search?query=${encodeURIComponent(query)}&page=${page}`)
@@ -184,6 +184,11 @@ export const ratingMoviesApi = {
   getRatedMovies: (): Promise<Movie[]> =>
     apiLmsRating.get("/rate/movies/").then((res) => res.data),
 
+  getRatedMoviesPaged: (page: number = 0, size: number = 20): Promise<any> =>
+    apiLmsRating
+      .get(`/rate/movies/paged?page=${page}&size=${size}`)
+      .then((res) => res.data),
+
   getMovieRating: (movieId: string): Promise<Movie> =>
     apiLmsRating.get(`/rate/movies/${movieId}`).then((res) => res.data),
 };
@@ -196,9 +201,11 @@ export const ratingSeriesApi = {
   getRatedSeries: (): Promise<Serie[]> =>
     apiLmsRating.get("/rate/series/").then((res) => res.data),
 
-  /**
-   * REATORADO: Busca a avaliação usando um path parameter (/{serieId}).
-   */
+  getRatedSeriesPaged: (page: number = 0, size: number = 20): Promise<any> =>
+    apiLmsRating
+      .get(`/rate/series/paged?page=${page}&size=${size}`)
+      .then((res) => res.data),
+
   getSerieRating: (serieId: string): Promise<Serie> =>
     apiLmsRating.get(`/rate/series/${serieId}`).then((res) => res.data),
 };

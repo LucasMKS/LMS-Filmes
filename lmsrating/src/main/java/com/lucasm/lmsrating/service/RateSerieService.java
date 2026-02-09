@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.lucasm.lmsrating.dto.SerieRatingRequestDTO;
@@ -27,7 +29,7 @@ public class RateSerieService {
         this.serieRepository = serieRepository;
     }
 
-    @CacheEvict(value = "userRatedSeries", key = "#email")
+    @CacheEvict(value = "userRatedSeries", allEntries = true)
     public Series rateSerie(SerieRatingRequestDTO request, String email) {
         try {
             Series serie = serieRepository.findBySerieIdAndEmail(request.getSerieId(), email)
@@ -59,10 +61,28 @@ public class RateSerieService {
         }
     }
 
+    public Page<Series> searchRatedSeriesPaged(String email, Pageable pageable) {
+        try {
+            return serieRepository.findAllByEmail(email, pageable);
+        } catch (Exception e) {
+            logger.error("Erro ao buscar séries paginadas para o usuário {}: {}", email, e.getMessage());
+            throw new MovieServiceException("Erro ao buscar séries avaliadas", e);
+        }
+    }
+
+    public Page<Series> searchRatedSeriesByTitle(String email, String title, Pageable pageable) {
+        try {
+            return serieRepository.findByEmailAndTitleContainingIgnoreCase(email, title, pageable);
+        } catch (Exception e) {
+            logger.error("Erro na busca por título para o usuário {}: {}", email, e.getMessage());
+            throw new MovieServiceException("Erro ao buscar séries por título", e);
+        }
+    }
+
     public Series getSerieRating(String serieId, String email) {
         return serieRepository.findBySerieIdAndEmail(serieId, email)
             .orElseThrow(() -> new ResourceNotFoundException(
-                "Avaliação não encontrada para a série " + serieId + " e usuário " + email
+                "Avaliação não encontrada para a série " + serieId
             ));
     }
 }
