@@ -1,5 +1,5 @@
 # Usar OpenJDK 21 como base
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jdk-alpine
 
 # Definir diretório de trabalho
 WORKDIR /app

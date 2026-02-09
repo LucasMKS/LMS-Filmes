@@ -49,3 +49,9 @@ logging:
         data:
           mongodb: DEBUG
           redis: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health"

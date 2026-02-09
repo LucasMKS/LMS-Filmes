@@ -99,7 +99,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                       "flex items-center space-x-2 text-sm",
                       item.current
                         ? "bg-blue-600 text-white hover:bg-blue-700"
-                        : "text-slate-400 hover:text-slate-300 hover:bg-slate-700"
+                        : "text-slate-400 hover:text-slate-300 hover:bg-slate-700",
                     )}
                   >
                     <Icon className="w-4 h-4" />
@@ -135,7 +135,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                 variant="destructive"
                 onClick={handleLogout}
                 size="sm"
-                className="flex items-center space-x-1 sm:space-x-2 text-sm px-2 sm:px-3"
+                className="flex items-center space-x-1 sm:space-x-2 text-sm px-2 sm:px-3 "
               >
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Sair</span>

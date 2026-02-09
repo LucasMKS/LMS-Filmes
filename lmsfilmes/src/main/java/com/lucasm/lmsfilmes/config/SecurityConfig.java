@@ -30,12 +30,18 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception{
         http.csrf(AbstractHttpConfigurer::disable)
-                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth-> auth
-                        .requestMatchers("/auth/**", "/series/**", "/movies/**").permitAll()
+                        .requestMatchers("/auth/**", "/series/**", "/movies/**", "/actuator/health").permitAll()
                         .requestMatchers("/admin/**").hasAnyAuthority("ADMIN")
                         .requestMatchers("/user/**").hasAnyAuthority("USER", "ADMIN")
                         .requestMatchers("/rate/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers("/lms-filmes/auth/**").permitAll()
+                        .requestMatchers("/lms-filmes/series/**").permitAll()
+                        .requestMatchers("/lms-filmes/movies/**").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/lms-filmes/admin/**").hasAnyAuthority("ADMIN")
+                        .requestMatchers("/lms-filmes/user/**").hasAnyAuthority("USER", "ADMIN")
+                        .requestMatchers("/lms-filmes/rate/**").hasAnyAuthority("ADMIN", "USER")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(manager->manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -62,4 +68,5 @@ public class SecurityConfig {
     AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception{
         return authenticationConfiguration.getAuthenticationManager();
     }
+
 }
