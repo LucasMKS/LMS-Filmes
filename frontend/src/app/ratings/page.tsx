@@ -135,9 +135,19 @@ export default function RatingsPage() {
     else setLoadingMore(true);
 
     try {
+      const moviePromise =
+        isInitial || hasMoreMovies
+          ? ratingMoviesApi.getRatedMoviesPaged(page, 20)
+          : Promise.resolve({ content: [], last: true });
+
+      const seriePromise =
+        isInitial || hasMoreSeries
+          ? ratingSeriesApi.getRatedSeriesPaged(page, 20)
+          : Promise.resolve({ content: [], last: true });
+
       const [moviesRes, seriesRes] = await Promise.all([
-        ratingMoviesApi.getRatedMoviesPaged(page, 20),
-        ratingSeriesApi.getRatedSeriesPaged(page, 20),
+        moviePromise,
+        seriePromise,
       ]);
 
       const newMoviesRaw = moviesRes.content || [];
@@ -186,14 +196,27 @@ export default function RatingsPage() {
         setRatedMovies(enrichedMovies);
         setRatedSeries(enrichedSeries);
       } else {
-        setRatedMovies((prev) => [...prev, ...enrichedMovies]);
-        setRatedSeries((prev) => [...prev, ...enrichedSeries]);
+        setRatedMovies((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const uniqueNew = enrichedMovies.filter(
+            (m) => !existingIds.has(m.id),
+          );
+          return [...prev, ...uniqueNew];
+        });
+        setRatedSeries((prev) => {
+          const existingIds = new Set(prev.map((s) => s.id));
+          const uniqueNew = enrichedSeries.filter(
+            (s) => !existingIds.has(s.id),
+          );
+          return [...prev, ...uniqueNew];
+        });
       }
 
       setMoviePage(page);
       setSeriePage(page);
-      setHasMoreMovies(!moviesRes.last);
-      setHasMoreSeries(!seriesRes.last);
+
+      if (isInitial || hasMoreMovies) setHasMoreMovies(!moviesRes.last);
+      if (isInitial || hasMoreSeries) setHasMoreSeries(!seriesRes.last);
     } catch (error) {
       console.error("Falha crítica no carregamento:", error);
       toast.error("Erro ao carregar dados. Verifique sua conexão.");
@@ -203,10 +226,13 @@ export default function RatingsPage() {
     }
   };
 
-  // Função para o botão "Carregar Mais"
   const handleLoadMore = () => {
-    if (!loadingMore && hasMoreMovies) {
-      loadRatings(moviePage + 1);
+    if (loadingMore) return;
+
+    const nextPage = Math.max(moviePage, seriePage) + 1;
+
+    if (hasMoreMovies || hasMoreSeries) {
+      loadRatings(nextPage);
     }
   };
 
