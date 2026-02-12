@@ -97,14 +97,16 @@ export function RatingDialog({
   };
 
   const getRatingDescription = (rating: number): string => {
-    if (rating >= 9) return "Obra-prima";
-    if (rating >= 8) return "Excelente";
-    if (rating >= 7) return "Muito bom";
-    if (rating >= 6) return "Bom";
+    if (rating >= 10) return "Obra-prima";
+    if (rating >= 9) return "Excelente";
+    if (rating >= 8) return "Muito bom";
+    if (rating >= 7) return "Bom";
+    if (rating >= 6) return "Legal";
     if (rating >= 5) return "Regular";
     if (rating >= 4) return "Fraco";
-    if (rating >= 2) return "Ruim";
-    if (rating > 0) return "Muito ruim";
+    if (rating >= 3) return "Ruim";
+    if (rating >= 2) return "Muito ruim";
+    if (rating > 0) return "Péssimo";
     return "";
   };
 
@@ -231,8 +233,8 @@ export function RatingDialog({
               {isSubmitting
                 ? "Enviando..."
                 : currentRating
-                ? "Atualizar"
-                : "Avaliar"}
+                  ? "Atualizar"
+                  : "Avaliar"}
             </Button>
           </div>
         </div>
