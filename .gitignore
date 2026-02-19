@@ -29,6 +29,8 @@ target/
 **/*.log
 **/error.log
 
+**/docs/
+
 ### Ficheiros de Configuração Sensíveis e Específicos de Ambiente ###
 **/application-prod.yml
 **/application-dev.yml
