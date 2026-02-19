@@ -1,6 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { TmdbPage } from "./types";
+
+const MAX_FAVORITE_STATUS_CONCURRENCY = 5;
 
 interface ListingMessages {
   loadTitle: string;
@@ -36,40 +38,88 @@ export function useMediaListing<T extends { id: number }, C extends string>({
   const [favoriteStatus, setFavoriteStatus] = useState<Record<number, boolean>>(
     {},
   );
+  const favoriteStatusRef = useRef<Record<number, boolean>>({});
+  const favoriteInFlightRef = useRef<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<T[]>([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<C>(initialCategory);
 
+  const mergeFavoriteStatus = useCallback(
+    (statusMap: Record<number, boolean>) => {
+      if (Object.keys(statusMap).length === 0) return;
+
+      favoriteStatusRef.current = {
+        ...favoriteStatusRef.current,
+        ...statusMap,
+      };
+      setFavoriteStatus((prev) => ({ ...prev, ...statusMap }));
+    },
+    [],
+  );
+
+  const resetFavoriteStatus = useCallback(() => {
+    favoriteStatusRef.current = {};
+    favoriteInFlightRef.current.clear();
+    setFavoriteStatus({});
+  }, []);
+
   const loadFavoriteStatus = useCallback(
     async (mediaList: T[]) => {
       try {
-        const statusPromises = mediaList.map(async (media) => {
-          try {
-            const isFavorite = await getFavoriteStatus(media.id.toString());
-            return { mediaId: media.id, isFavorite };
-          } catch (error) {
-            console.error(
-              `Erro ao verificar favorito para item ${media.id}:`,
-              error,
-            );
-            return { mediaId: media.id, isFavorite: false };
+        const pendingMedia = mediaList.filter((media) => {
+          const alreadyLoaded =
+            favoriteStatusRef.current[media.id] !== undefined;
+          const alreadyInFlight = favoriteInFlightRef.current.has(media.id);
+          return !alreadyLoaded && !alreadyInFlight;
+        });
+
+        if (pendingMedia.length === 0) return;
+
+        pendingMedia.forEach((media) =>
+          favoriteInFlightRef.current.add(media.id),
+        );
+
+        const queue = [...pendingMedia];
+        const statuses: Array<{ mediaId: number; isFavorite: boolean }> = [];
+        const workerCount = Math.min(
+          MAX_FAVORITE_STATUS_CONCURRENCY,
+          queue.length,
+        );
+
+        const workers = Array.from({ length: workerCount }, async () => {
+          while (queue.length > 0) {
+            const media = queue.shift();
+            if (!media) return;
+
+            try {
+              const isFavorite = await getFavoriteStatus(media.id.toString());
+              statuses.push({ mediaId: media.id, isFavorite });
+            } catch (error) {
+              console.error(
+                `Erro ao verificar favorito para item ${media.id}:`,
+                error,
+              );
+              statuses.push({ mediaId: media.id, isFavorite: false });
+            } finally {
+              favoriteInFlightRef.current.delete(media.id);
+            }
           }
         });
 
-        const statuses = await Promise.all(statusPromises);
+        await Promise.all(workers);
         const statusMap: Record<number, boolean> = {};
         statuses.forEach(({ mediaId, isFavorite }) => {
           statusMap[mediaId] = isFavorite;
         });
 
-        setFavoriteStatus((prev) => ({ ...prev, ...statusMap }));
+        mergeFavoriteStatus(statusMap);
       } catch (error) {
         console.error("Erro ao carregar status de favoritos:", error);
       }
     },
-    [getFavoriteStatus],
+    [getFavoriteStatus, mergeFavoriteStatus],
   );
 
   const loadItemsByCategory = useCallback(
@@ -118,10 +168,10 @@ export function useMediaListing<T extends { id: number }, C extends string>({
   }, [searchMedia, searchQuery, currentPage, loadFavoriteStatus]);
 
   const initialize = useCallback(async () => {
-    setFavoriteStatus({});
+    resetFavoriteStatus();
     setLoading(true);
     await loadItemsByCategory(initialCategory, 1);
-  }, [initialCategory, loadItemsByCategory]);
+  }, [initialCategory, loadItemsByCategory, resetFavoriteStatus]);
 
   const loadMoreItems = useCallback(() => {
     if (loadingMore) return;
@@ -174,9 +224,10 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     setSearchResults([]);
     setIsSearchMode(false);
     setCurrentPage(1);
+    resetFavoriteStatus();
     setLoading(true);
     loadItemsByCategory(categoryFilter, 1);
-  }, [categoryFilter, loadItemsByCategory]);
+  }, [categoryFilter, loadItemsByCategory, resetFavoriteStatus]);
 
   const handleCategoryChange = useCallback(
     (category: C) => {
@@ -185,10 +236,11 @@ export function useMediaListing<T extends { id: number }, C extends string>({
       setCategoryFilter(category);
       setIsSearchMode(false);
       setSearchQuery("");
+      resetFavoriteStatus();
       setLoading(true);
       loadItemsByCategory(category, 1);
     },
-    [categoryFilter, loadItemsByCategory],
+    [categoryFilter, loadItemsByCategory, resetFavoriteStatus],
   );
 
   const handleToggleFavorite = useCallback(
@@ -200,6 +252,7 @@ export function useMediaListing<T extends { id: number }, C extends string>({
           ...prev,
           [mediaId]: response.isFavorite,
         }));
+        favoriteStatusRef.current[mediaId] = response.isFavorite;
 
         toast.success(
           response.isFavorite

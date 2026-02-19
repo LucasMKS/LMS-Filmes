@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import { MediaSearchSection } from "../../components/MediaSearchSection";
@@ -30,6 +30,37 @@ export default function SeriesPage() {
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const loadByCategory = useCallback(
+    async (category: SerieCategory, page: number) => {
+      switch (category) {
+        case "popular":
+          return seriesApi.getPopularSeries(page);
+        case "airing-today":
+          return seriesApi.getAiringTodaySeries(page);
+        case "on-the-air":
+          return seriesApi.getOnTheAirSeries(page);
+        case "top-rated":
+          return seriesApi.getTopRatedSeries(page);
+        default:
+          return seriesApi.getPopularSeries(page);
+      }
+    },
+    [],
+  );
+
+  const listingMessages = useMemo(
+    () => ({
+      loadTitle: "Erro ao carregar séries",
+      loadDescription: "Não foi possível carregar a lista de séries",
+      searchTitle: "Erro na busca",
+      searchDescription: "Não foi possível realizar a busca. Tente novamente.",
+      toggleAddSuccess: "Série adicionada aos favoritos!",
+      toggleRemoveSuccess: "Série removida dos favoritos!",
+      toggleError: "Erro ao alterar favorito",
+    }),
+    [],
+  );
+
   const {
     items: series,
     loading,
@@ -49,32 +80,11 @@ export default function SeriesPage() {
     handleToggleFavorite,
   } = useMediaListing<TmdbSerie, SerieCategory>({
     initialCategory: "popular",
-    loadByCategory: async (category, page) => {
-      switch (category) {
-        case "popular":
-          return seriesApi.getPopularSeries(page);
-        case "airing-today":
-          return seriesApi.getAiringTodaySeries(page);
-        case "on-the-air":
-          return seriesApi.getOnTheAirSeries(page);
-        case "top-rated":
-          return seriesApi.getTopRatedSeries(page);
-        default:
-          return seriesApi.getPopularSeries(page);
-      }
-    },
+    loadByCategory,
     searchMedia: seriesApi.searchSeries,
     getFavoriteStatus: favoriteSeriesApi.getFavoriteStatus,
     toggleFavorite: favoriteSeriesApi.toggleFavorite,
-    messages: {
-      loadTitle: "Erro ao carregar séries",
-      loadDescription: "Não foi possível carregar a lista de séries",
-      searchTitle: "Erro na busca",
-      searchDescription: "Não foi possível realizar a busca. Tente novamente.",
-      toggleAddSuccess: "Série adicionada aos favoritos!",
-      toggleRemoveSuccess: "Série removida dos favoritos!",
-      toggleError: "Erro ao alterar favorito",
-    },
+    messages: listingMessages,
   });
 
   useEffect(() => {

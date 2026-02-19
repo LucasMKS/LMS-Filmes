@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import { MediaSearchSection } from "../../components/MediaSearchSection";
@@ -37,6 +37,37 @@ export default function MoviesPage() {
   const [movieDetails, setMovieDetails] = useState<TmdbMovie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const loadByCategory = useCallback(
+    async (category: MovieCategory, page: number) => {
+      switch (category) {
+        case "popular":
+          return moviesApi.getPopularMovies(page);
+        case "now-playing":
+          return moviesApi.getNowPlayingMovies(page);
+        case "top-rated":
+          return moviesApi.getTopRatedMovies(page);
+        case "upcoming":
+          return moviesApi.getUpcomingMovies(page);
+        default:
+          return moviesApi.getPopularMovies(page);
+      }
+    },
+    [],
+  );
+
+  const listingMessages = useMemo(
+    () => ({
+      loadTitle: "Erro ao carregar filmes",
+      loadDescription: "Não foi possível carregar a lista de filmes",
+      searchTitle: "Erro na busca",
+      searchDescription: "Não foi possível realizar a busca. Tente novamente.",
+      toggleAddSuccess: "Filme adicionado aos favoritos!",
+      toggleRemoveSuccess: "Filme removido dos favoritos!",
+      toggleError: "Erro ao alterar favorito",
+    }),
+    [],
+  );
+
   const {
     items: movies,
     loading,
@@ -56,32 +87,11 @@ export default function MoviesPage() {
     handleToggleFavorite,
   } = useMediaListing<TmdbMovie, MovieCategory>({
     initialCategory: "popular",
-    loadByCategory: async (category, page) => {
-      switch (category) {
-        case "popular":
-          return moviesApi.getPopularMovies(page);
-        case "now-playing":
-          return moviesApi.getNowPlayingMovies(page);
-        case "top-rated":
-          return moviesApi.getTopRatedMovies(page);
-        case "upcoming":
-          return moviesApi.getUpcomingMovies(page);
-        default:
-          return moviesApi.getPopularMovies(page);
-      }
-    },
+    loadByCategory,
     searchMedia: moviesApi.searchMovies,
     getFavoriteStatus: favoriteMoviesApi.getFavoriteStatus,
     toggleFavorite: favoriteMoviesApi.toggleFavorite,
-    messages: {
-      loadTitle: "Erro ao carregar filmes",
-      loadDescription: "Não foi possível carregar a lista de filmes",
-      searchTitle: "Erro na busca",
-      searchDescription: "Não foi possível realizar a busca. Tente novamente.",
-      toggleAddSuccess: "Filme adicionado aos favoritos!",
-      toggleRemoveSuccess: "Filme removido dos favoritos!",
-      toggleError: "Erro ao alterar favorito",
-    },
+    messages: listingMessages,
   });
 
   useEffect(() => {
