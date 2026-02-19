@@ -30,14 +30,14 @@ export class ErrorHandler {
       }
     }
 
-    // Caso 2: Erro de rede ou timeout
-    if (error.code === "NETWORK_ERROR" || error.code === "ECONNABORTED") {
-      return "Erro de conexão. Verifique sua internet e tente novamente.";
-    }
-
-    // Caso 3: Timeout
+    // Caso 2: Timeout
     if (error.code === "ECONNABORTED") {
       return "Tempo limite excedido. Tente novamente.";
+    }
+
+    // Caso 3: Erro de rede
+    if (error.code === "NETWORK_ERROR" || error.code === "ERR_NETWORK") {
+      return "Erro de conexão. Verifique sua internet e tente novamente.";
     }
 
     // Caso 4: Erro padrão baseado no status HTTP
@@ -121,6 +121,7 @@ export class ErrorHandler {
     // Códigos específicos de erro de rede
     const networkCodes = [
       "NETWORK_ERROR",
+      "ERR_NETWORK",
       "ECONNREFUSED",
       "ECONNABORTED",
       "ETIMEDOUT",

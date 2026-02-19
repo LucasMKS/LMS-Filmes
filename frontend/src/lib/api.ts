@@ -13,11 +13,27 @@ import {
   SimpleApiResponse,
 } from "./types";
 
-const API_GATEWAY_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const resolveApiGatewayUrl = (): string => {
+  const envUrl =
+    process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
-// Timeout maior para produção (cold starts na Vercel)
-const REQUEST_TIMEOUT = 30000; // 30 segundos
+  if (envUrl && envUrl.trim()) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  if (typeof window !== "undefined") {
+    const { protocol, hostname } = window.location;
+    return `${protocol}//${hostname}:8080`;
+  }
+
+  return "http://localhost:8080";
+};
+
+const API_GATEWAY_URL = resolveApiGatewayUrl();
+
+const timeoutFromEnv = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
+const REQUEST_TIMEOUT =
+  Number.isFinite(timeoutFromEnv) && timeoutFromEnv > 0 ? timeoutFromEnv : 0;
 
 // Helper para retry em caso de timeout/network error
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
