@@ -135,14 +135,16 @@ export default function MoviesPage() {
 
   const loadMoreSearchResults = async () => {
     try {
-      const searchData = await moviesApi.searchMovies(
+      const response = await moviesApi.searchMovies(
         searchQuery,
         currentPage + 1,
       );
-      const newResults = Array.isArray(searchData) ? searchData : [];
+      const newResults = Array.isArray(response.results)
+        ? response.results
+        : [];
 
       setSearchResults((prev) => [...prev, ...newResults]);
-      setCurrentPage(currentPage + 1);
+      setCurrentPage(response.page);
 
       await loadFavoriteStatus(newResults);
     } catch (error: any) {
@@ -158,9 +160,7 @@ export default function MoviesPage() {
     setDialogOpen(true);
 
     try {
-      console.log("Carregando detalhes do filme:", movie.id);
       const movieDetails = await moviesApi.getMovieDetails(movie.id);
-      console.log("Detalhes do filme recebidos:", movieDetails);
       setMovieDetails(movieDetails);
     } catch (error: any) {
       console.error("Erro ao carregar detalhes do filme:", error);
@@ -302,7 +302,7 @@ export default function MoviesPage() {
                   placeholder="Digite o nome do filme..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="bg-slate-700/30 !border-slate-600 placeholder:text-slate-400 pr-10"
                 />
                 {searchQuery && (

@@ -68,11 +68,6 @@ const attachAuthInterceptor = (apiInstance: any) => {
   );
 };
 
-apiLmsFavorite.interceptors.request.use((config) => {
-  console.log("Axios Favorite Request:", config.baseURL, config.url);
-  return config;
-});
-
 [apiLmsFilmes, apiLmsRating, apiLmsFavorite].forEach(attachAuthInterceptor);
 
 // --------------------

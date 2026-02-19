@@ -66,8 +66,6 @@ export default function FavoritesPage() {
         favoriteMoviesApi.getFavoriteMovies(),
         favoriteSeriesApi.getFavoriteSeries(),
       ]);
-      console.log("Filmes favoritos:", moviesResponse);
-      console.log("Séries favoritas:", seriesResponse);
 
       // Enriquecer com dados do TMDB
       const enrichedMovies = await Promise.all(
@@ -88,7 +86,7 @@ export default function FavoritesPage() {
       );
 
       const enrichedSeries = await Promise.all(
-        (seriesResponse.data || []).map(async (serie: FavoriteSerie) => {
+        (seriesResponse || []).map(async (serie: FavoriteSerie) => {
           try {
             const tmdbData = await seriesApi.getSerieDetails(
               parseInt(serie.serieId),
@@ -208,12 +206,6 @@ export default function FavoritesPage() {
         name.includes(searchLower) ||
         originalTitle.includes(searchLower) ||
         originalName.includes(searchLower);
-
-      console.log(
-        `Filtering item: ${
-          title || name
-        }, search: ${searchLower}, matches: ${matchesSearch}`,
-      );
 
       return matchesSearch;
     });

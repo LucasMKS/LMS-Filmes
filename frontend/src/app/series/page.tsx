@@ -214,9 +214,7 @@ export default function SeriesPage() {
     setDialogOpen(true);
 
     try {
-      console.log("Carregando detalhes da série:", serie.id);
       const serieDetails = await seriesApi.getSerieDetails(serie.id);
-      console.log("Detalhes da série recebidos:", serieDetails);
       setSerieDetails(serieDetails);
     } catch (error: any) {
       console.error("Erro ao carregar detalhes da série:", error);
@@ -306,7 +304,7 @@ export default function SeriesPage() {
                   placeholder="Digite o nome da série..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="bg-slate-700/30 !border-slate-600 placeholder:text-slate-400 pr-10"
                 />
                 {searchQuery && (
