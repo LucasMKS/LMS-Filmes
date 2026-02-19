@@ -51,7 +51,7 @@ export default function MoviesPage() {
   const [movieDetails, setMovieDetails] = useState<TmdbMovie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [favoriteStatus, setFavoriteStatus] = useState<Record<number, boolean>>(
-    {}
+    {},
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -74,7 +74,7 @@ export default function MoviesPage() {
 
   const loadMoviesByCategory = async (
     category: MovieCategory,
-    page: number
+    page: number,
   ) => {
     try {
       let response: TmdbPage<TmdbMovie>;
@@ -137,7 +137,7 @@ export default function MoviesPage() {
     try {
       const searchData = await moviesApi.searchMovies(
         searchQuery,
-        currentPage + 1
+        currentPage + 1,
       );
       const newResults = Array.isArray(searchData) ? searchData : [];
 
@@ -175,13 +175,13 @@ export default function MoviesPage() {
       const statusPromises = moviesList.map(async (movie) => {
         try {
           const isFavorite = await favoriteMoviesApi.getFavoriteStatus(
-            movie.id.toString()
+            movie.id.toString(),
           );
           return { movieId: movie.id, isFavorite };
         } catch (error) {
           console.error(
             `Erro ao verificar favorito para filme ${movie.id}:`,
-            error
+            error,
           );
           return { movieId: movie.id, isFavorite: false };
         }
@@ -202,7 +202,7 @@ export default function MoviesPage() {
   const handleToggleFavorite = async (movieId: number) => {
     try {
       const response = await favoriteMoviesApi.toggleFavorite(
-        movieId.toString()
+        movieId.toString(),
       );
 
       setFavoriteStatus((prev) => ({
@@ -213,7 +213,7 @@ export default function MoviesPage() {
       toast.success(
         response.isFavorite
           ? "Filme adicionado aos favoritos!"
-          : "Filme removido dos favoritos!"
+          : "Filme removido dos favoritos!",
       );
     } catch (error) {
       console.error("Erro ao alterar favorito:", error);
@@ -244,7 +244,7 @@ export default function MoviesPage() {
       await loadFavoriteStatus(results);
 
       toast.success(
-        `Encontrados ${results.length} resultados para "${searchQuery}"`
+        `Encontrados ${results.length} resultados para "${searchQuery}"`,
       );
     } catch (error: any) {
       console.error("Erro ao buscar filmes:", error);

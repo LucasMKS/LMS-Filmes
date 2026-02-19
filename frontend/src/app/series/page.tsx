@@ -53,7 +53,7 @@ export default function SeriesPage() {
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [favoriteStatus, setFavoriteStatus] = useState<Record<number, boolean>>(
-    {}
+    {},
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -77,7 +77,7 @@ export default function SeriesPage() {
 
   const loadSeriesByCategory = async (
     category: SerieCategory,
-    page: number
+    page: number,
   ) => {
     try {
       let response: TmdbPage<TmdbSerie>;
@@ -140,7 +140,7 @@ export default function SeriesPage() {
     try {
       const response = await seriesApi.searchSeries(
         searchQuery,
-        currentPage + 1
+        currentPage + 1,
       );
       const newResults = Array.isArray(response.results)
         ? response.results
@@ -163,13 +163,13 @@ export default function SeriesPage() {
       const statusPromises = seriesList.map(async (serie) => {
         try {
           const isFavorite = await favoriteSeriesApi.getFavoriteStatus(
-            serie.id.toString()
+            serie.id.toString(),
           );
           return { serieId: serie.id, isFavorite };
         } catch (error) {
           console.error(
             `Erro ao verificar favorito para série ${serie.id}:`,
-            error
+            error,
           );
           return { serieId: serie.id, isFavorite: false };
         }
@@ -190,7 +190,7 @@ export default function SeriesPage() {
   const handleToggleFavorite = async (serieId: number) => {
     try {
       const response = await favoriteSeriesApi.toggleFavorite(
-        serieId.toString()
+        serieId.toString(),
       );
 
       setFavoriteStatus((prev) => ({
@@ -201,7 +201,7 @@ export default function SeriesPage() {
       toast.success(
         response.isFavorite
           ? "Série adicionada aos favoritos!"
-          : "Série removida dos favoritos!"
+          : "Série removida dos favoritos!",
       );
     } catch (error) {
       console.error("Erro ao alterar favorito:", error);
@@ -248,7 +248,7 @@ export default function SeriesPage() {
       await loadFavoriteStatus(results);
 
       toast.success(
-        `Encontrados ${results.length} resultados para "${searchQuery}"`
+        `Encontrados ${results.length} resultados para "${searchQuery}"`,
       );
     } catch (error: any) {
       console.error("Erro ao buscar séries:", error);

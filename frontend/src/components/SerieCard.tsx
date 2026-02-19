@@ -1,8 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { MediaCard } from "@/components/MediaCard";
 import { TmdbSerie } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
-import { Star, Tv, MessageSquare, Heart } from "lucide-react";
+import { Tv, UserStar } from "lucide-react";
 
 interface SerieCardProps {
   serie: TmdbSerie;
@@ -25,7 +23,9 @@ export function SerieCard({
   onFavoriteToggle,
 }: SerieCardProps) {
   const imageUrl = serie.poster_path
-    ? `https://image.tmdb.org/t/p/w500${serie.poster_path}`
+    ? serie.poster_path.startsWith("http")
+      ? serie.poster_path
+      : `https://image.tmdb.org/t/p/w500${serie.poster_path}`
     : "/placeholder-movie.jpg";
 
   const getYearRange = () => {
@@ -42,85 +42,24 @@ export function SerieCard({
   };
 
   return (
-    <Card
-      className="group cursor-pointer hover:scale-[1.02] transition-all duration-300 bg-slate-800/80 backdrop-blur-sm border-slate-700/50 hover:border-slate-600/70 hover:shadow-xl hover:shadow-slate-900/30"
+    <MediaCard
+      imageUrl={imageUrl}
+      altText={serie.name}
+      title={serie.name}
+      subtitle={getYearRange()}
       onClick={onClick}
-    >
-      <CardContent className="p-0">
-        <div className="relative">
-          <img
-            src={imageUrl}
-            alt={serie.name}
-            className="w-full h-[300px] object-cover rounded-t-lg"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = "/placeholder-movie.jpg";
-            }}
-          />
-
-          {/* Badge da avaliação do usuário */}
-          {userRating && (
-            <div className="absolute top-2 right-2 bg-blue-600/90 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
-              <Star className="w-3 h-3 fill-current" />
-              {userRating.rating}
-            </div>
-          )}
-
-          <Badge className="absolute top-2 left-2 bg-green-600/90 text-white text-xs">
-            <Tv className="w-3 h-3 mr-1" />
-            Série
-          </Badge>
-
-          {/* Botão de favorito */}
-          {showFavoriteButton && onFavoriteToggle && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`absolute top-2 right-2 w-8 h-8 p-0 rounded-full transition-all duration-300 z-10 ${
-                isFavorite
-                  ? "bg-pink-600/90 hover:bg-pink-700/90 text-white shadow-lg scale-110 backdrop-blur-sm"
-                  : "bg-black/60 hover:bg-black/80 text-white hover:scale-110 backdrop-blur-sm"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onFavoriteToggle();
-              }}
-            >
-              <Heart
-                className={`w-4 h-4 ${isFavorite ? "fill-current" : ""}`}
-              />
-            </Button>
-          )}
-
-          {/* Ícone de comentário (apenas quando não há botão de favorito) */}
-          {userRating && userRating.comment && !showFavoriteButton && (
-            <div className="absolute bottom-2 right-2 bg-green-600/90 backdrop-blur-sm text-white p-1 rounded-full shadow-lg">
-              <MessageSquare className="w-3 h-3" />
-            </div>
-          )}
-          {/* Overlay com informações básicas */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-t-lg flex items-end backdrop-blur-[1px]">
-            <div className="p-4 w-full">
-              <div className="flex items-center justify-between text-white">
-                <div className="flex items-center space-x-2">
-                  <Star className="w-4 h-4 text-yellow-400 fill-current drop-shadow-sm" />
-                  <span className="text-sm font-medium drop-shadow-sm">
-                    {serie.vote_average?.toFixed(1) || "N/A"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Informações da série */}
-        <div className="p-4">
-          <h3 className="text-slate-50 font-medium text-sm line-clamp-2 mb-2">
-            {serie.name}
-          </h3>
-          <p className="text-slate-400 text-xs">{getYearRange()}</p>
-        </div>
-      </CardContent>
-    </Card>
+      userRating={userRating}
+      showFavoriteButton={showFavoriteButton}
+      isFavorite={isFavorite}
+      onFavoriteToggle={onFavoriteToggle}
+      badgeLabel="Série"
+      badgeIcon={Tv}
+      badgeClassName="bg-green-600/90"
+      overlayRating={serie.vote_average}
+      overlayIcon={UserStar}
+      overlayIconClassName="text-yellow-500"
+      userRatingIconClassName="text-yellow-300"
+      cardClassName="hover:shadow-zinc-950 bg-gray-900 backdrop-blur-sm border-2 !border-slate-950 shadow-zinc-950 shadow-lg"
+    />
   );
 }

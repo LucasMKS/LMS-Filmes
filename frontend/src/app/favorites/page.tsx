@@ -26,24 +26,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Heart,
-  Film,
-  Tv,
-  Calendar,
-  Search,
-  Filter,
-  TrendingUp,
-  X,
-  Trash2,
-} from "lucide-react";
+import { Heart, Film, Tv, Search, Filter, X } from "lucide-react";
 
 export default function FavoritesPage() {
   const [favoriteMovies, setFavoriteMovies] = useState<FavoriteMovieEnriched[]>(
-    []
+    [],
   );
   const [favoriteSeries, setFavoriteSeries] = useState<FavoriteSerieEnriched[]>(
-    []
+    [],
   );
   const [loading, setLoading] = useState(true);
   const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>(null);
@@ -54,7 +44,7 @@ export default function FavoritesPage() {
   const [isSerieDialogOpen, setIsSerieDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">(
-    "all"
+    "all",
   );
   const router = useRouter();
 
@@ -84,34 +74,34 @@ export default function FavoritesPage() {
         (moviesResponse || []).map(async (movie: FavoriteMovie) => {
           try {
             const tmdbData = await moviesApi.getMovieDetails(
-              parseInt(movie.movieId)
+              parseInt(movie.movieId),
             );
             return { ...movie, tmdbData };
           } catch (error) {
             console.error(
               `Erro ao buscar detalhes do filme ${movie.movieId}:`,
-              error
+              error,
             );
             return movie;
           }
-        })
+        }),
       );
 
       const enrichedSeries = await Promise.all(
         (seriesResponse.data || []).map(async (serie: FavoriteSerie) => {
           try {
             const tmdbData = await seriesApi.getSerieDetails(
-              parseInt(serie.serieId)
+              parseInt(serie.serieId),
             );
             return { ...serie, tmdbData };
           } catch (error) {
             console.error(
               `Erro ao buscar detalhes da série ${serie.serieId}:`,
-              error
+              error,
             );
             return serie;
           }
-        })
+        }),
       );
 
       setFavoriteMovies(enrichedMovies);
@@ -159,13 +149,13 @@ export default function FavoritesPage() {
       if (type === "movie") {
         await favoriteMoviesApi.toggleFavorite(id);
         setFavoriteMovies((prev) =>
-          prev.filter((movie) => movie.movieId !== id)
+          prev.filter((movie) => movie.movieId !== id),
         );
         toast.success("Filme removido dos favoritos!");
       } else {
         await favoriteSeriesApi.toggleFavorite(id);
         setFavoriteSeries((prev) =>
-          prev.filter((serie) => serie.serieId !== id)
+          prev.filter((serie) => serie.serieId !== id),
         );
         toast.success("Série removida dos favoritos!");
       }
@@ -183,7 +173,7 @@ export default function FavoritesPage() {
   const filterItems = (
     items: any[],
     searchTerm: string,
-    type: string = "all"
+    type: string = "all",
   ) => {
     return items.filter((item) => {
       // Filtro por tipo
@@ -222,7 +212,7 @@ export default function FavoritesPage() {
       console.log(
         `Filtering item: ${
           title || name
-        }, search: ${searchLower}, matches: ${matchesSearch}`
+        }, search: ${searchLower}, matches: ${matchesSearch}`,
       );
 
       return matchesSearch;
@@ -462,10 +452,6 @@ export default function FavoritesPage() {
                             handleRemoveFavorite("movie", item.movieId)
                           }
                         />
-                        <Badge className="absolute top-2 left-2 bg-blue-600/90 text-white text-xs">
-                          <Film className="w-3 h-3 mr-1" />
-                          Filme
-                        </Badge>
                       </>
                     )}
                     {type === "serie" && item.tmdbData && (
@@ -479,10 +465,6 @@ export default function FavoritesPage() {
                             handleRemoveFavorite("serie", item.serieId)
                           }
                         />
-                        <Badge className="absolute top-2 left-2 bg-green-600/90 text-white text-xs">
-                          <Tv className="w-3 h-3 mr-1" />
-                          Série
-                        </Badge>
                       </>
                     )}
                   </div>
