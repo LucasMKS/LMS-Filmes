@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import AuthService from "../../lib/auth";
 import { MediaSearchSection } from "../../components/MediaSearchSection";
 import { MediaResultsSection } from "../../components/MediaResultsSection";
 import { SerieCard } from "../../components/SerieCard";
@@ -30,7 +28,6 @@ export default function SeriesPage() {
   const [selectedSerie, setSelectedSerie] = useState<TmdbSerie | null>(null);
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const router = useRouter();
 
   const {
     items: series,
@@ -80,12 +77,8 @@ export default function SeriesPage() {
   });
 
   useEffect(() => {
-    if (!AuthService.isAuthenticated()) {
-      router.push("/login");
-      return;
-    }
     initialize();
-  }, [router, initialize]);
+  }, [initialize]);
 
   const loadMoreSeries = () => {
     loadMoreItems();

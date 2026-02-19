@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import AuthService from "../../lib/auth";
 import { MediaSearchSection } from "../../components/MediaSearchSection";
 import { MediaResultsSection } from "../../components/MediaResultsSection";
 import { MovieCard } from "../../components/MovieCard";
@@ -37,7 +35,6 @@ export default function MoviesPage() {
   const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>(null);
   const [movieDetails, setMovieDetails] = useState<TmdbMovie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const router = useRouter();
 
   const {
     items: movies,
@@ -87,12 +84,8 @@ export default function MoviesPage() {
   });
 
   useEffect(() => {
-    if (!AuthService.isAuthenticated()) {
-      router.push("/login");
-      return;
-    }
     initialize();
-  }, [router, initialize]);
+  }, [initialize]);
 
   const loadMoreMovies = () => {
     loadMoreItems();

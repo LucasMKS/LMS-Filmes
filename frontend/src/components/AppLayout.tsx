@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import AuthService from "../lib/auth";
 import { Navigation } from "./Navigation";
 
@@ -10,26 +9,10 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const authenticated = AuthService.isAuthenticated();
-      setIsAuthenticated(authenticated);
-      setLoading(false);
-
-      // Redirecionar para login se não autenticado e não estiver em uma rota pública
-      const publicRoutes = ["/", "/login", "/reset-password"];
-      if (!authenticated && !publicRoutes.includes(pathname)) {
-        router.push("/login");
-      }
-    };
-
-    checkAuth();
-  }, [pathname, router]);
+  // Middleware já cuida da autenticação, apenas verificamos state para UI
+  const isAuthenticated = AuthService.isAuthenticated();
 
   const getPageTitle = (pathname: string): string => {
     const pageTitles: Record<string, string> = {
@@ -51,17 +34,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const shouldShowBackButton = () => {
     return pathname !== "/dashboard";
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-zinc-950">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-slate-400">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-900">

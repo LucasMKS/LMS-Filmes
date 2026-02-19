@@ -46,17 +46,10 @@ export default function FavoritesPage() {
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">(
     "all",
   );
-  const router = useRouter();
 
   useEffect(() => {
-    // Verificar autenticação
-    if (!AuthService.isAuthenticated()) {
-      router.push("/login");
-      return;
-    }
-
     loadFavorites();
-  }, [router]);
+  }, []);
 
   const loadFavorites = async () => {
     setLoading(true);

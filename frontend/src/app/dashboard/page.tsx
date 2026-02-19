@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import AuthService from "../../lib/auth";
 import {
   favoriteMoviesApi,
@@ -113,20 +112,12 @@ export default function Dashboard() {
     averageSerieRating: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    if (!AuthService.isAuthenticated()) {
-      router.push("/login");
-      return;
-    }
-
     const userData = AuthService.getUser();
     setUser(userData);
-    // setLoading(false);
-
     loadStatistics();
-  }, [router]);
+  }, []);
 
   const loadStatistics = async () => {
     setLoadingStats(true);
@@ -144,7 +135,7 @@ export default function Dashboard() {
         movieRatings.length > 0
           ? movieRatings.reduce(
               (sum: number, rating: any) => sum + parseFloat(rating.myVote),
-              0
+              0,
             ) / movieRatings.length
           : 0;
 
@@ -153,7 +144,7 @@ export default function Dashboard() {
         serieRatings.length > 0
           ? serieRatings.reduce(
               (sum: number, rating: any) => sum + parseFloat(rating.myVote),
-              0
+              0,
             ) / serieRatings.length
           : 0;
 

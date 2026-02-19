@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import AuthService from "../../lib/auth";
 import {
   ratingMoviesApi,
   ratingSeriesApi,
@@ -49,7 +47,6 @@ export default function RatingsPage() {
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">(
     "all",
   );
-  const router = useRouter();
 
   const MAX_CONCURRENT_DETAILS = 6;
   const DETAIL_RETRY_COUNT = 2;
@@ -121,14 +118,8 @@ export default function RatingsPage() {
   };
 
   useEffect(() => {
-    // Verificar autenticação
-    if (!AuthService.isAuthenticated()) {
-      router.push("/login");
-      return;
-    }
-
     loadRatings(0, true);
-  }, [router]);
+  }, []);
 
   const loadRatings = async (page: number, isInitial = false) => {
     if (isInitial) setLoading(true);
