@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import AuthService from "../../lib/auth";
 import {
   favoriteMoviesApi,
@@ -101,6 +102,7 @@ const colorClasses: Record<
 };
 
 export default function Dashboard() {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   // const [loading, setLoading] = useState(true);
   const [statistics, setStatistics] = useState({
