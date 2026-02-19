@@ -48,7 +48,10 @@ export default function FavoritesPage() {
   );
 
   useEffect(() => {
-    loadFavorites();
+    // Aguarda token estar disponível antes de carregar
+    if (AuthService.isAuthenticated()) {
+      loadFavorites();
+    }
   }, []);
 
   const loadFavorites = async () => {

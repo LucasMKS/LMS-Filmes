@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import AuthService from "../lib/auth";
 import { Navigation } from "./Navigation";
@@ -10,9 +11,15 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
 
   // Middleware já cuida da autenticação, apenas verificamos state para UI
-  const isAuthenticated = AuthService.isAuthenticated();
+  const isAuthenticated = isClient && AuthService.isAuthenticated();
+
+  useEffect(() => {
+    // Marca componente como montado no cliente
+    setIsClient(true);
+  }, []);
 
   const getPageTitle = (pathname: string): string => {
     const pageTitles: Record<string, string> = {

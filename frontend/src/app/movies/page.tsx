@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import AuthService from "../../lib/auth";
 import { MediaSearchSection } from "../../components/MediaSearchSection";
 import { MediaResultsSection } from "../../components/MediaResultsSection";
 import { MovieCard } from "../../components/MovieCard";
@@ -84,7 +85,10 @@ export default function MoviesPage() {
   });
 
   useEffect(() => {
-    initialize();
+    // Aguarda token estar disponível antes de inicializar
+    if (AuthService.isAuthenticated()) {
+      initialize();
+    }
   }, [initialize]);
 
   const loadMoreMovies = () => {

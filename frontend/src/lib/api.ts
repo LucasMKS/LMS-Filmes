@@ -16,22 +16,47 @@ import {
 const API_GATEWAY_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+// Timeout maior para produção (cold starts na Vercel)
+const REQUEST_TIMEOUT = 30000; // 30 segundos
+
+// Helper para retry em caso de timeout/network error
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const withRetry = async <T>(
+  fn: () => Promise<T>,
+  retries = 2,
+  delay = 1000,
+): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error: any) {
+    if (
+      retries > 0 &&
+      (error.code === "ECONNABORTED" || error.code === "NETWORK_ERROR")
+    ) {
+      await sleep(delay);
+      return withRetry(fn, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
+
 const apiLmsFilmes = axios.create({
   baseURL: `${API_GATEWAY_URL}/lms-filmes`,
   headers: { "Content-Type": "application/json" },
-  timeout: 10000,
+  timeout: REQUEST_TIMEOUT,
 });
 
 const apiLmsRating = axios.create({
   baseURL: `${API_GATEWAY_URL}/lms-rating`,
   headers: { "Content-Type": "application/json" },
-  timeout: 10000,
+  timeout: REQUEST_TIMEOUT,
 });
 
 const apiLmsFavorite = axios.create({
   baseURL: `${API_GATEWAY_URL}/lms-favorite`,
   headers: { "Content-Type": "application/json" },
-  timeout: 10000,
+  timeout: REQUEST_TIMEOUT,
 });
 
 const attachAuthInterceptor = (apiInstance: any) => {

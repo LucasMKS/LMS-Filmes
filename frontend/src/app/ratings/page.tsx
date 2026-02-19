@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import AuthService from "../../lib/auth";
 import {
   ratingMoviesApi,
   ratingSeriesApi,
@@ -118,7 +119,10 @@ export default function RatingsPage() {
   };
 
   useEffect(() => {
-    loadRatings(0, true);
+    // Aguarda token estar disponível antes de carregar
+    if (AuthService.isAuthenticated()) {
+      loadRatings(0, true);
+    }
   }, []);
 
   const loadRatings = async (page: number, isInitial = false) => {

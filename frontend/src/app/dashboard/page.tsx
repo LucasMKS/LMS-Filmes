@@ -114,9 +114,12 @@ export default function Dashboard() {
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
-    const userData = AuthService.getUser();
-    setUser(userData);
-    loadStatistics();
+    // Aguarda token estar disponível antes de carregar
+    if (AuthService.isAuthenticated()) {
+      const userData = AuthService.getUser();
+      setUser(userData);
+      loadStatistics();
+    }
   }, []);
 
   const loadStatistics = async () => {
