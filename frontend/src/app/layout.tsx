@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { AppLayout } from "@/components/AppLayout";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,11 +31,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased `}
         suppressHydrationWarning={true}
       >
-        <AppLayout>
-          <div className="bg-gradient-to-br from-slate-900 to-zinc-950">
-            {children}
-          </div>
-        </AppLayout>
+        <Providers>
+          <AppLayout>
+            <div className="bg-gradient-to-br from-slate-900 to-zinc-950">
+              {children}
+            </div>
+          </AppLayout>
+        </Providers>
         <Toaster />
       </body>
     </html>

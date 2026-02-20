@@ -79,6 +79,7 @@ export default function SeriesPage() {
     handleCategoryChange,
     handleToggleFavorite,
   } = useMediaListing<TmdbSerie, SerieCategory>({
+    mediaType: "serie",
     initialCategory: "popular",
     loadByCategory,
     searchMedia: seriesApi.searchSeries,
@@ -88,7 +89,6 @@ export default function SeriesPage() {
   });
 
   useEffect(() => {
-    // Aguarda token estar disponível antes de inicializar
     if (AuthService.isAuthenticated()) {
       initialize();
     }
@@ -122,7 +122,7 @@ export default function SeriesPage() {
   const SerieGridLoader = () => (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-      <p className="text-slate-400 font-medium">Carregando series...</p>
+      <p className="text-slate-400 font-medium">Carregando séries...</p>
     </div>
   );
 

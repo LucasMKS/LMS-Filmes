@@ -11,13 +11,11 @@ import { toast } from "sonner";
 import { useState, Suspense, useEffect } from "react";
 import { ErrorHandler } from "@/lib/errorHandler";
 
-// Esquema para SOLICITAR a redefinição de senha
 const requestResetSchema = z.object({
   email: z.string().email("Por favor, insira um e-mail válido."),
 });
 type RequestResetData = z.infer<typeof requestResetSchema>;
 
-// Esquema para REDEFINIR a senha
 const resetPasswordSchema = z
   .object({
     password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
@@ -44,17 +42,14 @@ function ResetPasswordForm() {
     setIsTokenChecked(true);
   }, [searchParams]);
 
-  // Formulário para REDEFINIR a senha
   const resetForm = useForm<ResetPasswordData>({
     resolver: zodResolver(resetPasswordSchema),
   });
 
-  // Formulário para SOLICITAR o reset
   const requestForm = useForm<RequestResetData>({
     resolver: zodResolver(requestResetSchema),
   });
 
-  // Função de submit para REDEFINIR
   const onResetSubmit = async (data: ResetPasswordData) => {
     setLoading(true);
     try {
@@ -83,7 +78,6 @@ function ResetPasswordForm() {
     }
   };
 
-  // Função de submit para SOLICITAR
   const onRequestSubmit = async (data: RequestResetData) => {
     setLoading(true);
     try {
@@ -100,9 +94,6 @@ function ResetPasswordForm() {
     }
   };
 
-  // --- Renderização Condicional ---
-
-  // Estado de loading inicial enquanto verifica o token
   if (!isTokenChecked) {
     return (
       <div className="w-full max-w-md text-center">
@@ -111,7 +102,6 @@ function ResetPasswordForm() {
     );
   }
 
-  // CENÁRIO 1: Token EXISTE. Mostrar formulário de redefinição.
   if (token) {
     return (
       <div className="w-full max-w-md space-y-6 p-6 rounded-xl bg-gray-900 !border-gray-800 border-2 shadow-2xl shadow-zinc-950">

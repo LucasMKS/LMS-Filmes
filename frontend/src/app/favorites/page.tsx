@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import {
@@ -48,7 +47,6 @@ export default function FavoritesPage() {
   );
 
   useEffect(() => {
-    // Aguarda token estar disponível antes de carregar
     if (AuthService.isAuthenticated()) {
       loadFavorites();
     }
@@ -57,13 +55,11 @@ export default function FavoritesPage() {
   const loadFavorites = async () => {
     setLoading(true);
     try {
-      // Carregar filmes e séries favoritos
       const [moviesResponse, seriesResponse] = await Promise.all([
         favoriteMoviesApi.getFavoriteMovies(),
         favoriteSeriesApi.getFavoriteSeries(),
       ]);
 
-      // Enriquecer com dados do TMDB
       const enrichedMovies = await Promise.all(
         (moviesResponse || []).map(async (movie: FavoriteMovie) => {
           try {
@@ -179,21 +175,16 @@ export default function FavoritesPage() {
         if (type === "serie" && !isSerie) return false;
       }
 
-      // Se não há termo de busca, retorna true (já passou pelo filtro de tipo)
       if (!searchTerm.trim()) {
         return true;
       }
 
-      // Filtro por busca
       const searchLower = searchTerm.toLowerCase().trim();
 
-      // Verifica no título do filme
       const title = item.tmdbData?.title?.toLowerCase() || "";
 
-      // Verifica no nome da série
       const name = item.tmdbData?.name?.toLowerCase() || "";
 
-      // Verifica no título original (se existir)
       const originalTitle = item.tmdbData?.original_title?.toLowerCase() || "";
       const originalName = item.tmdbData?.original_name?.toLowerCase() || "";
 

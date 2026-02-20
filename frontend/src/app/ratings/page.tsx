@@ -119,7 +119,6 @@ export default function RatingsPage() {
   };
 
   useEffect(() => {
-    // Aguarda token estar disponível antes de carregar
     if (AuthService.isAuthenticated()) {
       loadRatings(0, true);
     }

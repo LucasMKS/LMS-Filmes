@@ -86,6 +86,7 @@ export default function MoviesPage() {
     handleCategoryChange,
     handleToggleFavorite,
   } = useMediaListing<TmdbMovie, MovieCategory>({
+    mediaType: "movie",
     initialCategory: "popular",
     loadByCategory,
     searchMedia: moviesApi.searchMovies,
@@ -95,7 +96,6 @@ export default function MoviesPage() {
   });
 
   useEffect(() => {
-    // Aguarda token estar disponível antes de inicializar
     if (AuthService.isAuthenticated()) {
       initialize();
     }

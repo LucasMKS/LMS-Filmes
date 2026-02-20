@@ -104,7 +104,6 @@ const colorClasses: Record<
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  // const [loading, setLoading] = useState(true);
   const [statistics, setStatistics] = useState({
     totalMovieRatings: 0,
     totalSerieRatings: 0,
@@ -116,7 +115,6 @@ export default function Dashboard() {
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
-    // Aguarda token estar disponível antes de carregar
     if (AuthService.isAuthenticated()) {
       const userData = AuthService.getUser();
       setUser(userData);
@@ -135,7 +133,6 @@ export default function Dashboard() {
           ratingSeriesApi.getRatedSeries().catch(() => []),
         ]);
 
-      // Calcular média das avaliações de filmes
       const avgMovieRating =
         movieRatings.length > 0
           ? movieRatings.reduce(
@@ -144,7 +141,6 @@ export default function Dashboard() {
             ) / movieRatings.length
           : 0;
 
-      // Calcular média das avaliações de séries
       const avgSerieRating =
         serieRatings.length > 0
           ? serieRatings.reduce(
@@ -167,19 +163,6 @@ export default function Dashboard() {
       setLoadingStats(false);
     }
   };
-
-  // if (loading) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
-  //       <div className="flex flex-col items-center space-y-4">
-  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-  //         <p className="text-slate-400 font-medium">
-  //           Carregando seu dashboard...
-  //         </p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   if (!user) {
     return null;
