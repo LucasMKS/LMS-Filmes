@@ -19,10 +19,10 @@ const serieCategories: {
   label: string;
   Icon: LucideIcon;
 }[] = [
-  { id: "popular", label: "Populares", Icon: TrendingUp },
-  { id: "airing-today", label: "Em Cartaz", Icon: Clock },
-  { id: "top-rated", label: "Mais Avaliados", Icon: Star },
-  { id: "on-the-air", label: "No Ar", Icon: Radio },
+  { id: "popular", label: "Em Alta", Icon: TrendingUp },
+  { id: "airing-today", label: "Exibidos Hoje", Icon: Clock },
+  { id: "top-rated", label: "Melhor Avaliados", Icon: Star },
+  { id: "on-the-air", label: "Em Exibição", Icon: Radio },
 ];
 
 export default function SeriesPage() {
