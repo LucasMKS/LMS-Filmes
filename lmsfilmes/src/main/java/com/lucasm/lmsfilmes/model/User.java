@@ -55,7 +55,6 @@ public class User implements UserDetails, Serializable {
     }
 
     @Override
-    @JsonIgnore
     public String getPassword() {
         return password;
     }

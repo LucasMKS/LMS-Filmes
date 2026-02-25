@@ -88,7 +88,7 @@ public class SerieService {
     @Cacheable(value = "seriesDetails", key = "#serieId")
     public SeriesDTO getSeriesDetails(String serieId) {
         try {
-            String path = "/tv/" + serieId;
+            String path = "/tv/" + serieId + "?append_to_response=credits,videos,watch/providers,recommendations";
             HttpRequest request = buildRequest(path);
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

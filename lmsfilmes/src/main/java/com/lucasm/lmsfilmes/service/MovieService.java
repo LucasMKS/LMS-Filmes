@@ -85,7 +85,7 @@ public class MovieService {
     @Cacheable(value = "movieDetails", key = "#movieId")
     public TmdbDTO getMovieDetails(String movieId) {
         try {
-            String path = "/movie/" + movieId;
+            String path = "/movie/" + movieId + "?append_to_response=credits,videos,watch/providers,recommendations";
             HttpRequest request = buildRequest(path);
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

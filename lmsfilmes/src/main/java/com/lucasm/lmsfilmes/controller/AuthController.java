@@ -1,6 +1,8 @@
 package com.lucasm.lmsfilmes.controller;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,7 +42,33 @@ public class AuthController {
     public ResponseEntity<AuthResponseDTO> login(
             @Valid @RequestBody LoginRequestDTO req) {
         
-        return ResponseEntity.ok(authService.login(req));
+        AuthResponseDTO authResponse = authService.login(req);
+
+        ResponseCookie cookie = ResponseCookie.from("auth_token", authResponse.token())
+                .httpOnly(true)
+                .secure(false)
+                .path("/") 
+                .maxAge(24 * 60 * 60)
+                .sameSite("Lax")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(authResponse);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+        ResponseCookie cookie = ResponseCookie.from("auth_token", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(0) 
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .build();
     }
 
     @PostMapping("/forgot-password")
