@@ -9,7 +9,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 RUN npm install
+
 RUN npm install lightningcss-linux-x64-musl --save-optional
+RUN npm install @tailwindcss/oxide-linux-x64-musl --save-optional
 
 FROM node:20-alpine AS builder
 WORKDIR /app
