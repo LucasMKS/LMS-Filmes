@@ -1,6 +1,7 @@
 import { MediaCard } from "@/components/MediaCard";
 import { TmdbSerie } from "@/lib/types";
 import { Tv, UserStar } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface SerieCardProps {
   serie: TmdbSerie;
@@ -22,6 +23,8 @@ export function SerieCard({
   isFavorite = false,
   onFavoriteToggle,
 }: SerieCardProps) {
+  const router = useRouter();
+
   const imageUrl = serie.poster_path
     ? serie.poster_path.startsWith("http")
       ? serie.poster_path
@@ -41,13 +44,18 @@ export function SerieCard({
     return `${firstYear}-${lastYear}`;
   };
 
+  const handleNavigateToDetails = () => {
+    router.push(`/series/${serie.id}`);
+  };
+
   return (
     <MediaCard
       imageUrl={imageUrl}
       altText={serie.name}
       title={serie.name}
       subtitle={getYearRange()}
-      onClick={onClick}
+      onClick={handleNavigateToDetails}
+      onQuickView={onClick}
       userRating={userRating}
       showFavoriteButton={showFavoriteButton}
       isFavorite={isFavorite}
@@ -59,7 +67,7 @@ export function SerieCard({
       overlayIcon={UserStar}
       overlayIconClassName="text-yellow-500"
       userRatingIconClassName="text-yellow-300"
-      cardClassName="hover:shadow-zinc-950 bg-gray-900 backdrop-blur-sm border-2 !border-slate-950 shadow-zinc-950 shadow-lg"
+      cardClassName="hover:shadow-zinc-950 bg-slate-900 border-2 border-slate-800"
     />
   );
 }

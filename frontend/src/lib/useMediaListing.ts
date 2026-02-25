@@ -6,6 +6,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import AuthService from "./auth"; // <-- IMPORTAÇÃO ADICIONADA AQUI
 
 const MAX_FAVORITE_STATUS_CONCURRENCY = 5;
 
@@ -89,6 +90,9 @@ export function useMediaListing<T extends { id: number }, C extends string>({
 
   useEffect(() => {
     if (fetchedItems.length === 0) return;
+
+    // A MÁGICA ESTÁ AQUI: Se não tem token, não tentamos buscar favoritos no backend!
+    if (!AuthService.isAuthenticated()) return;
 
     const pendingMedia = fetchedItems.filter((media) => {
       const alreadyLoaded = favoriteStatusRef.current[media.id] !== undefined;

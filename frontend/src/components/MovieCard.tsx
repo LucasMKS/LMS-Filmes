@@ -1,6 +1,7 @@
 import { MediaCard } from "@/components/MediaCard";
 import { TmdbMovie } from "@/lib/types";
 import { Film, UserStar } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface MovieCardProps {
   movie: TmdbMovie;
@@ -22,6 +23,8 @@ export function MovieCard({
   isFavorite = false,
   onFavoriteToggle,
 }: MovieCardProps) {
+  const router = useRouter();
+
   const imageUrl = movie.poster_path
     ? movie.poster_path.startsWith("http")
       ? movie.poster_path
@@ -32,13 +35,18 @@ export function MovieCard({
     ? new Date(movie.release_date).getFullYear().toString()
     : "N/A";
 
+  const handleNavigateToDetails = () => {
+    router.push(`/filmes/${movie.id}`);
+  };
+
   return (
     <MediaCard
       imageUrl={imageUrl}
       altText={movie.title}
       title={movie.title}
       subtitle={releaseYear}
-      onClick={onClick}
+      onClick={handleNavigateToDetails}
+      onQuickView={onClick}
       userRating={userRating}
       showFavoriteButton={showFavoriteButton}
       isFavorite={isFavorite}
@@ -50,7 +58,7 @@ export function MovieCard({
       overlayIcon={UserStar}
       overlayIconClassName="text-yellow-500"
       userRatingIconClassName="text-yellow-300"
-      cardClassName="hover:shadow-zinc-950 bg-gray-900 backdrop-blur-sm border-2 !border-slate-950 shadow-zinc-950 shadow-lg"
+      cardClassName="hover:shadow-zinc-950 bg-slate-900 border-2 border-slate-800"
     />
   );
 }

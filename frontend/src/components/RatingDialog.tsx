@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface RatingDialogProps {
   isOpen: boolean;
@@ -64,7 +65,6 @@ export function RatingDialog({
         description: `Sua avaliação do ${itemType} "${itemTitle}" foi registrada com sucesso.`,
       });
 
-      // Reset form
       setSelectedRating(0);
       setComment("");
       onClose();
@@ -114,9 +114,9 @@ export function RatingDialog({
     const displayRating = hoverRating || selectedRating;
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div
-          className="flex items-center justify-center space-x-1"
+          className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5"
           onMouseLeave={handleStarLeave}
         >
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => {
@@ -125,32 +125,33 @@ export function RatingDialog({
               displayRating >= star - 0.5 && displayRating < star;
 
             return (
-              <div key={star} className="relative cursor-pointer">
+              <div
+                key={star}
+                className="relative cursor-pointer select-none touch-manipulation"
+              >
                 {/* Estrela de fundo */}
-                <Star
-                  className="w-8 h-8 text-slate-600 transition-all duration-200"
-                  onClick={() => handleStarClick(star)}
-                />
+                <Star className="w-7 h-7 sm:w-8 sm:h-8 text-slate-700 transition-all duration-200" />
 
                 {/* Estrela cheia ou meia */}
                 {(isFilled || isHalfFilled) && (
                   <Star
-                    className={`absolute top-0 left-0 w-8 h-8 text-yellow-400 fill-current transition-all duration-200 pointer-events-none ${
-                      isHalfFilled ? "clip-path-half" : ""
-                    }`}
+                    className={cn(
+                      "absolute top-0 left-0 w-7 h-7 sm:w-8 sm:h-8 text-yellow-400 fill-current transition-all duration-200 pointer-events-none drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]",
+                      isHalfFilled ? "clip-path-half" : "",
+                    )}
                     style={isHalfFilled ? { clipPath: "inset(0 50% 0 0)" } : {}}
                   />
                 )}
 
-                {/* Área de hover para meia estrela (lado esquerdo) */}
+                {/* Área de hover para meia estrela (lado esquerdo - exatos 50% da largura) */}
                 <div
-                  className="absolute top-0 left-0 w-4 h-8 cursor-pointer z-10"
+                  className="absolute top-0 left-0 w-[50%] h-full cursor-pointer z-10"
                   onMouseEnter={() => handleStarHover(star - 0.5)}
                   onClick={() => handleStarClick(star - 0.5)}
                 />
-                {/* Área de hover para estrela completa (lado direito) */}
+                {/* Área de hover para estrela completa (lado direito - exatos 50% da largura) */}
                 <div
-                  className="absolute top-0 right-0 w-4 h-8 cursor-pointer z-10"
+                  className="absolute top-0 right-0 w-[50%] h-full cursor-pointer z-10"
                   onMouseEnter={() => handleStarHover(star)}
                   onClick={() => handleStarClick(star)}
                 />
@@ -159,15 +160,15 @@ export function RatingDialog({
           })}
         </div>
 
-        <div className="text-center">
-          <div className="text-2xl font-bold text-yellow-400">
+        <div className="text-center bg-slate-900/50 py-3 rounded-xl border border-slate-800/50">
+          <div className="text-3xl font-extrabold text-yellow-400 leading-none mb-1">
             {displayRating > 0 ? displayRating.toFixed(1) : "0.0"}
           </div>
-          {displayRating > 0 && (
-            <div className="text-sm text-blue-400 font-medium">
-              {getRatingDescription(displayRating)}
-            </div>
-          )}
+          <div className="text-sm font-medium h-5 text-slate-300">
+            {displayRating > 0
+              ? getRatingDescription(displayRating)
+              : "Selecione uma nota"}
+          </div>
         </div>
       </div>
     );
@@ -175,31 +176,25 @@ export function RatingDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md bg-slate-900/95 backdrop-blur-sm border-slate-700/60 shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-slate-50 text-lg">
-            {currentRating ? "Editar avaliação" : "Avaliar"} {itemType}:{" "}
-            {itemTitle}
+      <DialogContent className="w-[95vw] max-w-md p-5 sm:p-6 bg-slate-950 border border-slate-800 shadow-2xl rounded-2xl sm:rounded-2xl">
+        <DialogHeader className="mb-2">
+          <DialogTitle className="text-slate-50 text-xl font-bold text-center sm:text-left">
+            {currentRating ? "Editar Avaliação" : "Avaliar"}
           </DialogTitle>
-          {currentRating && (
-            <p className="text-sm text-slate-400">
-              Você já avaliou este {itemType} com nota {currentRating.myVote}
-            </p>
-          )}
+          <p className="text-slate-400 text-sm font-medium mt-1 text-center sm:text-left line-clamp-1">
+            {itemTitle}
+          </p>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Rating com estrelas */}
-          <div className="space-y-2">
-            <Label className="text-slate-300 font-medium">
-              Sua avaliação (0.5 a 10 estrelas)
-            </Label>
+          <div className="space-y-3">
             <StarRating />
           </div>
 
           {/* Comentário opcional */}
           <div className="space-y-2">
-            <Label className="text-slate-300 font-medium">
+            <Label className="text-slate-300 font-medium ml-1">
               Comentário (opcional)
             </Label>
             <Textarea
@@ -210,7 +205,7 @@ export function RatingDialog({
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 setComment(e.target.value)
               }
-              className="bg-slate-800/80 backdrop-blur-sm border-slate-700/60 text-slate-50 placeholder-slate-400 resize-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className="bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all rounded-xl p-3"
               rows={3}
             />
           </div>
@@ -220,7 +215,7 @@ export function RatingDialog({
             <Button
               variant="outline"
               onClick={handleClose}
-              className="flex-1 border-slate-600/60 text-slate-300 hover:bg-slate-800/80 backdrop-blur-sm transition-all cursor-pointer"
+              className="flex-1 bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all rounded-xl h-11"
               disabled={isSubmitting}
             >
               Cancelar
@@ -228,13 +223,13 @@ export function RatingDialog({
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting || selectedRating <= 0}
-              className="flex-1 bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-sm disabled:opacity-50 transition-all shadow-lg cursor-pointer"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50 transition-all shadow-lg rounded-xl h-11"
             >
               {isSubmitting
                 ? "Enviando..."
                 : currentRating
-                  ? "Atualizar"
-                  : "Avaliar"}
+                  ? "Atualizar Nota"
+                  : "Salvar Avaliação"}
             </Button>
           </div>
         </div>

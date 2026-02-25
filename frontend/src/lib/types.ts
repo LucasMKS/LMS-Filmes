@@ -74,6 +74,38 @@ export interface FavoriteSerieStatusResponse {
   isFavorite: boolean;
 }
 
+export interface TmdbProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+}
+
+export interface TmdbWatchProviders {
+  results: {
+    BR?: {
+      link: string;
+      flatrate?: TmdbProvider[];
+      rent?: TmdbProvider[];
+      buy?: TmdbProvider[];
+    };
+  };
+}
+
+export interface TmdbCast {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string | null;
+}
+
+export interface TmdbVideo {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+}
+
 // --------------------
 // Tipos do TMDB (Externo)
 // --------------------
@@ -105,6 +137,11 @@ export interface TmdbMovie {
     name: string;
     logo_path?: string;
   }>;
+  credits?: { cast: TmdbCast[] };
+  videos?: { results: TmdbVideo[] };
+  "watch/providers"?: TmdbWatchProviders;
+  recommendations?: { results: any[] };
+  tagline?: string;
 }
 
 export interface TmdbSerie {
@@ -168,10 +205,15 @@ export interface TmdbSerie {
     episode_count: number;
     air_date?: string;
   }>;
+  credits?: { cast: TmdbCast[] };
+  videos?: { results: TmdbVideo[] };
+  "watch/providers"?: TmdbWatchProviders;
+  recommendations?: { results: any[] };
+  tagline?: string;
 }
 
 // --------------------
-// Tipos de UI (Enriquecidos)
+// Tipos de UI
 // --------------------
 
 export interface FavoriteMovieEnriched extends FavoriteMovie {
@@ -211,7 +253,6 @@ export interface ApiError {
   timestamp?: string;
 }
 
-// Tipos para formulários
 export interface LoginFormData {
   email: string;
   password: string;

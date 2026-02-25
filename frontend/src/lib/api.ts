@@ -61,36 +61,24 @@ const apiLmsFilmes = axios.create({
   baseURL: `${API_GATEWAY_URL}/lms-filmes`,
   headers: { "Content-Type": "application/json" },
   timeout: REQUEST_TIMEOUT,
+  withCredentials: true,
 });
 
 const apiLmsRating = axios.create({
   baseURL: `${API_GATEWAY_URL}/lms-rating`,
   headers: { "Content-Type": "application/json" },
   timeout: REQUEST_TIMEOUT,
+  withCredentials: true,
 });
 
 const apiLmsFavorite = axios.create({
   baseURL: `${API_GATEWAY_URL}/lms-favorite`,
   headers: { "Content-Type": "application/json" },
   timeout: REQUEST_TIMEOUT,
+  withCredentials: true,
 });
 
 const attachAuthInterceptor = (apiInstance: any) => {
-  apiInstance.interceptors.request.use(
-    (config: any) => {
-      const publicEndpoints = ["/auth/login", "/auth/register"];
-      const isPublic = publicEndpoints.some((endpoint) =>
-        config.url?.includes(endpoint),
-      );
-      if (!isPublic) {
-        const token = Cookies.get("auth_token");
-        if (token) config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error: any) => Promise.reject(ErrorHandler.createApiError(error)),
-  );
-
   apiInstance.interceptors.response.use(
     (res: any) => res,
     (error: any) => {

@@ -60,7 +60,7 @@ export default function LoginPage() {
           description: "Bem-vindo de volta!",
         });
 
-        router.push("/dashboard");
+        window.location.href = "/dashboard";
       } else {
         // Registro
         if (data.password !== data.confirmPassword) {

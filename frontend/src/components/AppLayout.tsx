@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import AuthService from "../lib/auth";
 import { Navigation } from "./Navigation";
 
 interface AppLayoutProps {
@@ -11,45 +9,32 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
-  const [isClient, setIsClient] = useState(false);
 
-  // Middleware já cuida da autenticação, apenas verificamos state para UI
-  const isAuthenticated = isClient && AuthService.isAuthenticated();
+  const getPageTitle = (path: string): string => {
+    if (path.startsWith("/filmes/")) return "Detalhes do Filme";
+    if (path.startsWith("/series/")) return "Detalhes da Série";
 
-  useEffect(() => {
-    // Marca componente como montado no cliente
-    setIsClient(true);
-  }, []);
-
-  const getPageTitle = (pathname: string): string => {
     const pageTitles: Record<string, string> = {
       "/dashboard": "LMS Films",
-      "/movies": "Avaliar Filmes",
-      "/series": "Avaliar Séries",
-      "/ratings": "Minhas Avaliações",
-      "/favorites": "Meus Favoritos",
+      "/filmes": "Catálogo de Filmes",
+      "/series": "Catálogo de Séries",
+      "/avaliacoes": "Minhas Avaliações",
+      "/favoritos": "Meus Favoritos",
       "/login": "Login",
     };
 
-    return pageTitles[pathname] || "LMS Films";
-  };
-  const shouldShowNavigation = () => {
-    const publicRoutes = ["/", "/login", "/reset-password"];
-    return isAuthenticated && !publicRoutes.includes(pathname);
+    return pageTitles[path] || "LMS Films";
   };
 
-  const shouldShowBackButton = () => {
-    return pathname !== "/dashboard";
+  const shouldShowNavigation = () => {
+    const noNavRoutes = ["/", "/login", "/reset-password", "/register"];
+
+    return !noNavRoutes.includes(pathname);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {shouldShowNavigation() && (
-        <Navigation
-          title={getPageTitle(pathname)}
-          showBackButton={shouldShowBackButton()}
-        />
-      )}
+    <div className="min-h-screen bg-slate-950">
+      {shouldShowNavigation() && <Navigation title={getPageTitle(pathname)} />}
       <main className={shouldShowNavigation() ? "" : "min-h-screen"}>
         {children}
       </main>

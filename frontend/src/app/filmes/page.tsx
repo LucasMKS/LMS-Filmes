@@ -36,6 +36,7 @@ export default function MoviesPage() {
   const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>(null);
   const [movieDetails, setMovieDetails] = useState<TmdbMovie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const loadByCategory = useCallback(
     async (category: MovieCategory, page: number) => {
@@ -96,9 +97,10 @@ export default function MoviesPage() {
   });
 
   useEffect(() => {
-    if (AuthService.isAuthenticated()) {
-      initialize();
-    }
+    const authenticated = AuthService.isAuthenticated();
+    setIsLoggedIn(authenticated);
+
+    initialize();
   }, [initialize]);
 
   const loadMoreMovies = () => {
@@ -110,7 +112,7 @@ export default function MoviesPage() {
     setDialogOpen(true);
 
     try {
-      const movieDetails = await moviesApi.getMovieDetails(movie.id);
+      const movieDetails = await moviesApi.getMovieDetails(String(movie.id));
       setMovieDetails(movieDetails);
     } catch (error: any) {
       console.error("Erro ao carregar detalhes do filme:", error);
@@ -127,22 +129,37 @@ export default function MoviesPage() {
   };
 
   const MovieGridLoader = () => (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-      <p className="text-slate-400 font-medium">Carregando filmes...</p>
+    <div className="flex flex-col items-center justify-center py-32 text-center bg-slate-900/20 rounded-2xl border border-slate-800/50 mt-8">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+      <p className="text-slate-400 font-medium">
+        Buscando os melhores filmes...
+      </p>
     </div>
   );
 
   return (
-    <div className="min-h-screen">
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
+    // Adicionado bg-slate-950 aqui para manter o fundo da página escuro
+    <div className="min-h-screen bg-slate-950">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        {/* Cabeçalho Opcional da Página */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center">
+            <Film className="w-8 h-8 mr-3 text-blue-500" />
+            Catálogo de Filmes
+          </h2>
+          <p className="text-slate-400 mt-2">
+            Explore os maiores sucessos de bilheteria e encontre a sua próxima
+            sessão pipoca.
+          </p>
+        </div>
+
         <MediaSearchSection
-          title="Buscar Filmes"
-          titleIconColorClassName="text-blue-400"
-          searchButtonClassName="bg-blue-600 hover:bg-blue-700"
-          searchPlaceholder="Digite o nome do filme..."
-          resultLabel="filmes"
-          cardClassName="mb-6 sm:mb-8"
+          title="Buscar"
+          titleIconColorClassName="text-blue-400 hidden" // Ocultamos o título interno para usar o externo acima
+          searchButtonClassName="bg-blue-600 hover:bg-blue-700 text-white"
+          searchPlaceholder="Digite o nome de um filme (ex: Clube da Luta)..."
+          resultLabel="filmes encontrados"
+          cardClassName="mb-10 bg-slate-900 border-slate-800 shadow-xl"
           searchQuery={searchQuery}
           isSearching={isSearching}
           isSearchMode={isSearchMode}
@@ -167,31 +184,32 @@ export default function MoviesPage() {
             loadingMore={loadingMore}
             onLoadMore={loadMoreMovies}
             onClearSearch={clearSearch}
-            emptyTitle="Nenhum filme encontrado"
-            emptyDescriptionPrefix="Não encontramos filmes para"
-            emptyBackButtonLabel="Voltar aos populares"
+            emptyTitle="Nenhum filme na fita"
+            emptyDescriptionPrefix="Não encontramos nenhum resultado para"
+            emptyBackButtonLabel="Voltar aos Populares"
             emptyIcon={Film}
             renderCard={(movie) => (
               <MovieCard
-                key={movie.id}
+                key={`movie-${movie.id}`}
                 movie={movie}
                 onClick={() => handleMovieClick(movie)}
+                showFavoriteButton={isLoggedIn}
                 isFavorite={favoriteStatus[movie.id] || false}
                 onFavoriteToggle={() => handleToggleFavorite(movie.id)}
-                showFavoriteButton={true}
               />
             )}
           />
         )}
       </main>
 
-      {/* Dialog de detalhes do filme */}
+      {/* Dialog de detalhes do filme (Quick View) */}
       {selectedMovie && (
         <MovieDialog
           movie={selectedMovie}
           movieDetails={movieDetails}
           isOpen={dialogOpen}
           onClose={handleCloseDialog}
+          isLoggedIn={isLoggedIn}
         />
       )}
     </div>

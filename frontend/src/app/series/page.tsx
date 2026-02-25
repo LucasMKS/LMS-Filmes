@@ -30,6 +30,9 @@ export default function SeriesPage() {
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // ESTADO DE LOGIN
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   const loadByCategory = useCallback(
     async (category: SerieCategory, page: number) => {
       switch (category) {
@@ -89,9 +92,10 @@ export default function SeriesPage() {
   });
 
   useEffect(() => {
-    if (AuthService.isAuthenticated()) {
-      initialize();
-    }
+    // 1. Checa se está logado
+    setIsLoggedIn(AuthService.isAuthenticated());
+    // 2. Sempre carrega as séries (mesmo visitante)
+    initialize();
   }, [initialize]);
 
   const loadMoreSeries = () => {
@@ -103,7 +107,7 @@ export default function SeriesPage() {
     setDialogOpen(true);
 
     try {
-      const serieDetails = await seriesApi.getSerieDetails(serie.id);
+      const serieDetails = await seriesApi.getSerieDetails(String(serie.id));
       setSerieDetails(serieDetails);
     } catch (error: any) {
       console.error("Erro ao carregar detalhes da série:", error);
@@ -120,22 +124,35 @@ export default function SeriesPage() {
   };
 
   const SerieGridLoader = () => (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-      <p className="text-slate-400 font-medium">Carregando séries...</p>
+    <div className="flex flex-col items-center justify-center py-32 text-center bg-slate-900/20 rounded-2xl border border-slate-800/50 mt-8">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mb-4"></div>
+      <p className="text-slate-400 font-medium">
+        Buscando as melhores séries...
+      </p>
     </div>
   );
 
   return (
-    <div className="min-h-screen">
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
+    <div className="min-h-screen bg-slate-950">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <div className="mb-8">
+          <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center">
+            <Tv className="w-8 h-8 mr-3 text-green-500" />
+            Catálogo de Séries
+          </h2>
+          <p className="text-slate-400 mt-2">
+            Descubra novas histórias, maratone temporadas inteiras e acompanhe
+            os episódios mais recentes.
+          </p>
+        </div>
+
         <MediaSearchSection
-          title="Buscar Séries"
-          titleIconColorClassName="text-green-400"
-          searchButtonClassName="bg-green-600 hover:bg-green-700"
-          searchPlaceholder="Digite o nome da série..."
-          resultLabel="séries"
-          cardClassName="mb-8 sm:mb-8"
+          title="Buscar"
+          titleIconColorClassName="text-green-400 hidden"
+          searchButtonClassName="bg-green-600 hover:bg-green-700 text-white"
+          searchPlaceholder="Digite o nome de uma série (ex: The Boys)..."
+          resultLabel="séries encontradas"
+          cardClassName="mb-10 bg-slate-900 border-slate-800 shadow-xl"
           searchQuery={searchQuery}
           isSearching={isSearching}
           isSearchMode={isSearchMode}
@@ -160,16 +177,16 @@ export default function SeriesPage() {
             loadingMore={loadingMore}
             onLoadMore={loadMoreSeries}
             onClearSearch={clearSearch}
-            emptyTitle="Nenhuma série encontrada"
-            emptyDescriptionPrefix="Não encontramos séries para"
-            emptyBackButtonLabel="Voltar aos populares"
+            emptyTitle="Nenhuma série na antena"
+            emptyDescriptionPrefix="Não encontramos nenhum resultado para"
+            emptyBackButtonLabel="Voltar aos Populares"
             emptyIcon={Tv}
             renderCard={(serie) => (
               <SerieCard
-                key={serie.id}
+                key={`serie-${serie.id}`}
                 serie={serie}
                 onClick={() => handleSerieClick(serie)}
-                showFavoriteButton={true}
+                showFavoriteButton={isLoggedIn} // <-- CONTROLE AQUI
                 isFavorite={favoriteStatus[serie.id] || false}
                 onFavoriteToggle={() => handleToggleFavorite(serie.id)}
               />
@@ -178,13 +195,13 @@ export default function SeriesPage() {
         )}
       </main>
 
-      {/* Dialog de detalhes da série */}
       {selectedSerie && (
         <SerieDialog
           serie={selectedSerie}
           serieDetails={serieDetails}
           isOpen={dialogOpen}
           onClose={handleCloseDialog}
+          isLoggedIn={isLoggedIn} // <-- REPASSA PARA O DIALOG
         />
       )}
     </div>
