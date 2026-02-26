@@ -51,8 +51,8 @@ class AuthService {
   }
 
   clearTokens(): void {
-    Cookies.remove(this.USER_KEY);
-    Cookies.remove(this.TOKEN_KEY);
+    Cookies.remove(this.USER_KEY, { path: "/" });
+    Cookies.remove(this.TOKEN_KEY, { path: "/" });
   }
 
   isAuthenticated(): boolean {
