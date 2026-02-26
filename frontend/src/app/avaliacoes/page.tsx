@@ -45,6 +45,14 @@ export default function RatingsPage() {
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [isMovieDialogOpen, setIsMovieDialogOpen] = useState(false);
   const [isSerieDialogOpen, setIsSerieDialogOpen] = useState(false);
+  const [selectedMovieUserRating, setSelectedMovieUserRating] = useState<{
+    rating: string;
+    comment?: string;
+  } | null>(null);
+  const [selectedSerieUserRating, setSelectedSerieUserRating] = useState<{
+    rating: string;
+    comment?: string;
+  } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRating, setFilterRating] = useState<number | null>(null);
@@ -230,6 +238,12 @@ export default function RatingsPage() {
   const handleMovieClick = async (movie: RatedMovie) => {
     if (movie.tmdbData) {
       setSelectedMovie(movie.tmdbData);
+
+      setSelectedMovieUserRating({
+        rating: String(movie.rating),
+        comment: movie.comment,
+      });
+
       try {
         const details = await moviesApi.getMovieDetails(
           String(movie.tmdbData.id),
@@ -245,6 +259,12 @@ export default function RatingsPage() {
   const handleSerieClick = async (serie: RatedSerie) => {
     if (serie.tmdbData) {
       setSelectedSerie(serie.tmdbData);
+
+      setSelectedSerieUserRating({
+        rating: String(serie.rating),
+        comment: serie.comment,
+      });
+
       try {
         const details = await seriesApi.getSerieDetails(
           String(serie.tmdbData.id),
@@ -626,6 +646,7 @@ export default function RatingsPage() {
             movieDetails={movieDetails}
             isOpen={isMovieDialogOpen}
             onClose={() => setIsMovieDialogOpen(false)}
+            isLoggedIn={true}
           />
         )}
 
@@ -635,6 +656,7 @@ export default function RatingsPage() {
             onClose={() => setIsSerieDialogOpen(false)}
             serie={selectedSerie}
             serieDetails={serieDetails}
+            isLoggedIn={true}
           />
         )}
       </main>
