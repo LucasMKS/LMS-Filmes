@@ -22,7 +22,7 @@ import { SerieCard } from "../../components/SerieCard";
 import { MovieDialog } from "../../components/MovieDialog";
 import { SerieDialog } from "../../components/SerieDialog";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Heart, Film, Tv, Search, Filter, X } from "lucide-react";
@@ -446,6 +446,7 @@ export default function FavoritesPage() {
             movieDetails={movieDetails}
             isOpen={isMovieDialogOpen}
             onClose={() => setIsMovieDialogOpen(false)}
+            isLoggedIn={true}
           />
         )}
 
@@ -455,6 +456,7 @@ export default function FavoritesPage() {
             onClose={() => setIsSerieDialogOpen(false)}
             serie={selectedSerie}
             serieDetails={serieDetails}
+            isLoggedIn={true}
           />
         )}
       </main>

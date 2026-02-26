@@ -15,7 +15,7 @@ import { SerieCard } from "../../components/SerieCard";
 import { MovieDialog } from "../../components/MovieDialog";
 import { SerieDialog } from "../../components/SerieDialog";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Star, Film, Tv, Search, Filter, TrendingUp, X } from "lucide-react";
@@ -45,14 +45,6 @@ export default function RatingsPage() {
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [isMovieDialogOpen, setIsMovieDialogOpen] = useState(false);
   const [isSerieDialogOpen, setIsSerieDialogOpen] = useState(false);
-  const [selectedMovieUserRating, setSelectedMovieUserRating] = useState<{
-    rating: string;
-    comment?: string;
-  } | null>(null);
-  const [selectedSerieUserRating, setSelectedSerieUserRating] = useState<{
-    rating: string;
-    comment?: string;
-  } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRating, setFilterRating] = useState<number | null>(null);
@@ -238,12 +230,6 @@ export default function RatingsPage() {
   const handleMovieClick = async (movie: RatedMovie) => {
     if (movie.tmdbData) {
       setSelectedMovie(movie.tmdbData);
-
-      setSelectedMovieUserRating({
-        rating: String(movie.rating),
-        comment: movie.comment,
-      });
-
       try {
         const details = await moviesApi.getMovieDetails(
           String(movie.tmdbData.id),
@@ -259,12 +245,6 @@ export default function RatingsPage() {
   const handleSerieClick = async (serie: RatedSerie) => {
     if (serie.tmdbData) {
       setSelectedSerie(serie.tmdbData);
-
-      setSelectedSerieUserRating({
-        rating: String(serie.rating),
-        comment: serie.comment,
-      });
-
       try {
         const details = await seriesApi.getSerieDetails(
           String(serie.tmdbData.id),
@@ -297,7 +277,6 @@ export default function RatingsPage() {
           .includes(searchTerm.toLowerCase()) ||
         item.tmdbData?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      // Extrai a nota como número, ignorando null/undefined
       const itemRating =
         item.rating !== undefined && item.rating !== null
           ? Number(item.rating)
