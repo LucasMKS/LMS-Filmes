@@ -19,23 +19,19 @@ public class CorsGlobalConfig {
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Permite múltiplas origens (produção + desenvolvimento)
         config.setAllowedOriginPatterns(Arrays.asList(
             "https://lms-filmes.vercel.app",
+            "https://lucasmks.me",
             "http://localhost:3000",
             "http://localhost:*"
         ));
 
-        // Permite todos os métodos HTTP
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
-        // Permite todos os headers
         config.setAllowedHeaders(Arrays.asList("*"));
 
-        // Permite credenciais (cookies, authorization headers)
         config.setAllowCredentials(true);
 
-        // Cache do preflight por 1 hora
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
