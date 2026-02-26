@@ -79,6 +79,14 @@ const apiLmsFavorite = axios.create({
 });
 
 const attachAuthInterceptor = (apiInstance: any) => {
+  apiInstance.interceptors.request.use((config: any) => {
+    const token = Cookies.get("auth_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
+
   apiInstance.interceptors.response.use(
     (res: any) => res,
     (error: any) => {

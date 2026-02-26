@@ -86,10 +86,8 @@ export default function LoginPage() {
         reset();
       }
     } catch (error: any) {
-      // Extrair mensagem de erro usando o ErrorHandler
       const errorMessage = ErrorHandler.extractErrorMessage(error);
 
-      // Tratamento específico para diferentes tipos de erro
       if (ErrorHandler.isLoginError(error)) {
         toast.error("Erro de login", {
           description: errorMessage,

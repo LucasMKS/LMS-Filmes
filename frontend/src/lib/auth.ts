@@ -2,16 +2,15 @@ import Cookies from "js-cookie";
 import { authApi, apiLmsFilmes } from "./api";
 import { AuthDTO, User } from "./types";
 
-const USER_KEY = "user_data";
-
 class AuthService {
   private readonly USER_KEY = "user_data";
+  private readonly TOKEN_KEY = "auth_token";
 
   async login(payload: AuthDTO) {
     const response = await authApi.login(payload);
 
-    if (response.user) {
-      this.setSession(response.user);
+    if (response.user && response.token) {
+      this.setSession(response.user, response.token);
     } else {
       throw new Error("Resposta de login inválida do servidor.");
     }
@@ -29,12 +28,15 @@ class AuthService {
     return await authApi.resetPassword(token, newPassword);
   }
 
-  setSession(user: User) {
-    Cookies.set(this.USER_KEY, JSON.stringify(user), {
+  setSession(user: User, token: string) {
+    const cookieOptions = {
       expires: 1,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-    });
+      sameSite: "Lax" as const,
+    };
+
+    Cookies.set(this.USER_KEY, JSON.stringify(user), cookieOptions);
+    Cookies.set(this.TOKEN_KEY, token, cookieOptions);
   }
 
   async logout() {
@@ -50,11 +52,12 @@ class AuthService {
 
   clearTokens(): void {
     Cookies.remove(this.USER_KEY);
+    Cookies.remove(this.TOKEN_KEY);
   }
 
   isAuthenticated(): boolean {
-    const userCookie = Cookies.get(this.USER_KEY);
-    return !!userCookie;
+    const token = Cookies.get(this.TOKEN_KEY);
+    return !!token;
   }
 
   getUser(): User | null {
