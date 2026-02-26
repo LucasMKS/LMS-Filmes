@@ -7,7 +7,7 @@ on:
 
 jobs:
   # ==========================================
-  # JOB 1: CONSTRUIR E ENVIAR PARA O DOCKER HUB
+  # CONSTRUIR E ENVIAR PARA O DOCKER HUB
   # ==========================================
   build-and-push:
     name: Build & Push Imagens Docker
@@ -16,62 +16,90 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v3
 
+      # DETECTAR ALTERAÇÕES
+      - name: Detectar pastas alteradas
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            eureka:
+              - 'eureka/**'
+            gateway:
+              - 'gateway/**'
+            lmsfilmes:
+              - 'lmsfilmes/**'
+            lmsfavorite:
+              - 'lmsfavorite/**'
+            lmsrating:
+              - 'lmsrating/**'
+            lms_email:
+              - 'lms-email-service/**'
+
       - name: Login no Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # --- FRONTEND ---
+      # FRONTEND
       - name: Build & Push Frontend
+        if: steps.filter.outputs.frontend == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./frontend
           push: true
           tags: lucasmks/lms-filmes-frontend:latest
 
-      # --- EUREKA ---
+      # EUREKA
       - name: Build & Push Eureka
+        if: steps.filter.outputs.eureka == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./eureka
           push: true
           tags: lucasmks/lms-filmes-eureka:latest
 
-      # --- GATEWAY ---
+      # GATEWAY
       - name: Build & Push Gateway
+        if: steps.filter.outputs.gateway == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./gateway
           push: true
           tags: lucasmks/lms-filmes-gateway:latest
 
-      # --- LMS FILMES ---
+      # LMS FILMES
       - name: Build & Push LMS Filmes
+        if: steps.filter.outputs.lmsfilmes == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./lmsfilmes
           push: true
           tags: lucasmks/lms-filmes-lmsfilmes:latest
 
-      # --- LMS FAVORITE ---
+      # LMS FAVORITE
       - name: Build & Push LMS Favorite
+        if: steps.filter.outputs.lmsfavorite == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./lmsfavorite
           push: true
           tags: lucasmks/lms-filmes-lmsfavorite:latest
 
-      # --- LMS RATING ---
+      # LMS RATING
       - name: Build & Push LMS Rating
+        if: steps.filter.outputs.lmsrating == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./lmsrating
           push: true
           tags: lucasmks/lms-filmes-lmsrating:latest
 
-      # --- LMS EMAIL SERVICE ---
+      # LMS EMAIL SERVICE
       - name: Build & Push LMS Email Service
+        if: steps.filter.outputs.lms_email == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./lms-email-service
@@ -79,7 +107,7 @@ jobs:
           tags: lucasmks/lms-filmes-lms-email:latest
 
   # ==========================================
-  # JOB 2: ATUALIZAR O SERVIDOR (DROPLET)
+  # ATUALIZAR O SERVIDOR (DROPLET)
   # ==========================================
   deploy:
     name: Deploy no DigitalOcean
@@ -94,7 +122,6 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
-            # Entra na pasta onde está o docker-compose.yml
             cd /root/lms-projeto
 
             echo "Baixando as novas imagens do Docker Hub..."
