@@ -8,30 +8,25 @@ import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class CorsGlobalConfig {
 
-    @Value("${cors.allowed-origins:https://lms-filmes.vercel.app}")
+    @Value("${cors.allowed-origins:https://lms-filmes.vercel.app,https://lucasmks.me}")
     private String allowedOrigins;
 
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOriginPatterns(Arrays.asList(
-            "https://lms-filmes.vercel.app",
-            "https://lucasmks.me",
-            "http://localhost:3000",
-            "http://localhost:*"
-        ));
+        List<String> originsList = Arrays.asList(allowedOrigins.split(","));
+
+        config.setAllowedOriginPatterns(originsList);
 
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-
         config.setAllowedHeaders(Arrays.asList("*"));
-
         config.setAllowCredentials(true);
-
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
