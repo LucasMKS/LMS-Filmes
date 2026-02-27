@@ -20,7 +20,7 @@ interface MovieDialogProps {
   movieDetails: TmdbMovie | null;
   isOpen: boolean;
   onClose: () => void;
-  isLoggedIn?: boolean; // Prop declarada aqui
+  isLoggedIn?: boolean;
 }
 
 export function MovieDialog({

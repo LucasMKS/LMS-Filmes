@@ -34,6 +34,6 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue ratingQueue() {
-        return new Queue(RATING_QUEUE, true); // true = fila durável
+        return new Queue(RATING_QUEUE, true);
     }
 }

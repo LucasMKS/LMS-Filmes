@@ -9,8 +9,8 @@ interface MediaCardProps {
   altText: string;
   title: string;
   subtitle: string;
-  onClick: () => void; // Irá para a página de detalhes
-  onQuickView?: () => void; // Abrirá o Dialog (Opcional)
+  onClick: () => void;
+  onQuickView?: () => void;
   userRating?: {
     rating: string;
     comment?: string;
@@ -51,7 +51,6 @@ export function MediaCard({
   return (
     <Card
       className={cn(
-        // Removemos o hover:border-slate-600/70 para que o componente pai (MovieCard/SerieCard) defina a cor!
         "group cursor-pointer hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 overflow-hidden",
         cardClassName,
       )}
@@ -85,7 +84,7 @@ export function MediaCard({
                 size="icon"
                 className="w-14 h-14 rounded-full bg-slate-950/70 hover:bg-blue-600 text-white backdrop-blur-md border border-white/10 shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-300"
                 onClick={(e) => {
-                  e.stopPropagation(); // Evita que clique no botão dispare o onClick do Card inteiro
+                  e.stopPropagation();
                   onQuickView();
                 }}
               >
@@ -125,7 +124,7 @@ export function MediaCard({
               size="icon"
               className={cn(
                 "absolute top-3 right-3 z-30 w-9 h-9 rounded-full transition-all duration-300 hover:scale-110",
-                userRating ? "top-12" : "", // Desce o coração se já tiver a nota na mesma posição
+                userRating ? "top-12" : "",
                 isFavorite
                   ? "bg-pink-600/90 hover:bg-pink-500 text-white shadow-[0_4px_12px_rgba(219,39,119,0.4)] border border-pink-500/50 backdrop-blur-sm"
                   : "bg-slate-950/50 hover:bg-slate-950/80 text-white backdrop-blur-sm border border-white/20",

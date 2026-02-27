@@ -29,7 +29,7 @@ public class Series {
     private String poster_path;
 
     @CreatedDate
-    private Date createdAt; // Data de criação (camelCase)
+    private Date createdAt;
 
     @LastModifiedDate
     private Date modifiedAt;

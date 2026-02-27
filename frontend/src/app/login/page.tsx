@@ -62,7 +62,6 @@ export default function LoginPage() {
 
         window.location.href = "/dashboard";
       } else {
-        // Registro
         if (data.password !== data.confirmPassword) {
           toast.error("Erro de validação", {
             description: "As senhas não coincidem",

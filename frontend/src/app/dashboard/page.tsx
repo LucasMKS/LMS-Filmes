@@ -349,7 +349,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           ) : (
-            // Empty State (Usuário novo)
             <Card className="bg-gradient-to-br from-slate-900 to-slate-900 border-slate-800 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-bl-full -mr-10 -mt-10 blur-3xl pointer-events-none" />
 

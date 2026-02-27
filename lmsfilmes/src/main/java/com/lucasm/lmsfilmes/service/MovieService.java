@@ -57,7 +57,6 @@ public class MovieService {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                // Usamos TypeReference para desserializar a resposta genérica TmdbPageDTO<TmdbDTO>
                 return objectMapper.readValue(response.body(), new TypeReference<TmdbPageDTO<TmdbDTO>>() {});
             } else {
                 logger.error("Erro ao buscar dados do TMDB ({}): status {}", path, response.statusCode());
@@ -119,7 +118,7 @@ public class MovieService {
 
     @Cacheable(value = "moviesTopRated", key = "#page")
     public TmdbPageDTO<TmdbDTO> getTopRatedMovies(int page) {
-        String path = "/movie/top_rated?page=" + page; // Top Rated é global, remover region=BR
+        String path = "/movie/top_rated?page=" + page;
         return fetchPaginatedData(path, "moviesTopRated::" + page);
     }
 

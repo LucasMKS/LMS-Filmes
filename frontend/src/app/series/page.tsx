@@ -29,8 +29,6 @@ export default function SeriesPage() {
   const [selectedSerie, setSelectedSerie] = useState<TmdbSerie | null>(null);
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  // ESTADO DE LOGIN
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const loadByCategory = useCallback(
@@ -92,9 +90,7 @@ export default function SeriesPage() {
   });
 
   useEffect(() => {
-    // 1. Checa se está logado
     setIsLoggedIn(AuthService.isAuthenticated());
-    // 2. Sempre carrega as séries (mesmo visitante)
     initialize();
   }, [initialize]);
 
@@ -186,7 +182,7 @@ export default function SeriesPage() {
                 key={`serie-${serie.id}`}
                 serie={serie}
                 onClick={() => handleSerieClick(serie)}
-                showFavoriteButton={isLoggedIn} // <-- CONTROLE AQUI
+                showFavoriteButton={isLoggedIn}
                 isFavorite={favoriteStatus[serie.id] || false}
                 onFavoriteToggle={() => handleToggleFavorite(serie.id)}
               />
@@ -201,7 +197,7 @@ export default function SeriesPage() {
           serieDetails={serieDetails}
           isOpen={dialogOpen}
           onClose={handleCloseDialog}
-          isLoggedIn={isLoggedIn} // <-- REPASSA PARA O DIALOG
+          isLoggedIn={isLoggedIn}
         />
       )}
     </div>

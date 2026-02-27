@@ -36,8 +36,6 @@ export default function SerieDetailsPage() {
   const [userRating, setUserRating] = useState<Serie | null>(null);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
   const [loadingRating, setLoadingRating] = useState(false);
-
-  // ESTADO DE LOGIN
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -49,11 +47,9 @@ export default function SerieDetailsPage() {
 
       try {
         setLoading(true);
-        // Sempre carrega os detalhes da série
         const serieData = await seriesApi.getSerieDetails(serieId);
         setSerie(serieData);
 
-        // Só busca nota se estiver logado
         if (logged) {
           try {
             setLoadingRating(true);

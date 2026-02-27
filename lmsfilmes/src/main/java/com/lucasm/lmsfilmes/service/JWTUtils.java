@@ -39,7 +39,6 @@ public class JWTUtils {
                 .compact();
     }
 
-    // Método sobregregado que aceita User e inclui claims customizadas
     public String generateToken(User user){
         HashMap<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
@@ -69,7 +68,6 @@ public class JWTUtils {
         return  extractClaims(token, Claims::getSubject);
     }
 
-    // Métodos para extrair claims customizadas
     public String extractNickname(String token) {
         return extractClaims(token, claims -> claims.get("nickname", String.class));
     }

@@ -21,15 +21,12 @@ import com.lucasm.lmsfavorite.service.FavoriteSerieService;
 @RequestMapping("/favorite/series")
 public class FavoriteSerieController {
 
-    private static final Logger logger = LoggerFactory.getLogger(FavoriteSerieController.class);
-
     private final FavoriteSerieService favoriteService;
 
     public FavoriteSerieController(FavoriteSerieService favoriteService) {
         this.favoriteService = favoriteService;
     }
 
-    // Método para adicionar/remover uma série dos favoritos.
     @PostMapping("")
     public ResponseEntity<FavoriteSerieStatusResponse> toggleFavoriteSerie(
             @RequestParam String serieId,
@@ -41,7 +38,6 @@ public class FavoriteSerieController {
         return ResponseEntity.ok(new FavoriteSerieStatusResponse(serieId, newStatus));
     }
 
-    // Método para verificar se uma série é favorita.
     @GetMapping("/status")
     public ResponseEntity<Boolean> getFavoriteStatusSeries(
             @RequestParam String serieId,
@@ -52,7 +48,6 @@ public class FavoriteSerieController {
         return ResponseEntity.ok(isFavorite);
     }
 
-    // Método para obter todas as séries favoritas de um usuário.
     @GetMapping("/")
     public ResponseEntity<ApiResponse<List<FavoriteSerie>>> getAllFavoritesSeries(
             Authentication authentication) {

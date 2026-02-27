@@ -56,7 +56,6 @@ public class JWTAuthFilter extends OncePerRequestFilter {
     }
 
     private String recuperarToken(HttpServletRequest request) {
-        // 1. Tenta buscar nos Cookies
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("auth_token".equals(cookie.getName())) {
@@ -65,7 +64,6 @@ public class JWTAuthFilter extends OncePerRequestFilter {
             }
         }
 
-        // 2. Fallback: Busca no Header
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7);

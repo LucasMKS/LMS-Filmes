@@ -14,17 +14,14 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    // Constantes Principais
     public static final String USER_EXCHANGE = "user.exchange";
     public static final String USER_REGISTERED_QUEUE = "user.registered.queue";
     public static final String USER_RESET_QUEUE = "user.reset.queue";
     public static final String USER_REGISTERED_ROUTING_KEY = "user.registered";
     public static final String USER_RESET_ROUTING_KEY = "user.reset.password";
 
-    // Constante de Dead Letter
     public static final String DEAD_LETTER_EXCHANGE = USER_EXCHANGE + ".dlx";
     
-    // Filas dedicadas para armazenar as mensagens com falha
     public static final String USER_REGISTERED_DLQ = USER_REGISTERED_QUEUE + ".dlq";
     public static final String USER_RESET_DLQ = USER_RESET_QUEUE + ".dlq";
 

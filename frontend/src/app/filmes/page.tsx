@@ -138,7 +138,6 @@ export default function MoviesPage() {
   );
 
   return (
-    // Adicionado bg-slate-950 aqui para manter o fundo da página escuro
     <div className="min-h-screen bg-slate-950">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         {/* Cabeçalho Opcional da Página */}
@@ -155,7 +154,7 @@ export default function MoviesPage() {
 
         <MediaSearchSection
           title="Buscar"
-          titleIconColorClassName="text-blue-400 hidden" // Ocultamos o título interno para usar o externo acima
+          titleIconColorClassName="text-blue-400 hidden"
           searchButtonClassName="bg-blue-600 hover:bg-blue-700 text-white"
           searchPlaceholder="Digite o nome de um filme (ex: Clube da Luta)..."
           resultLabel="filmes encontrados"

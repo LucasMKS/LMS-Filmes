@@ -77,10 +77,6 @@ class MovieService {
     }
   }
 
-  // =====================
-  // MÉTODOS PARA SÉRIES
-  // =====================
-
   async getUserSeries(): Promise<Serie[]> {
     try {
       return await ratingSeriesApi.getRatedSeries();

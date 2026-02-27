@@ -36,6 +36,6 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue movieQueue() {
-        return new Queue(MOVIE_QUEUE, true); // true = fila durável
+        return new Queue(MOVIE_QUEUE, true);
     }
 }

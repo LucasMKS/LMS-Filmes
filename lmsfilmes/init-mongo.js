@@ -1,7 +1,5 @@
-// Script de inicialização do MongoDB para o LMS Films
 db = db.getSiblingDB("lmsfilmes");
 
-// Criar usuário para a aplicação
 db.createUser({
   user: "lmsuser",
   pwd: "lmspass123",
@@ -13,7 +11,6 @@ db.createUser({
   ],
 });
 
-// Criar índices para melhor performance
 db.users.createIndex({ email: 1 }, { unique: true });
 db.users.createIndex({ nickname: 1 }, { unique: true });
 db.movies.createIndex({ tmdbId: 1 });

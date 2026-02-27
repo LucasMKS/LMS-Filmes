@@ -42,7 +42,6 @@ public class RateSerieController {
         return ResponseEntity.ok(rateService.rateSerie(request, email));
     }
 
-    // Método para obter as avaliações de uma série.
     @GetMapping("/")
     public ResponseEntity<List<Series>> getUserRatings(Authentication authentication) {
         String email = authentication.getName();
@@ -58,7 +57,6 @@ public class RateSerieController {
         
         String email = authentication.getName();
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        // Lembre-se de criar o método correspondente no RateSerieService
         return ResponseEntity.ok(rateService.searchRatedSeriesPaged(email, pageable));
     }
 

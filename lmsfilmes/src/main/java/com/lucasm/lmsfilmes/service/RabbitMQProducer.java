@@ -27,7 +27,7 @@ public class RabbitMQProducer {
         UserRegistrationDTO dto = new UserRegistrationDTO(
                 user.getNickname(),
                 user.getEmail(),
-                Instant.now() // Usando Instant para o timestamp
+                Instant.now()
         );
 
         rabbitTemplate.convertAndSend(

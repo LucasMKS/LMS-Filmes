@@ -1,4 +1,3 @@
-// Tipos para autenticação
 export interface AuthDTO {
   email: string;
   password: string;
@@ -18,10 +17,6 @@ export interface User {
   nickname: string;
   role: string;
 }
-
-// --------------------
-// Tipos de Avaliação (Rating)
-// --------------------
 
 export interface Movie {
   id: string;
@@ -46,9 +41,6 @@ export interface Serie {
   modifiedAt?: string;
 }
 
-// --------------------
-// Tipos de Favoritos
-// --------------------
 
 export interface FavoriteMovie {
   id: string;
@@ -105,10 +97,6 @@ export interface TmdbVideo {
   site: string;
   type: string;
 }
-
-// --------------------
-// Tipos do TMDB (Externo)
-// --------------------
 
 export interface TmdbMovie {
   id: number;
@@ -211,10 +199,6 @@ export interface TmdbSerie {
   recommendations?: { results: any[] };
   tagline?: string;
 }
-
-// --------------------
-// Tipos de UI
-// --------------------
 
 export interface FavoriteMovieEnriched extends FavoriteMovie {
   tmdbData?: TmdbMovie;

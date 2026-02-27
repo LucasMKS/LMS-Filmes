@@ -21,15 +21,12 @@ import com.lucasm.lmsfavorite.service.FavoriteMovieService;
 @RequestMapping("/favorite/movies")
 public class FavoriteMovieController {
 
-    private static final Logger logger = LoggerFactory.getLogger(FavoriteMovieController.class);
-
     private final FavoriteMovieService favoriteService;
 
     public FavoriteMovieController(FavoriteMovieService favoriteService) {
         this.favoriteService = favoriteService;
     }
 
-    // Método para adicionar/remover um filme dos favoritos.
     @PostMapping("")
     public ResponseEntity<FavoriteStatusResponse> toggleFavoriteMovie(
             @RequestParam String movieId, 
@@ -42,7 +39,6 @@ public class FavoriteMovieController {
         return ResponseEntity.ok(new FavoriteStatusResponse(movieId, newStatus));
     }
 
-    // Método para verificar se um filme é favorito.
     @GetMapping("/status")
     public ResponseEntity<Boolean> getFavoriteStatusMovies(
             @RequestParam String movieId, 
@@ -53,7 +49,6 @@ public class FavoriteMovieController {
         return ResponseEntity.ok(isFavorite);
     }
 
-    // Método para obter todos os filmes favoritos de um usuário.
     @GetMapping("/")
     public ResponseEntity<ApiResponse<List<FavoriteMovie>>> getAllFavoritesMovies(
             Authentication authentication) {

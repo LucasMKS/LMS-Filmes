@@ -1,52 +1,40 @@
 import { ApiError } from "./types";
 
 export class ErrorHandler {
-  /**
-   * Extrai a mensagem de erro de diferentes tipos de resposta da API
-   */
   static extractErrorMessage(error: any): string {
-    // Caso 1: Erro com response da API
     if (error.response?.data) {
       const data = error.response.data;
 
-      // Se o backend retorna uma string direta
       if (typeof data === "string") {
         return data;
       }
 
-      // Se o backend retorna um objeto com message
       if (data.message) {
         return data.message;
       }
 
-      // Se o backend retorna um objeto com error
       if (data.error) {
         return data.error;
       }
 
-      // Se o backend retorna um objeto com details
       if (data.details) {
         return data.details;
       }
     }
 
-    // Caso 2: Timeout
     if (error.code === "ECONNABORTED") {
       return "Tempo limite excedido. Tente novamente.";
     }
 
-    // Caso 3: Erro de rede
     if (error.code === "NETWORK_ERROR" || error.code === "ERR_NETWORK") {
       return "Erro de conexão. Verifique sua internet e tente novamente.";
     }
 
-    // Caso 4: Erro padrão baseado no status HTTP
     const status = error.response?.status;
     switch (status) {
       case 400:
         return "Dados inválidos. Verifique as informações enviadas.";
       case 401:
-        // Verificar se é erro de login ou token expirado
         const isLoginEndpoint = error.config?.url?.includes("/auth/login");
         if (isLoginEndpoint) {
           return "Credenciais inválidas. Verifique email e senha.";
@@ -71,9 +59,6 @@ export class ErrorHandler {
     }
   }
 
-  /**
-   * Cria um objeto ApiError padronizado
-   */
   static createApiError(error: any): ApiError {
     return {
       message: this.extractErrorMessage(error),
@@ -84,41 +69,27 @@ export class ErrorHandler {
     };
   }
 
-  /**
-   * Determina se o erro é um erro de validação (4xx)
-   */
   static isValidationError(error: any): boolean {
     const status = error.response?.status;
     return status >= 400 && status < 500;
   }
 
-  /**
-   * Determina se é um erro de login (401 em endpoint de login)
-   */
   static isLoginError(error: any): boolean {
     const status = error.response?.status;
     const isLoginEndpoint = error.config?.url?.includes("/auth/login");
     return status === 401 && isLoginEndpoint;
   }
 
-  /**
-   * Determina se o erro é um erro do servidor (5xx)
-   */
   static isServerError(error: any): boolean {
     const status = error.response?.status;
     return status >= 500;
   }
 
-  /**
-   * Determina se é um erro de rede/conexão
-   */
   static isNetworkError(error: any): boolean {
-    // Erro de rede real - sem resposta HTTP
     if (!error.response) {
       return true;
     }
 
-    // Códigos específicos de erro de rede
     const networkCodes = [
       "NETWORK_ERROR",
       "ERR_NETWORK",
@@ -129,24 +100,16 @@ export class ErrorHandler {
     return networkCodes.includes(error.code);
   }
 
-  /**
-   * Logging de erros (pode ser expandido para enviar para serviços de monitoramento)
-   */
-  // CORREÇÃO: Removido "function" e adicionado "static" para ser um método da classe
   static logError(error: any, p0: string): void {
-    // Verificação comum para erros do Axios
     if (error.response) {
-      // A requisição foi feita e o servidor respondeu com um status de erro
       console.error("API Error [Response]:", {
         status: error.response.status,
         data: error.response.data,
         headers: error.response.headers,
       });
     } else if (error.request) {
-      // A requisição foi feita mas nenhuma resposta foi recebida
       console.error("API Error [Request]:", error.request);
     } else {
-      // Algo aconteceu ao configurar a requisição que disparou um Erro
       console.error("API Error [General]:", error.message);
     }
   }

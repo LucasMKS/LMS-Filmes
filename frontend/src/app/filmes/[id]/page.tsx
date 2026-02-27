@@ -34,12 +34,9 @@ export default function MovieDetailsPage() {
   const [userRating, setUserRating] = useState<Movie | null>(null);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
   const [loadingRating, setLoadingRating] = useState(false);
-
-  // ESTADO DE LOGIN
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Define se o usuário está logado
     const logged = AuthService.isAuthenticated();
     setIsLoggedIn(logged);
 
@@ -48,11 +45,9 @@ export default function MovieDetailsPage() {
 
       try {
         setLoading(true);
-        // O Filme sempre carrega (Visitante ou Logado)
         const movieData = await moviesApi.getMovieDetails(movieId);
         setMovie(movieData);
 
-        // A Nota do Usuário SÓ carrega se estiver Logado
         if (logged) {
           try {
             setLoadingRating(true);

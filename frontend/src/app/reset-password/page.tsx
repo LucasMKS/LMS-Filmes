@@ -156,7 +156,6 @@ function ResetPasswordForm() {
     );
   }
 
-  // CENÁRIO 2: Token NÃO existe, e a solicitação JÁ FOI ENVIADA.
   if (requestSent) {
     return (
       <div className="w-full max-w-md space-y-4 p-6 rounded-xl text-center bg-gray-900 !border-gray-800 border-2 shadow-2xl shadow-zinc-950">
@@ -178,7 +177,6 @@ function ResetPasswordForm() {
     );
   }
 
-  // CENÁRIO 3: Token NÃO existe. Mostrar formulário de solicitação.
   return (
     <div className="w-full max-w-md space-y-6 p-6 rounded-xl bg-gray-900 !border-gray-800 border-2 shadow-2xl shadow-zinc-950">
       <div className="space-y-2 text-center">
@@ -225,7 +223,6 @@ function ResetPasswordForm() {
   );
 }
 
-// Componente principal (wrapper)
 export default function ResetPasswordPage() {
   return (
     <Suspense

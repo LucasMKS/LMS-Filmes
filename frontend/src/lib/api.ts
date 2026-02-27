@@ -35,28 +35,6 @@ const timeoutFromEnv = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
 const REQUEST_TIMEOUT =
   Number.isFinite(timeoutFromEnv) && timeoutFromEnv > 0 ? timeoutFromEnv : 0;
 
-// Helper para retry em caso de timeout/network error
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const withRetry = async <T>(
-  fn: () => Promise<T>,
-  retries = 2,
-  delay = 1000,
-): Promise<T> => {
-  try {
-    return await fn();
-  } catch (error: any) {
-    if (
-      retries > 0 &&
-      (error.code === "ECONNABORTED" || error.code === "NETWORK_ERROR")
-    ) {
-      await sleep(delay);
-      return withRetry(fn, retries - 1, delay * 2);
-    }
-    throw error;
-  }
-};
-
 const apiLmsFilmes = axios.create({
   baseURL: `${API_GATEWAY_URL}/lms-filmes`,
   headers: { "Content-Type": "application/json" },
@@ -107,9 +85,6 @@ const attachAuthInterceptor = (apiInstance: any) => {
 
 [apiLmsFilmes, apiLmsRating, apiLmsFavorite].forEach(attachAuthInterceptor);
 
-// --------------------
-// LMS-FILMES (Autenticação)
-// --------------------
 export const authApi = {
   login: (payload: AuthDTO): Promise<AuthResponse> =>
     apiLmsFilmes.post("/auth/login", payload).then((res) => res.data),
@@ -131,9 +106,6 @@ export const authApi = {
       .then((res) => res.data),
 };
 
-// --------------------
-// LMS-FILMES (filmes e séries)
-// --------------------
 export const moviesApi = {
   getPopularMovies: (page: number = 1): Promise<TmdbPage<TmdbMovie>> =>
     apiLmsFilmes.get(`/movies/popular?page=${page}`).then((res) => res.data),
@@ -187,11 +159,7 @@ export const seriesApi = {
   getSerieDetails: (serieId: string | number): Promise<TmdbSerie> =>
     apiLmsFilmes.get(`/series/${serieId}`).then((res) => res.data),
 };
-// --------------------
-// LMS-RATING (avaliações)
-// --------------------
 
-// Tipos de Payload para DTOs do backend
 interface RateMoviePayload {
   movieId: string;
   rating: number;
@@ -242,9 +210,6 @@ export const ratingSeriesApi = {
     apiLmsRating.get(`/rate/series/${serieId}`).then((res) => res.data),
 };
 
-// --------------------
-// LMS-FAVORITE (favoritos)
-// --------------------
 export const favoriteMoviesApi = {
   toggleFavorite: (movieId: string) =>
     apiLmsFavorite

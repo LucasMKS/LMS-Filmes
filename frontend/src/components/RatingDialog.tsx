@@ -39,7 +39,6 @@ export function RatingDialog({
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Carregar avaliação atual quando o diálogo abrir
   useEffect(() => {
     if (isOpen && currentRating) {
       setSelectedRating(parseFloat(currentRating.myVote) || 0);

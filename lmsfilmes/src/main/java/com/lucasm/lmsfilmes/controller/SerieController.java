@@ -37,14 +37,12 @@ public class SerieController {
 
     @GetMapping("/popular")
     public ResponseEntity<TmdbPageDTO<SeriesDTO>> getPopularSeries(@RequestParam(defaultValue = "1") int page) {
-        // 3. Nome do método padronizado
         TmdbPageDTO<SeriesDTO> serie = serieService.getPopularSeries(page); 
         return ResponseEntity.ok(serie);
     }
 
     @GetMapping("/airing-today")
     public ResponseEntity<TmdbPageDTO<SeriesDTO>> getAiringTodaySeries(@RequestParam(defaultValue = "1") int page) {
-        // 3. Nome do método padronizado
         TmdbPageDTO<SeriesDTO> series = serieService.getAiringTodaySeries(page);
         return ResponseEntity.ok(series);
     }
