@@ -15,5 +15,6 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     Optional<User> findByNickname(String nickname);
 
+    @SuppressWarnings("null")
     List<User> findAll();
 }

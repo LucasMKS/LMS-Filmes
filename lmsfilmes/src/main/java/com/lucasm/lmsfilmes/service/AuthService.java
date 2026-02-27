@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.lucasm.lmsfilmes.dto.AuthDTO;
 import com.lucasm.lmsfilmes.dto.AuthResponseDTO;
 import com.lucasm.lmsfilmes.dto.EmailRequestDTO;
 import com.lucasm.lmsfilmes.dto.LoginRequestDTO;
