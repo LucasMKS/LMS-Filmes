@@ -60,7 +60,7 @@ export default function LoginPage() {
           description: "Bem-vindo de volta!",
         });
 
-        window.location.href = "/dashboard";
+        router.push("/dashboard");
       } else {
         if (data.password !== data.confirmPassword) {
           toast.error("Erro de validação", {
