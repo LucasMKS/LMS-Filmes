@@ -22,7 +22,7 @@ public class CorsGlobalConfig {
         config.setAllowedOriginPatterns(Arrays.asList(
             "https://lms-filmes.vercel.app",
             "https://lucasmks.me",
-            "http://localhost:3000",
+            "https://www.lucasmks.me",
             "http://localhost:*"
         ));
 
