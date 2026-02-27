@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { MediaCard } from "@/components/MediaCard";
 import { TmdbSerie } from "@/lib/types";
 import { Tv, UserStar } from "lucide-react";
@@ -15,7 +16,7 @@ interface SerieCardProps {
   onFavoriteToggle?: () => void;
 }
 
-export function SerieCard({
+function SerieCardComponent({
   serie,
   onClick,
   userRating,
@@ -71,3 +72,12 @@ export function SerieCard({
     />
   );
 }
+
+export const SerieCard = memo(SerieCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.serie.id === nextProps.serie.id &&
+    prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.userRating?.rating === nextProps.userRating?.rating &&
+    prevProps.userRating?.comment === nextProps.userRating?.comment
+  );
+});

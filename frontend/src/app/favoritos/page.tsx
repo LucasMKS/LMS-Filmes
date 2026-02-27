@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import {
@@ -27,15 +27,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Heart, Film, Tv, Search, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function FavoritesPage() {
-  const [favoriteMovies, setFavoriteMovies] = useState<FavoriteMovieEnriched[]>(
-    [],
-  );
-  const [favoriteSeries, setFavoriteSeries] = useState<FavoriteSerieEnriched[]>(
-    [],
-  );
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>(null);
   const [selectedSerie, setSelectedSerie] = useState<TmdbSerie | null>(null);
@@ -49,65 +44,82 @@ export default function FavoritesPage() {
     "all",
   );
 
-  useEffect(() => {
-    if (AuthService.isAuthenticated()) {
-      loadFavorites();
-    }
-  }, []);
+  const isAuth = AuthService.isAuthenticated();
 
-  const loadFavorites = async () => {
-    setLoading(true);
-    try {
-      const [moviesResponse, seriesResponse] = await Promise.all([
-        favoriteMoviesApi.getFavoriteMovies(),
-        favoriteSeriesApi.getFavoriteSeries(),
-      ]);
-
-      const enrichedMovies = await Promise.all(
-        (moviesResponse || []).map(async (movie: FavoriteMovie) => {
+  // Query para Filmes Favoritos
+  const { data: favoriteMovies = [], isLoading: isLoadingMovies } = useQuery({
+    queryKey: ["favorites", "movies"],
+    queryFn: async () => {
+      const response = await favoriteMoviesApi.getFavoriteMovies();
+      const enriched = await Promise.all(
+        (response || []).map(async (movie: FavoriteMovie) => {
           try {
             const tmdbData = await moviesApi.getMovieDetails(
               parseInt(movie.movieId),
             );
             return { ...movie, tmdbData };
-          } catch (error) {
-            console.error(
-              `Erro ao buscar detalhes do filme ${movie.movieId}:`,
-              error,
-            );
+          } catch {
             return movie;
           }
         }),
       );
+      return enriched as FavoriteMovieEnriched[];
+    },
+    enabled: isAuth,
+  });
 
-      const enrichedSeries = await Promise.all(
-        (seriesResponse || []).map(async (serie: FavoriteSerie) => {
+  // Query para Séries Favoritas
+  const { data: favoriteSeries = [], isLoading: isLoadingSeries } = useQuery({
+    queryKey: ["favorites", "series"],
+    queryFn: async () => {
+      const response = await favoriteSeriesApi.getFavoriteSeries();
+      const enriched = await Promise.all(
+        (response || []).map(async (serie: FavoriteSerie) => {
           try {
             const tmdbData = await seriesApi.getSerieDetails(
               parseInt(serie.serieId),
             );
             return { ...serie, tmdbData };
-          } catch (error) {
-            console.error(
-              `Erro ao buscar detalhes da série ${serie.serieId}:`,
-              error,
-            );
+          } catch {
             return serie;
           }
         }),
       );
+      return enriched as FavoriteSerieEnriched[];
+    },
+    enabled: isAuth,
+  });
 
-      setFavoriteMovies(enrichedMovies);
-      setFavoriteSeries(enrichedSeries);
-    } catch (error) {
-      console.error("Erro ao carregar favoritos:", error);
-      toast.error("Erro ao carregar seus favoritos", {
-        description: "Tente novamente mais tarde",
+  const isLoading = isLoadingMovies || isLoadingSeries;
+
+  // Mutation para remover favorito
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async ({
+      type,
+      id,
+    }: {
+      type: "movie" | "serie";
+      id: string;
+    }) => {
+      if (type === "movie") {
+        return favoriteMoviesApi.toggleFavorite(id);
+      }
+      return favoriteSeriesApi.toggleFavorite(id);
+    },
+    onSuccess: (_, { type }) => {
+      toast.success(
+        type === "movie"
+          ? "Filme removido dos favoritos!"
+          : "Série removida dos favoritos!",
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["favorites", type === "movie" ? "movies" : "series"],
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    onError: () => {
+      toast.error("Erro ao remover dos favoritos");
+    },
+  });
 
   const handleMovieClick = async (movie: FavoriteMovieEnriched) => {
     if (movie.tmdbData) {
@@ -117,7 +129,7 @@ export default function FavoritesPage() {
           String(movie.tmdbData.id),
         );
         setMovieDetails(details);
-      } catch (error) {
+      } catch {
         setMovieDetails(null);
       }
       setIsMovieDialogOpen(true);
@@ -132,31 +144,10 @@ export default function FavoritesPage() {
           String(serie.tmdbData.id),
         );
         setSerieDetails(details);
-      } catch (error) {
+      } catch {
         setSerieDetails(null);
       }
       setIsSerieDialogOpen(true);
-    }
-  };
-
-  const handleRemoveFavorite = async (type: "movie" | "serie", id: string) => {
-    try {
-      if (type === "movie") {
-        await favoriteMoviesApi.toggleFavorite(id);
-        setFavoriteMovies((prev) =>
-          prev.filter((movie) => movie.movieId !== id),
-        );
-        toast.success("Filme removido dos favoritos!");
-      } else {
-        await favoriteSeriesApi.toggleFavorite(id);
-        setFavoriteSeries((prev) =>
-          prev.filter((serie) => serie.serieId !== id),
-        );
-        toast.success("Série removida dos favoritos!");
-      }
-    } catch (error) {
-      console.error("Erro ao remover favorito:", error);
-      toast.error("Erro ao remover dos favoritos");
     }
   };
 
@@ -177,15 +168,12 @@ export default function FavoritesPage() {
         if (type === "movie" && !isMovie) return false;
         if (type === "serie" && !isSerie) return false;
       }
-
       if (!searchTerm.trim()) return true;
-
       const searchLower = searchTerm.toLowerCase().trim();
       const title = item.tmdbData?.title?.toLowerCase() || "";
       const name = item.tmdbData?.name?.toLowerCase() || "";
       const originalTitle = item.tmdbData?.original_title?.toLowerCase() || "";
       const originalName = item.tmdbData?.original_name?.toLowerCase() || "";
-
       return (
         title.includes(searchLower) ||
         name.includes(searchLower) ||
@@ -195,17 +183,9 @@ export default function FavoritesPage() {
     });
   };
 
-  const getStatistics = () => {
-    return {
-      totalMovies: favoriteMovies.length,
-      totalSeries: favoriteSeries.length,
-      totalItems: favoriteMovies.length + favoriteSeries.length,
-    };
-  };
-
-  const stats = getStatistics();
   const filteredMovies = filterItems(favoriteMovies, searchQuery, typeFilter);
   const filteredSeries = filterItems(favoriteSeries, searchQuery, typeFilter);
+  const totalItems = favoriteMovies.length + favoriteSeries.length;
 
   const ContentGridLoader = () => (
     <div className="flex flex-col items-center justify-center py-32 text-center bg-slate-900/20 rounded-2xl border border-slate-800/50 mt-8">
@@ -219,10 +199,9 @@ export default function FavoritesPage() {
   return (
     <div className="min-h-screen bg-slate-950">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-        {/* Cabeçalho da Página */}
         <div className="mb-8">
           <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center">
-            <Heart className="w-8 h-8 mr-3 text-pink-500 fill-current/20" />
+            <Heart className="w-8 h-8 mr-3 text-pink-500 fill-current/20" />{" "}
             Favoritos
           </h2>
           <p className="text-slate-400 mt-2">
@@ -231,7 +210,6 @@ export default function FavoritesPage() {
           </p>
         </div>
 
-        {/* Search and Filter Section */}
         <Card className="mb-10 bg-slate-900 border-slate-800 shadow-xl">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -255,7 +233,6 @@ export default function FavoritesPage() {
                 )}
               </div>
 
-              {/* Filtros de Tipo */}
               <div className="flex gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 overflow-x-auto shrink-0 hide-scrollbar">
                 <Button
                   variant={typeFilter === "all" ? "secondary" : "ghost"}
@@ -281,8 +258,7 @@ export default function FavoritesPage() {
                       : "text-slate-400 hover:text-slate-200",
                   )}
                 >
-                  <Film className="w-4 h-4 mr-2" />
-                  Filmes
+                  <Film className="w-4 h-4 mr-2" /> Filmes
                 </Button>
                 <Button
                   variant={typeFilter === "serie" ? "secondary" : "ghost"}
@@ -295,8 +271,7 @@ export default function FavoritesPage() {
                       : "text-slate-400 hover:text-slate-200",
                   )}
                 >
-                  <Tv className="w-4 h-4 mr-2" />
-                  Séries
+                  <Tv className="w-4 h-4 mr-2" /> Séries
                 </Button>
               </div>
             </div>
@@ -308,8 +283,7 @@ export default function FavoritesPage() {
                     variant="secondary"
                     className="bg-pink-500/10 text-pink-400 border border-pink-500/20"
                   >
-                    <Filter className="w-3 h-3 mr-1.5" />
-                    Filtrado
+                    <Filter className="w-3 h-3 mr-1.5" /> Filtrado
                   </Badge>
                   <span className="text-slate-400 text-sm font-medium">
                     {filteredMovies.length + filteredSeries.length} favoritos
@@ -321,11 +295,10 @@ export default function FavoritesPage() {
           </CardContent>
         </Card>
 
-        {loading ? (
+        {isLoading ? (
           <ContentGridLoader />
         ) : (
           <>
-            {/* Estatísticas */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               <Card className="bg-slate-900 border-slate-800 shadow-md">
                 <CardContent className="p-4">
@@ -335,12 +308,9 @@ export default function FavoritesPage() {
                     </p>
                     <Heart className="w-4 h-4 text-slate-500" />
                   </div>
-                  <p className="text-2xl font-bold text-white">
-                    {stats.totalItems}
-                  </p>
+                  <p className="text-2xl font-bold text-white">{totalItems}</p>
                 </CardContent>
               </Card>
-
               <Card className="bg-slate-900 border-slate-800 shadow-md">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -350,11 +320,10 @@ export default function FavoritesPage() {
                     <Film className="w-4 h-4 text-blue-500" />
                   </div>
                   <p className="text-2xl font-bold text-white">
-                    {stats.totalMovies}
+                    {favoriteMovies.length}
                   </p>
                 </CardContent>
               </Card>
-
               <Card className="bg-slate-900 border-slate-800 shadow-md">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -364,13 +333,12 @@ export default function FavoritesPage() {
                     <Tv className="w-4 h-4 text-green-500" />
                   </div>
                   <p className="text-2xl font-bold text-white">
-                    {stats.totalSeries}
+                    {favoriteSeries.length}
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Grid de Resultados */}
             {filteredMovies.length === 0 && filteredSeries.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 bg-slate-900/20 rounded-2xl border border-slate-800 border-dashed">
                 <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4">
@@ -418,7 +386,10 @@ export default function FavoritesPage() {
                         showFavoriteButton={true}
                         isFavorite={true}
                         onFavoriteToggle={() =>
-                          handleRemoveFavorite("movie", item.movieId)
+                          toggleFavoriteMutation.mutate({
+                            type: "movie",
+                            id: item.movieId,
+                          })
                         }
                       />
                     )}
@@ -429,7 +400,10 @@ export default function FavoritesPage() {
                         showFavoriteButton={true}
                         isFavorite={true}
                         onFavoriteToggle={() =>
-                          handleRemoveFavorite("serie", item.serieId)
+                          toggleFavoriteMutation.mutate({
+                            type: "serie",
+                            id: item.serieId,
+                          })
                         }
                       />
                     )}
@@ -449,7 +423,6 @@ export default function FavoritesPage() {
             isLoggedIn={true}
           />
         )}
-
         {selectedSerie && (
           <SerieDialog
             isOpen={isSerieDialogOpen}

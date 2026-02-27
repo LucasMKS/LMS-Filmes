@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import {
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Star, Film, Tv, Search, Filter, TrendingUp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 interface RatedMovie extends Movie {
   tmdbData?: TmdbMovie;
@@ -29,16 +30,65 @@ interface RatedSerie extends Serie {
   tmdbData?: TmdbSerie;
 }
 
-export default function RatingsPage() {
-  const [moviePage, setMoviePage] = useState(0);
-  const [hasMoreMovies, setHasMoreMovies] = useState(true);
-  const [seriePage, setSeriePage] = useState(0);
-  const [hasMoreSeries, setHasMoreSeries] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [ratedMovies, setRatedMovies] = useState<RatedMovie[]>([]);
-  const [ratedSeries, setRatedSeries] = useState<RatedSerie[]>([]);
-  const [loading, setLoading] = useState(true);
+const MAX_CONCURRENT_DETAILS = 6;
+const DETAIL_RETRY_COUNT = 2;
+const DETAIL_RETRY_DELAY_MS = 500;
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const fetchWithRetry = async <T,>(
+  fetcher: () => Promise<T>,
+  retries: number,
+): Promise<T> => {
+  try {
+    return await fetcher();
+  } catch (error) {
+    if (retries <= 0) throw error;
+    await sleep(DETAIL_RETRY_DELAY_MS);
+    return fetchWithRetry(fetcher, retries - 1);
+  }
+};
+
+const mapWithConcurrency = async <T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> => {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+  const runWorker = async () => {
+    while (index < items.length) {
+      const currentIndex = index++;
+      results[currentIndex] = await mapper(items[currentIndex]);
+    }
+  };
+  const workers = Array.from(
+    { length: Math.min(limit, items.length) },
+    runWorker,
+  );
+  await Promise.all(workers);
+  return results;
+};
+
+const buildFallbackMovie = (movie: Movie): TmdbMovie => ({
+  id: Number.isFinite(Number(movie.movieId)) ? Number(movie.movieId) : 0,
+  title: movie.title || "Filme desconhecido",
+  original_title: movie.title || "Filme desconhecido",
+  poster_path: movie.poster_path || undefined,
+  release_date: undefined,
+  vote_average: Number(movie.rating) || undefined,
+});
+
+const buildFallbackSerie = (serie: Serie): TmdbSerie => ({
+  id: Number.isFinite(Number(serie.serieId)) ? Number(serie.serieId) : 0,
+  name: serie.title || "Serie desconhecida",
+  original_name: serie.title || "Serie desconhecida",
+  poster_path: serie.poster_path || undefined,
+  first_air_date: undefined,
+  vote_average: Number(serie.rating) || undefined,
+});
+
+export default function RatingsPage() {
   const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>(null);
   const [selectedSerie, setSelectedSerie] = useState<TmdbSerie | null>(null);
   const [movieDetails, setMovieDetails] = useState<TmdbMovie | null>(null);
@@ -52,179 +102,87 @@ export default function RatingsPage() {
     "all",
   );
 
-  const MAX_CONCURRENT_DETAILS = 6;
-  const DETAIL_RETRY_COUNT = 2;
-  const DETAIL_RETRY_DELAY_MS = 500;
+  const isAuth = AuthService.isAuthenticated();
 
-  const sleep = (ms: number) =>
-    new Promise((resolve) => setTimeout(resolve, ms));
+  // Infinite Query para Filmes Avaliados
+  const {
+    data: moviesData,
+    fetchNextPage: fetchNextMovies,
+    hasNextPage: hasNextMovies,
+    isFetchingNextPage: isFetchingNextMovies,
+    isLoading: isLoadingMovies,
+  } = useInfiniteQuery({
+    queryKey: ["ratings", "movies"],
+    queryFn: async ({ pageParam = 0 }) => {
+      const response = await ratingMoviesApi.getRatedMoviesPaged(pageParam, 20);
+      const enriched = await mapWithConcurrency(
+        response.content || [],
+        MAX_CONCURRENT_DETAILS,
+        async (m: Movie) => {
+          if (!m.movieId) return { ...m, tmdbData: buildFallbackMovie(m) };
+          try {
+            const tmdbData = await fetchWithRetry(
+              () => moviesApi.getMovieDetails(m.movieId),
+              DETAIL_RETRY_COUNT,
+            );
+            return { ...m, tmdbData };
+          } catch {
+            return { ...m, tmdbData: buildFallbackMovie(m) };
+          }
+        },
+      );
+      return { content: enriched, last: response.last, page: pageParam };
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.last ? undefined : lastPage.page + 1,
+    enabled: isAuth,
+  });
 
-  const mapWithConcurrency = async <T, R>(
-    items: T[],
-    limit: number,
-    mapper: (item: T) => Promise<R>,
-  ): Promise<R[]> => {
-    const results: R[] = new Array(items.length);
-    let index = 0;
+  // Infinite Query para Séries Avaliadas
+  const {
+    data: seriesData,
+    fetchNextPage: fetchNextSeries,
+    hasNextPage: hasNextSeries,
+    isFetchingNextPage: isFetchingNextSeries,
+    isLoading: isLoadingSeries,
+  } = useInfiniteQuery({
+    queryKey: ["ratings", "series"],
+    queryFn: async ({ pageParam = 0 }) => {
+      const response = await ratingSeriesApi.getRatedSeriesPaged(pageParam, 20);
+      const enriched = await mapWithConcurrency(
+        response.content || [],
+        MAX_CONCURRENT_DETAILS,
+        async (s: Serie) => {
+          if (!s.serieId) return { ...s, tmdbData: buildFallbackSerie(s) };
+          try {
+            const tmdbData = await fetchWithRetry(
+              () => seriesApi.getSerieDetails(s.serieId),
+              DETAIL_RETRY_COUNT,
+            );
+            return { ...s, tmdbData };
+          } catch {
+            return { ...s, tmdbData: buildFallbackSerie(s) };
+          }
+        },
+      );
+      return { content: enriched, last: response.last, page: pageParam };
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.last ? undefined : lastPage.page + 1,
+    enabled: isAuth,
+  });
 
-    const runWorker = async () => {
-      while (index < items.length) {
-        const currentIndex = index++;
-        results[currentIndex] = await mapper(items[currentIndex]);
-      }
-    };
-
-    const workers = Array.from(
-      { length: Math.min(limit, items.length) },
-      runWorker,
-    );
-    await Promise.all(workers);
-    return results;
-  };
-
-  const fetchWithRetry = async <T,>(
-    fetcher: () => Promise<T>,
-    retries: number,
-  ): Promise<T> => {
-    try {
-      return await fetcher();
-    } catch (error) {
-      if (retries <= 0) {
-        throw error;
-      }
-      await sleep(DETAIL_RETRY_DELAY_MS);
-      return fetchWithRetry(fetcher, retries - 1);
-    }
-  };
-
-  const buildFallbackMovie = (movie: Movie): TmdbMovie => {
-    const id = Number(movie.movieId);
-    return {
-      id: Number.isFinite(id) ? id : 0,
-      title: movie.title || "Filme desconhecido",
-      original_title: movie.title || "Filme desconhecido",
-      poster_path: movie.poster_path || undefined,
-      release_date: undefined,
-      vote_average: Number(movie.rating) || undefined,
-    };
-  };
-
-  const buildFallbackSerie = (serie: Serie): TmdbSerie => {
-    const id = Number(serie.serieId);
-    return {
-      id: Number.isFinite(id) ? id : 0,
-      name: serie.title || "Serie desconhecida",
-      original_name: serie.title || "Serie desconhecida",
-      poster_path: serie.poster_path || undefined,
-      first_air_date: undefined,
-      vote_average: Number(serie.rating) || undefined,
-    };
-  };
-
-  useEffect(() => {
-    if (AuthService.isAuthenticated()) {
-      loadRatings(0, true);
-    }
-  }, []);
-
-  const loadRatings = async (page: number, isInitial = false) => {
-    if (isInitial) setLoading(true);
-    else setLoadingMore(true);
-
-    try {
-      const moviePromise =
-        isInitial || hasMoreMovies
-          ? ratingMoviesApi.getRatedMoviesPaged(page, 20)
-          : Promise.resolve({ content: [], last: true });
-
-      const seriePromise =
-        isInitial || hasMoreSeries
-          ? ratingSeriesApi.getRatedSeriesPaged(page, 20)
-          : Promise.resolve({ content: [], last: true });
-
-      const [moviesRes, seriesRes] = await Promise.all([
-        moviePromise,
-        seriePromise,
-      ]);
-
-      const newMoviesRaw = moviesRes.content || [];
-      const newSeriesRaw = seriesRes.content || [];
-
-      const [enrichedMovies, enrichedSeries] = await Promise.all([
-        mapWithConcurrency(
-          newMoviesRaw,
-          MAX_CONCURRENT_DETAILS,
-          async (m: Movie) => {
-            if (!m.movieId) return { ...m, tmdbData: buildFallbackMovie(m) };
-            try {
-              const tmdbData = await fetchWithRetry(
-                () => moviesApi.getMovieDetails(m.movieId),
-                DETAIL_RETRY_COUNT,
-              );
-              return { ...m, tmdbData };
-            } catch (error) {
-              return { ...m, tmdbData: buildFallbackMovie(m) };
-            }
-          },
-        ),
-        mapWithConcurrency(
-          newSeriesRaw,
-          MAX_CONCURRENT_DETAILS,
-          async (s: Serie) => {
-            if (!s.serieId) return { ...s, tmdbData: buildFallbackSerie(s) };
-            try {
-              const tmdbData = await fetchWithRetry(
-                () => seriesApi.getSerieDetails(s.serieId),
-                DETAIL_RETRY_COUNT,
-              );
-              return { ...s, tmdbData };
-            } catch (error) {
-              return { ...s, tmdbData: buildFallbackSerie(s) };
-            }
-          },
-        ),
-      ]);
-
-      if (isInitial) {
-        setRatedMovies(enrichedMovies);
-        setRatedSeries(enrichedSeries);
-      } else {
-        setRatedMovies((prev) => {
-          const existingIds = new Set(prev.map((m) => m.id));
-          const uniqueNew = enrichedMovies.filter(
-            (m) => !existingIds.has(m.id),
-          );
-          return [...prev, ...uniqueNew];
-        });
-        setRatedSeries((prev) => {
-          const existingIds = new Set(prev.map((s) => s.id));
-          const uniqueNew = enrichedSeries.filter(
-            (s) => !existingIds.has(s.id),
-          );
-          return [...prev, ...uniqueNew];
-        });
-      }
-
-      setMoviePage(page);
-      setSeriePage(page);
-
-      if (isInitial || hasMoreMovies) setHasMoreMovies(!moviesRes.last);
-      if (isInitial || hasMoreSeries) setHasMoreSeries(!seriesRes.last);
-    } catch (error) {
-      console.error("Falha crítica no carregamento:", error);
-      toast.error("Erro ao carregar dados. Verifique sua conexão.");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  };
+  const ratedMovies = moviesData?.pages.flatMap((page) => page.content) || [];
+  const ratedSeries = seriesData?.pages.flatMap((page) => page.content) || [];
+  const isLoading = isLoadingMovies || isLoadingSeries;
+  const isFetchingMore = isFetchingNextMovies || isFetchingNextSeries;
+  const hasMore = hasNextMovies || hasNextSeries;
 
   const handleLoadMore = () => {
-    if (loadingMore) return;
-    const nextPage = Math.max(moviePage, seriePage) + 1;
-    if (hasMoreMovies || hasMoreSeries) {
-      loadRatings(nextPage);
-    }
+    if (hasNextMovies) fetchNextMovies();
+    if (hasNextSeries) fetchNextSeries();
   };
 
   const handleMovieClick = async (movie: RatedMovie) => {
@@ -235,7 +193,7 @@ export default function RatingsPage() {
           String(movie.tmdbData.id),
         );
         setMovieDetails(details);
-      } catch (error) {
+      } catch {
         setMovieDetails(null);
       }
       setIsMovieDialogOpen(true);
@@ -250,7 +208,7 @@ export default function RatingsPage() {
           String(serie.tmdbData.id),
         );
         setSerieDetails(details);
-      } catch (error) {
+      } catch {
         setSerieDetails(null);
       }
       setIsSerieDialogOpen(true);
@@ -283,11 +241,7 @@ export default function RatingsPage() {
           : null;
       const matchesRating =
         ratingFilter === null || itemRating === ratingFilter;
-
-      const matchesType =
-        typeFilter === "all" ||
-        (typeFilter === "movie" && itemType === "movie") ||
-        (typeFilter === "serie" && itemType === "serie");
+      const matchesType = typeFilter === "all" || typeFilter === itemType;
 
       return matchesSearch && matchesRating && matchesType;
     });
@@ -305,34 +259,15 @@ export default function RatingsPage() {
     return (sum / validItems.length).toFixed(1);
   };
 
-  const getStatistics = () => {
-    const totalMovies = ratedMovies.length;
-    const totalSeries = ratedSeries.length;
-    const totalItems = totalMovies + totalSeries;
-    const avgMovieRating = getAverageRating(ratedMovies);
-    const avgSerieRating = getAverageRating(ratedSeries);
-    const avgOverall = getAverageRating([...ratedMovies, ...ratedSeries]);
-
-    const moviesWithComments = ratedMovies.filter(
-      (m) => m.comment && m.comment.trim(),
-    ).length;
-    const seriesWithComments = ratedSeries.filter(
-      (s) => s.comment && s.comment.trim(),
-    ).length;
-
-    return {
-      totalMovies,
-      totalSeries,
-      totalItems,
-      avgMovieRating,
-      avgSerieRating,
-      avgOverall,
-      moviesWithComments,
-      seriesWithComments,
-    };
+  const stats = {
+    totalMovies: ratedMovies.length,
+    totalSeries: ratedSeries.length,
+    totalItems: ratedMovies.length + ratedSeries.length,
+    avgMovieRating: getAverageRating(ratedMovies),
+    avgSerieRating: getAverageRating(ratedSeries),
+    avgOverall: getAverageRating([...ratedMovies, ...ratedSeries]),
   };
 
-  const stats = getStatistics();
   const filteredMovies = filterItems(
     ratedMovies,
     searchQuery,
@@ -358,7 +293,6 @@ export default function RatingsPage() {
   return (
     <div className="min-h-screen bg-slate-950">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-        {/* Cabeçalho da Página */}
         <div className="mb-8">
           <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center">
             <Star className="w-8 h-8 mr-3 text-yellow-500 fill-current/20" />
@@ -370,7 +304,6 @@ export default function RatingsPage() {
           </p>
         </div>
 
-        {/* Search and Filter Section */}
         <Card className="mb-10 bg-slate-900 border-slate-800 shadow-xl">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -394,7 +327,6 @@ export default function RatingsPage() {
                 )}
               </div>
 
-              {/* Filtros de Tipo */}
               <div className="flex gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 overflow-x-auto shrink-0 hide-scrollbar">
                 <Button
                   variant={typeFilter === "all" ? "secondary" : "ghost"}
@@ -420,8 +352,7 @@ export default function RatingsPage() {
                       : "text-slate-400 hover:text-slate-200",
                   )}
                 >
-                  <Film className="w-4 h-4 mr-2" />
-                  Filmes
+                  <Film className="w-4 h-4 mr-2" /> Filmes
                 </Button>
                 <Button
                   variant={typeFilter === "serie" ? "secondary" : "ghost"}
@@ -434,8 +365,7 @@ export default function RatingsPage() {
                       : "text-slate-400 hover:text-slate-200",
                   )}
                 >
-                  <Tv className="w-4 h-4 mr-2" />
-                  Séries
+                  <Tv className="w-4 h-4 mr-2" /> Séries
                 </Button>
               </div>
             </div>
@@ -447,8 +377,7 @@ export default function RatingsPage() {
                     variant="secondary"
                     className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
                   >
-                    <Filter className="w-3 h-3 mr-1.5" />
-                    Filtrado
+                    <Filter className="w-3 h-3 mr-1.5" /> Filtrado
                   </Badge>
                   <span className="text-slate-400 text-sm font-medium">
                     {filteredMovies.length + filteredSeries.length} resultados
@@ -460,11 +389,10 @@ export default function RatingsPage() {
           </CardContent>
         </Card>
 
-        {loading ? (
+        {isLoading ? (
           <ContentGridLoader />
         ) : (
           <>
-            {/* Estatísticas Rápidas */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <Card className="bg-slate-900 border-slate-800 shadow-md">
                 <CardContent className="p-4">
@@ -479,7 +407,6 @@ export default function RatingsPage() {
                   </p>
                 </CardContent>
               </Card>
-
               <Card className="bg-slate-900 border-slate-800 shadow-md">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -493,7 +420,6 @@ export default function RatingsPage() {
                   </p>
                 </CardContent>
               </Card>
-
               <Card className="bg-slate-900 border-slate-800 shadow-md">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -510,7 +436,6 @@ export default function RatingsPage() {
                   </div>
                 </CardContent>
               </Card>
-
               <Card className="bg-slate-900 border-slate-800 shadow-md">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -529,7 +454,6 @@ export default function RatingsPage() {
               </Card>
             </div>
 
-            {/* Grid de Resultados */}
             {filteredMovies.length === 0 && filteredSeries.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 bg-slate-900/20 rounded-2xl border border-slate-800 border-dashed">
                 <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4">
@@ -595,17 +519,16 @@ export default function RatingsPage() {
               </div>
             )}
 
-            {/* Load More Button */}
-            {(hasMoreMovies || hasMoreSeries) && !loading && (
+            {hasMore && !isLoading && (
               <div className="flex justify-center pb-12">
                 <Button
                   onClick={handleLoadMore}
-                  disabled={loadingMore}
+                  disabled={isFetchingMore}
                   variant="outline"
                   size="lg"
                   className="bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white rounded-full px-8 h-12 shadow-lg"
                 >
-                  {loadingMore ? (
+                  {isFetchingMore ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-300 mr-3"></div>
                       Carregando mais dados...
@@ -628,7 +551,6 @@ export default function RatingsPage() {
             isLoggedIn={true}
           />
         )}
-
         {selectedSerie && (
           <SerieDialog
             isOpen={isSerieDialogOpen}

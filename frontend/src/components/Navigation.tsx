@@ -28,15 +28,26 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    if (AuthService.isAuthenticated()) {
-      const userData = AuthService.getUser();
-      setUser(userData);
-    }
-  }, []);
+
+    const checkAuth = () => {
+      const authenticated = AuthService.isAuthenticated();
+      setIsAuthenticated(authenticated);
+
+      if (authenticated) {
+        const userData = AuthService.getUser();
+        setUser(userData);
+      } else {
+        setUser(null);
+      }
+    };
+
+    checkAuth();
+  }, [pathname]);
 
   const handleLogout = () => {
     toast.success("Até logo!", {
@@ -49,7 +60,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
   };
 
   const handleLogin = () => {
-    router.push("/login");
+    router.push(isAuthenticated ? "/dashboard" : "/login");
   };
 
   const allNavigationItems = [
@@ -91,7 +102,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
   ];
 
   const navigationItems = allNavigationItems.filter(
-    (item) => !item.requiresAuth || user,
+    (item) => !item.requiresAuth || isAuthenticated,
   );
 
   const isDashboard = pathname === "/dashboard";
@@ -120,16 +131,24 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
             <div className="flex flex-col justify-center">
               <h1
                 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-none mb-1 cursor-pointer"
-                onClick={() => router.push(user ? "/dashboard" : "/")}
+                onClick={() =>
+                  router.push(isAuthenticated ? "/dashboard" : "/")
+                }
               >
                 {title}
               </h1>
               <div className="text-xs sm:text-sm font-medium min-h-[16px] sm:min-h-[20px] flex items-center">
-                {user ? (
+                {isAuthenticated ? (
                   <p className="text-slate-400">
-                    Bem-vindo,{" "}
-                    <span className="text-slate-300">{user.name}</span> (@
-                    {user.nickname})
+                    {user ? (
+                      <>
+                        Bem-vindo,{" "}
+                        <span className="text-slate-300">{user.name}</span> (@
+                        {user.nickname})
+                      </>
+                    ) : (
+                      "Sessão ativa"
+                    )}
                   </p>
                 ) : (
                   <p className="text-slate-500 italic">Visitante</p>
@@ -201,9 +220,9 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
 
             {/* Ações do Usuário (Logado x Visitante) */}
             <div className="flex items-center space-x-3 border-l border-slate-800 pl-3 sm:pl-5">
-              {user ? (
+              {isAuthenticated ? (
                 <>
-                  {user.role === "ADMIN" && (
+                  {user?.role === "ADMIN" && (
                     <Badge
                       variant="outline"
                       className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold hidden sm:flex"

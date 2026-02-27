@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { MediaCard } from "@/components/MediaCard";
 import { TmdbMovie } from "@/lib/types";
 import { Film, UserStar } from "lucide-react";
@@ -15,7 +16,7 @@ interface MovieCardProps {
   onFavoriteToggle?: () => void;
 }
 
-export function MovieCard({
+function MovieCardComponent({
   movie,
   onClick,
   userRating,
@@ -62,3 +63,12 @@ export function MovieCard({
     />
   );
 }
+
+export const MovieCard = memo(MovieCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.movie.id === nextProps.movie.id &&
+    prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.userRating?.rating === nextProps.userRating?.rating &&
+    prevProps.userRating?.comment === nextProps.userRating?.comment
+  );
+});
