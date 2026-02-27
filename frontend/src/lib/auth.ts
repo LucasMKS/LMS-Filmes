@@ -46,7 +46,7 @@ class AuthService {
       console.error("Erro ao fazer logout no servidor:", error);
     } finally {
       this.clearTokens();
-      window.location.href = "/login";
+      window.location.href = "/filmes";
     }
   }
 

@@ -43,9 +43,8 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       description: "Logout realizado com sucesso.",
     });
 
-    setTimeout(() => {
+    setTimeout(async () => {
       AuthService.logout();
-      window.location.href = "/filmes";
     }, 1000);
   };
 
