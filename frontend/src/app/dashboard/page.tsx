@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [statistics, setStatistics] = useState({
     totalMovieRatings: 0,
     totalSerieRatings: 0,
@@ -43,12 +44,18 @@ export default function Dashboard() {
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
-    if (AuthService.isAuthenticated()) {
-      const userData = AuthService.getUser();
-      setUser(userData);
-      loadStatistics();
+    const authenticated = AuthService.isAuthenticated();
+    setIsAuthenticated(authenticated);
+
+    if (!authenticated) {
+      router.replace("/login");
+      return;
     }
-  }, []);
+
+    const userData = AuthService.getUser();
+    setUser(userData);
+    loadStatistics();
+  }, [router]);
 
   const loadStatistics = async () => {
     setLoadingStats(true);
@@ -96,7 +103,7 @@ export default function Dashboard() {
     }
   };
 
-  if (!user) {
+  if (!isAuthenticated) {
     return null;
   }
 
