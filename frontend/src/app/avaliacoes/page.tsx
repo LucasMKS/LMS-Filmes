@@ -104,7 +104,6 @@ export default function RatingsPage() {
 
   const isAuth = AuthService.isAuthenticated();
 
-  // Infinite Query para Filmes Avaliados
   const {
     data: moviesData,
     fetchNextPage: fetchNextMovies,
@@ -139,7 +138,6 @@ export default function RatingsPage() {
     enabled: isAuth,
   });
 
-  // Infinite Query para Séries Avaliadas
   const {
     data: seriesData,
     fetchNextPage: fetchNextSeries,

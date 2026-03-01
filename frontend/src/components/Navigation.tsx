@@ -11,6 +11,7 @@ import {
   Heart,
   ArrowLeft,
   LogIn,
+  ListPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AuthService from "../lib/auth";
@@ -99,16 +100,18 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       current: pathname === "/favoritos",
       requiresAuth: true,
     },
+    {
+      name: "Watchlist",
+      href: "/watchlist",
+      icon: ListPlus,
+      current: pathname === "/watchlist",
+      requiresAuth: true,
+    },
   ];
 
   const navigationItems = allNavigationItems.filter(
     (item) => !item.requiresAuth || isAuthenticated,
   );
-
-  const isDashboard = pathname === "/dashboard";
-
-  const isPublicHome = pathname === "/filmes" || pathname === "/series";
-  const shouldShowBack = showBackButton && !isDashboard && !isPublicHome;
 
   if (!isMounted) return null;
 
@@ -116,18 +119,8 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
     <header className="sticky top-0 z-40 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
-          {/* Lado Esquerdo: Botão Voltar + Título + Usuário */}
+          {/* Lado Esquerdo: Título + Usuário */}
           <div className="flex items-center space-x-3 sm:space-x-4">
-            {shouldShowBack && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.back()}
-                className="hidden sm:flex w-9 h-9 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white transition-all shrink-0"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            )}
             <div className="flex flex-col justify-center">
               <h1
                 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-none mb-1 cursor-pointer"

@@ -41,7 +41,6 @@ export interface Serie {
   modifiedAt?: string;
 }
 
-
 export interface FavoriteMovie {
   id: string;
   movieId: string;
@@ -248,4 +247,46 @@ export interface RegisterFormData {
   nickname: string;
   password: string;
   confirmPassword: string;
+}
+
+export interface WatchlistMovie {
+  id: string;
+  email: string;
+  movieId: string;
+  addedAt: string;
+}
+
+export interface WatchlistSerie {
+  id: string;
+  email: string;
+  serieId: string;
+  addedAt: string;
+}
+
+export interface EnrichedWatchlistMovie {
+  type: "movie";
+  id: string;
+  internalId: string;
+  title: string;
+  poster: string;
+  backdrop: string | null;
+  overview: string;
+  genres: string[];
+  year: string;
+  tmdbData: TmdbMovie;
+  addedAt: string;
+}
+
+export interface EnrichedWatchlistSerie {
+  type: "serie";
+  id: string;
+  internalId: string;
+  title: string;
+  poster: string;
+  backdrop: string | null;
+  overview: string;
+  genres: string[];
+  year: string;
+  tmdbData: TmdbSerie;
+  addedAt: string;
 }

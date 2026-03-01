@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { moviesApi, ratingMoviesApi } from "@/lib/api";
+import { moviesApi, ratingMoviesApi, watchlistMoviesApi } from "@/lib/api";
 import MovieService from "@/lib/movieService";
 import AuthService from "@/lib/auth";
 import { TmdbMovie, Movie } from "@/lib/types";
@@ -18,11 +18,17 @@ import {
   ExternalLink,
   DollarSign,
   Building2,
+  ListPlus,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function MovieDetailsPage() {
+  const queryClient = useQueryClient();
   const params = useParams();
   const router = useRouter();
   const movieId = params.id as string;
@@ -35,6 +41,9 @@ export default function MovieDetailsPage() {
   const [isRatingOpen, setIsRatingOpen] = useState(false);
   const [loadingRating, setLoadingRating] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [loadingWatchlist, setLoadingWatchlist] = useState(false);
 
   useEffect(() => {
     const logged = AuthService.isAuthenticated();
@@ -54,11 +63,18 @@ export default function MovieDetailsPage() {
             const ratingData = await ratingMoviesApi.getMovieRating(movieId);
             setUserRating(ratingData);
           } catch (ratingErr: any) {
-            if (ratingErr?.status !== 404) {
-              console.error("Erro ao buscar avaliação do usuário:", ratingErr);
-            }
+            if (ratingErr?.status !== 404)
+              console.error("Erro ao buscar avaliação:", ratingErr);
           } finally {
             setLoadingRating(false);
+          }
+
+          try {
+            const watchlistData =
+              await watchlistMoviesApi.getWatchlistStatus(movieId);
+            setIsInWatchlist(watchlistData.inWatchlist);
+          } catch (wlErr) {
+            console.error("Erro ao buscar watchlist:", wlErr);
           }
         }
       } catch (err) {
@@ -72,9 +88,28 @@ export default function MovieDetailsPage() {
     fetchData();
   }, [movieId]);
 
+  const handleToggleWatchlist = async () => {
+    if (!movie) return;
+    setLoadingWatchlist(true);
+    try {
+      const res = await watchlistMoviesApi.toggleWatchlist(String(movie.id));
+      setIsInWatchlist(res.inWatchlist);
+
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      toast.success(
+        res.inWatchlist
+          ? "Adicionado à sua Watchlist!"
+          : "Removido da Watchlist!",
+      );
+    } catch (error) {
+      toast.error("Erro ao atualizar a Watchlist.");
+    } finally {
+      setLoadingWatchlist(false);
+    }
+  };
+
   const handleRateMovie = async (ratingString: string, comment?: string) => {
     if (!movie) return;
-
     try {
       const ratingValue = parseFloat(ratingString);
       const updatedRating = await MovieService.rateMovie(
@@ -158,7 +193,6 @@ export default function MovieDetailsPage() {
         </Button>
       </div>
 
-      {/* HERO SECTION */}
       <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh]">
         {backdropUrl ? (
           <img
@@ -174,7 +208,6 @@ export default function MovieDetailsPage() {
 
       <div className="container mx-auto px-4 sm:px-6 relative z-10 -mt-20 sm:-mt-32 md:-mt-48 w-full">
         <div className="flex flex-col md:flex-row gap-8 lg:gap-12 w-full">
-          {/* COLUNA ESQUERDA (Sidebar) */}
           <div className="w-48 sm:w-64 md:w-72 shrink-0 mx-auto md:mx-0 space-y-6">
             <img
               src={posterUrl}
@@ -182,7 +215,6 @@ export default function MovieDetailsPage() {
               className="w-full rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-slate-800"
             />
 
-            {/* Apenas exibe o card de "Sua Avaliação" se estiver logado E tiver nota */}
             {isLoggedIn && userRating && (
               <div className="bg-gradient-to-br from-slate-800 to-slate-800/50 p-5 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-bl-full -mr-4 -mt-4 blur-xl" />
@@ -270,7 +302,6 @@ export default function MovieDetailsPage() {
             )}
           </div>
 
-          {/* COLUNA DIREITA (Conteúdo Principal) */}
           <div className="flex-1 min-w-0 pt-2 md:pt-10 w-full">
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight mb-2 text-center md:text-left break-words">
               {movie.title}
@@ -308,27 +339,52 @@ export default function MovieDetailsPage() {
             </div>
 
             <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-8 w-full">
-              {/* BOTÃO COM TRAVA DE LOGIN */}
               {isLoggedIn ? (
-                <Button
-                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-900/20"
-                  onClick={() => setIsRatingOpen(true)}
-                  disabled={loadingRating}
-                >
-                  <Star className="w-4 h-4 mr-2" />
-                  {loadingRating
-                    ? "Carregando..."
-                    : userRating
-                      ? "Editar Avaliação"
-                      : "Avaliar Filme"}
-                </Button>
+                <>
+                  <Button
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-900/20"
+                    onClick={() => setIsRatingOpen(true)}
+                    disabled={loadingRating}
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    {loadingRating
+                      ? "Carregando..."
+                      : userRating
+                        ? "Editar Avaliação"
+                        : "Avaliar Filme"}
+                  </Button>
+
+                  {/* NOVO BOTÃO DE WATCHLIST */}
+                  <Button
+                    variant={isInWatchlist ? "secondary" : "outline"}
+                    className={cn(
+                      "w-full sm:w-auto font-semibold transition-all",
+                      isInWatchlist
+                        ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600/30"
+                        : "border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white",
+                    )}
+                    onClick={handleToggleWatchlist}
+                    disabled={loadingWatchlist}
+                  >
+                    {isInWatchlist ? (
+                      <Check className="w-4 h-4 mr-2" />
+                    ) : (
+                      <ListPlus className="w-4 h-4 mr-2" />
+                    )}
+                    {loadingWatchlist
+                      ? "Salvando..."
+                      : isInWatchlist
+                        ? "Na Watchlist"
+                        : "Add à Watchlist"}
+                  </Button>
+                </>
               ) : (
                 <Button
                   disabled
                   className="w-full sm:w-auto bg-slate-800/50 text-slate-400 font-semibold border border-slate-700 cursor-not-allowed"
                 >
                   <Star className="w-4 h-4 mr-2 opacity-50" />
-                  Faça login para avaliar
+                  Faça login para interagir
                 </Button>
               )}
 

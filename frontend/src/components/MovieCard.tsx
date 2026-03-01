@@ -38,7 +38,6 @@ function MovieCardComponent({
     ? new Date(movie.release_date).getFullYear().toString()
     : "N/A";
 
-  // Esta função é chamada quando clica no card (Botão invisível)
   const handleNavigateToDetails = () => {
     router.push(`/filmes/${movie.id}`);
   };

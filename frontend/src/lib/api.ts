@@ -11,6 +11,8 @@ import {
   AuthDTO,
   AuthResponse,
   SimpleApiResponse,
+  WatchlistMovie,
+  WatchlistSerie,
 } from "./types";
 
 const resolveApiGatewayUrl = (): string => {
@@ -234,6 +236,32 @@ export const favoriteSeriesApi = {
       .then((res) => res.data),
   getFavoriteSeries: () =>
     apiLmsFavorite.get("/favorite/series/").then((res) => res.data.data),
+};
+
+export const watchlistMoviesApi = {
+  toggleWatchlist: (movieId: string) =>
+    apiLmsFavorite
+      .post("/watchlist/movies", null, { params: { movieId } })
+      .then((res) => res.data),
+  getWatchlistStatus: (movieId: string) =>
+    apiLmsFavorite
+      .get("/watchlist/movies/status", { params: { movieId } })
+      .then((res) => res.data),
+  getWatchlistMovies: (): Promise<WatchlistMovie[]> =>
+    apiLmsFavorite.get("/watchlist/movies").then((res) => res.data),
+};
+
+export const watchlistSeriesApi = {
+  toggleWatchlist: (serieId: string) =>
+    apiLmsFavorite
+      .post("/watchlist/series", null, { params: { serieId } })
+      .then((res) => res.data),
+  getWatchlistStatus: (serieId: string) =>
+    apiLmsFavorite
+      .get("/watchlist/series/status", { params: { serieId } })
+      .then((res) => res.data),
+  getWatchlistSeries: (): Promise<WatchlistSerie[]> =>
+    apiLmsFavorite.get("/watchlist/series").then((res) => res.data),
 };
 
 export { apiLmsFilmes, apiLmsRating, apiLmsFavorite };

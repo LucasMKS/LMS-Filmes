@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { seriesApi, ratingSeriesApi } from "@/lib/api";
+import { seriesApi, ratingSeriesApi, watchlistSeriesApi } from "@/lib/api";
 import MovieService from "@/lib/movieService";
 import AuthService from "@/lib/auth";
 import { TmdbSerie, Serie } from "@/lib/types";
@@ -20,11 +20,17 @@ import {
   CalendarDays,
   Info,
   Calendar,
+  ListPlus,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SerieDetailsPage() {
+  const queryClient = useQueryClient();
   const params = useParams();
   const router = useRouter();
   const serieId = params.id as string;
@@ -32,11 +38,12 @@ export default function SerieDetailsPage() {
   const [serie, setSerie] = useState<TmdbSerie | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [userRating, setUserRating] = useState<Serie | null>(null);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
   const [loadingRating, setLoadingRating] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [loadingWatchlist, setLoadingWatchlist] = useState(false);
 
   useEffect(() => {
     const logged = AuthService.isAuthenticated();
@@ -56,11 +63,18 @@ export default function SerieDetailsPage() {
             const ratingData = await ratingSeriesApi.getSerieRating(serieId);
             setUserRating(ratingData);
           } catch (ratingErr: any) {
-            if (ratingErr?.status !== 404) {
-              console.error("Erro ao buscar avaliação do usuário:", ratingErr);
-            }
+            if (ratingErr?.status !== 404)
+              console.error("Erro ao buscar avaliação:", ratingErr);
           } finally {
             setLoadingRating(false);
+          }
+
+          try {
+            const watchlistData =
+              await watchlistSeriesApi.getWatchlistStatus(serieId);
+            setIsInWatchlist(watchlistData.inWatchlist);
+          } catch (wlErr) {
+            console.error("Erro ao buscar watchlist:", wlErr);
           }
         }
       } catch (err) {
@@ -73,6 +87,26 @@ export default function SerieDetailsPage() {
 
     fetchData();
   }, [serieId]);
+
+  const handleToggleWatchlist = async () => {
+    if (!serie) return;
+    setLoadingWatchlist(true);
+    try {
+      const res = await watchlistSeriesApi.toggleWatchlist(String(serie.id));
+      setIsInWatchlist(res.inWatchlist);
+
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      toast.success(
+        res.inWatchlist
+          ? "Série adicionada à Watchlist!"
+          : "Série removida da Watchlist!",
+      );
+    } catch (error) {
+      toast.error("Erro ao atualizar a Watchlist.");
+    } finally {
+      setLoadingWatchlist(false);
+    }
+  };
 
   const handleRateSerie = async (ratingString: string, comment?: string) => {
     if (!serie) return;
@@ -187,7 +221,6 @@ export default function SerieDetailsPage() {
               className="w-full rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-slate-800"
             />
 
-            {/* SÓ MOSTRA SE LOGADO E TIVER NOTA */}
             {isLoggedIn && userRating && (
               <div className="bg-gradient-to-br from-slate-800 to-slate-800/50 p-5 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-bl-full -mr-4 -mt-4 blur-xl" />
@@ -220,6 +253,7 @@ export default function SerieDetailsPage() {
                       key={provider.provider_id}
                       src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
                       alt={provider.provider_name}
+                      title={provider.provider_name}
                       className="w-12 h-12 rounded-xl shadow-md border border-slate-700"
                     />
                   ))}
@@ -336,27 +370,52 @@ export default function SerieDetailsPage() {
             </div>
 
             <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-8 w-full">
-              {/* BLOQUEIO DO BOTÃO DE AVALIAÇÃO */}
               {isLoggedIn ? (
-                <Button
-                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-900/20"
-                  onClick={() => setIsRatingOpen(true)}
-                  disabled={loadingRating}
-                >
-                  <Star className="w-4 h-4 mr-2" />
-                  {loadingRating
-                    ? "Carregando..."
-                    : userRating
-                      ? "Editar Avaliação"
-                      : "Avaliar Série"}
-                </Button>
+                <>
+                  <Button
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-900/20"
+                    onClick={() => setIsRatingOpen(true)}
+                    disabled={loadingRating}
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    {loadingRating
+                      ? "Carregando..."
+                      : userRating
+                        ? "Editar Avaliação"
+                        : "Avaliar Série"}
+                  </Button>
+
+                  {/* NOVO BOTÃO DE WATCHLIST */}
+                  <Button
+                    variant={isInWatchlist ? "secondary" : "outline"}
+                    className={cn(
+                      "w-full sm:w-auto font-semibold transition-all",
+                      isInWatchlist
+                        ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600/30"
+                        : "border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white",
+                    )}
+                    onClick={handleToggleWatchlist}
+                    disabled={loadingWatchlist}
+                  >
+                    {isInWatchlist ? (
+                      <Check className="w-4 h-4 mr-2" />
+                    ) : (
+                      <ListPlus className="w-4 h-4 mr-2" />
+                    )}
+                    {loadingWatchlist
+                      ? "Salvando..."
+                      : isInWatchlist
+                        ? "Na Watchlist"
+                        : "Add à Watchlist"}
+                  </Button>
+                </>
               ) : (
                 <Button
                   disabled
                   className="w-full sm:w-auto bg-slate-800/50 text-slate-400 font-semibold border border-slate-700 cursor-not-allowed"
                 >
                   <Star className="w-4 h-4 mr-2 opacity-50" />
-                  Faça login para avaliar
+                  Faça login para interagir
                 </Button>
               )}
 
@@ -420,6 +479,7 @@ export default function SerieDetailsPage() {
                     </div>
                   </div>
                 )}
+
                 {serie.next_episode_to_air && (
                   <div className="bg-emerald-900/20 p-4 rounded-xl border border-emerald-500/20">
                     <p className="text-xs text-emerald-400 font-medium uppercase tracking-wider mb-1">
@@ -477,10 +537,16 @@ export default function SerieDetailsPage() {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <h4 className="text-sm font-semibold text-slate-200 line-clamp-1">
+                      <h4
+                        className="text-sm font-semibold text-slate-200 line-clamp-1"
+                        title={actor.name}
+                      >
                         {actor.name}
                       </h4>
-                      <p className="text-xs text-slate-500 line-clamp-2">
+                      <p
+                        className="text-xs text-slate-500 line-clamp-2"
+                        title={actor.character}
+                      >
                         {actor.character}
                       </p>
                     </div>

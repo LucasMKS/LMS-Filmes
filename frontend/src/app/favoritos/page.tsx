@@ -46,7 +46,6 @@ export default function FavoritesPage() {
 
   const isAuth = AuthService.isAuthenticated();
 
-  // Query para Filmes Favoritos
   const { data: favoriteMovies = [], isLoading: isLoadingMovies } = useQuery({
     queryKey: ["favorites", "movies"],
     queryFn: async () => {
@@ -68,7 +67,6 @@ export default function FavoritesPage() {
     enabled: isAuth,
   });
 
-  // Query para Séries Favoritas
   const { data: favoriteSeries = [], isLoading: isLoadingSeries } = useQuery({
     queryKey: ["favorites", "series"],
     queryFn: async () => {
@@ -92,7 +90,6 @@ export default function FavoritesPage() {
 
   const isLoading = isLoadingMovies || isLoadingSeries;
 
-  // Mutation para remover favorito
   const toggleFavoriteMutation = useMutation({
     mutationFn: async ({
       type,
@@ -106,18 +103,39 @@ export default function FavoritesPage() {
       }
       return favoriteSeriesApi.toggleFavorite(id);
     },
+    onMutate: async ({ type, id }) => {
+      const queryKey = ["favorites", type === "movie" ? "movies" : "series"];
+
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousFavorites = queryClient.getQueryData(queryKey);
+
+      queryClient.setQueryData(queryKey, (old: any[]) => {
+        if (!old) return [];
+        return old.filter((item) =>
+          type === "movie" ? item.movieId !== id : item.serieId !== id,
+        );
+      });
+
+      return { previousFavorites, queryKey };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousFavorites) {
+        queryClient.setQueryData(context.queryKey, context.previousFavorites);
+      }
+      toast.error("Erro ao remover dos favoritos");
+    },
     onSuccess: (_, { type }) => {
       toast.success(
         type === "movie"
           ? "Filme removido dos favoritos!"
           : "Série removida dos favoritos!",
       );
-      queryClient.invalidateQueries({
-        queryKey: ["favorites", type === "movie" ? "movies" : "series"],
-      });
     },
-    onError: () => {
-      toast.error("Erro ao remover dos favoritos");
+    onSettled: (_data, _error, _variables, context) => {
+      if (context?.queryKey) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+      }
     },
   });
 
