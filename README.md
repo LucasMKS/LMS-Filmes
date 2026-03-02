@@ -13,7 +13,7 @@
 [![Redis](https://img.shields.io/badge/Redis-Caching-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.0+-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 
-[📋 Funcionalidades](#-recursos-em-destaque) • [🏗️ Arquitetura](#-arquitetura-e-tecnologias) • [📸 Interface](#-telas-da-aplicação) • [🚀 Como Executar](#-como-executar-o-projeto)
+[📋 Funcionalidades](#-recursos-em-destaque) • [🏗️ Arquitetura](#-arquitetura-e-tecnologias) <!--• [📸 Interface](#-telas-da-aplicação) -->• [🚀 Como Executar](#-como-executar-o-projeto)
 
 </div>
 
