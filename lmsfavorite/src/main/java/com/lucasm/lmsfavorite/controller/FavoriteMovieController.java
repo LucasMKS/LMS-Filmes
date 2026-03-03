@@ -20,6 +20,7 @@ import java.util.Map;
 /**
  * Expõe endpoints de gerenciamento de filmes favoritos do usuário autenticado.
  */
+
 @RestController
 @RequestMapping("/favorite/movies")
 public class FavoriteMovieController {
