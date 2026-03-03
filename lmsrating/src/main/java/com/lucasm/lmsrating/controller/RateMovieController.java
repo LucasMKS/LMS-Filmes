@@ -23,6 +23,9 @@ import com.lucasm.lmsrating.service.RateMovieService;
 
 import jakarta.validation.Valid;
 
+/**
+ * Expõe endpoints de criação e consulta de avaliações de filmes do usuário autenticado.
+ */
 @RestController
 @RequestMapping("/rate/movies")
 public class RateMovieController {
@@ -30,6 +33,13 @@ public class RateMovieController {
     @Autowired
     private RateMovieService rateService;
 
+    /**
+     * Cria ou atualiza a avaliação de um filme para o usuário autenticado.
+     *
+     * @param request payload com nota e metadados do filme.
+     * @param authentication contexto de autenticação do usuário.
+     * @return avaliação persistida.
+     */
     @PostMapping("")
     public ResponseEntity<Movies> ratingMovies(
             @Valid @RequestBody RatingRequestDTO request,
@@ -39,6 +49,12 @@ public class RateMovieController {
         return ResponseEntity.ok(rateService.rateMovie(request, email));
     }
 
+    /**
+     * Lista todas as avaliações de filmes do usuário autenticado.
+     *
+     * @param authentication contexto de autenticação do usuário.
+     * @return lista de avaliações de filmes.
+     */
     @GetMapping("/")
     public ResponseEntity<List<Movies>> getUserRatings(Authentication authentication) {
         String email = authentication.getName();
@@ -46,6 +62,14 @@ public class RateMovieController {
         return ResponseEntity.ok(movies);
     }
 
+    /**
+     * Lista avaliações de filmes com paginação para o usuário autenticado.
+     *
+     * @param page número da página.
+     * @param size quantidade de itens por página.
+     * @param authentication contexto de autenticação do usuário.
+     * @return página de avaliações de filmes.
+     */
     @GetMapping("/paged")
     public ResponseEntity<Page<Movies>> getUserRatingsPaged(
             @RequestParam(defaultValue = "0") int page,
@@ -57,6 +81,13 @@ public class RateMovieController {
         return ResponseEntity.ok(rateService.searchRatedMoviesPaged(email, pageable));
     }
 
+    /**
+     * Obtém a avaliação de um filme específico do usuário autenticado.
+     *
+     * @param movieId identificador do filme.
+     * @param authentication contexto de autenticação do usuário.
+     * @return avaliação do filme solicitado.
+     */
     @GetMapping("/{movieId}")
     public ResponseEntity<Movies> getMovieRating(
             @PathVariable String movieId,

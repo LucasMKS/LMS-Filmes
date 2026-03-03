@@ -22,6 +22,9 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.net.URLEncoder;
 
+/**
+ * Serviço responsável por consultar dados de filmes na API do TMDB.
+ */
 @Service
 public class MovieService {
 
@@ -32,6 +35,13 @@ public class MovieService {
     private final String tmdbApiUrl;
     private final String apiKey;
 
+    /**
+     * Inicializa uma nova instância de MovieService.
+     *
+      * @param objectMapper serializador usado para converter respostas JSON do TMDB.
+      * @param tmdbApiUrl URL base da API do TMDB.
+      * @param apiKey token Bearer usado na autenticação das requisições.
+     */
     public MovieService(ObjectMapper objectMapper, @Value("${tmdb.api.url}") String tmdbApiUrl, @Value("${tmdb.api.key}") String apiKey) {
         this.httpClient = HttpClient.newHttpClient();
         this.objectMapper = objectMapper;
@@ -69,6 +79,13 @@ public class MovieService {
         }
     }
 
+    /**
+     * Busca filmes por texto na API do TMDB.
+     *
+     * @param query termo de pesquisa informado pelo usuário.
+     * @param page número da página de resultados.
+     * @return página de filmes correspondente à busca.
+     */
     @Cacheable(value = "searchMovies", key = "#query + '_' + #page")
     public TmdbPageDTO<TmdbDTO> searchMovies(String query, int page) {
         try {
@@ -81,6 +98,12 @@ public class MovieService {
         }
     }
 
+    /**
+     * Obtém os detalhes completos de um filme pelo identificador.
+     *
+     * @param movieId identificador do filme no TMDB.
+     * @return dados detalhados do filme.
+     */
     @Cacheable(value = "movieDetails", key = "#movieId")
     public TmdbDTO getMovieDetails(String movieId) {
         try {
@@ -104,24 +127,48 @@ public class MovieService {
         }
     }
 
+    /**
+     * Lista filmes populares para a região configurada.
+     *
+     * @param page número da página de resultados.
+     * @return página de filmes populares.
+     */
     @Cacheable(value = "moviePopular", key = "#page")
     public TmdbPageDTO<TmdbDTO> getPopularMovies(int page) {
         String path = "/movie/popular?page=" + page + "&region=BR";
         return fetchPaginatedData(path, "moviePopular::" + page);
     }
 
+    /**
+     * Lista filmes atualmente em cartaz.
+     *
+     * @param page número da página de resultados.
+     * @return página de filmes em cartaz.
+     */
     @Cacheable(value = "moviesNowPlaying", key = "#page")
     public TmdbPageDTO<TmdbDTO> getNowPlayingMovies(int page) {
         String path = "/movie/now_playing?page=" + page + "&region=BR";
         return fetchPaginatedData(path, "moviesNowPlaying::" + page);
     }
 
+    /**
+     * Lista filmes mais bem avaliados no TMDB.
+     *
+     * @param page número da página de resultados.
+     * @return página de filmes com melhor avaliação.
+     */
     @Cacheable(value = "moviesTopRated", key = "#page")
     public TmdbPageDTO<TmdbDTO> getTopRatedMovies(int page) {
         String path = "/movie/top_rated?page=" + page;
         return fetchPaginatedData(path, "moviesTopRated::" + page);
     }
 
+    /**
+     * Lista próximos lançamentos de filmes.
+     *
+     * @param page número da página de resultados.
+     * @return página de filmes em lançamento.
+     */
     @Cacheable(value = "moviesUpcoming", key = "#page")
     public TmdbPageDTO<TmdbDTO> getUpcomingMovies(int page) {
         String path = "/movie/upcoming?page=" + page + "&region=BR";

@@ -7,6 +7,9 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
+/**
+ * DTO de entrada para registrar ou atualizar a nota de um filme.
+ */
 public class RatingRequestDTO {
 
     @NotBlank(message = "O ID do filme é obrigatório")

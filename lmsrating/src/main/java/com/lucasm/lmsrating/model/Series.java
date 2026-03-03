@@ -11,6 +11,9 @@ import lombok.Data;
 
 @Data
 @Document(collection = "ratings_series")
+/**
+ * Entidade que representa uma avaliação de série persistida no MongoDB.
+ */
 public class Series {
 
     @Id

@@ -12,6 +12,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Define as regras de segurança HTTP para o microserviço de avaliações.
+ */
 @Configuration
 @EnableWebSecurity(debug = true)
 public class SecurityConfig {
@@ -19,6 +22,13 @@ public class SecurityConfig {
     @Autowired
     private JWTAuthFilter jwtAuthFilter;
 
+    /**
+     * Configura autenticação stateless, CORS e regras de autorização por rota.
+     *
+     * @param http objeto de configuração de segurança HTTP.
+     * @return cadeia de filtros de segurança configurada.
+     * @throws Exception quando houver falha na montagem da cadeia de segurança.
+     */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)

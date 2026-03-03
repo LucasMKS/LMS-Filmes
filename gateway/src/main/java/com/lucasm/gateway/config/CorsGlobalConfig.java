@@ -9,12 +9,20 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
+/**
+ * Configuração global de CORS aplicada no gateway.
+ */
 @Configuration
 public class CorsGlobalConfig {
 
     @Value("${cors.allowed-origins:https://lms-filmes.vercel.app}")
     private String allowedOrigins;
 
+    /**
+     * Cria o filtro reativo de CORS com origens, métodos e headers permitidos.
+     *
+     * @return filtro CORS registrado para todas as rotas.
+     */
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();

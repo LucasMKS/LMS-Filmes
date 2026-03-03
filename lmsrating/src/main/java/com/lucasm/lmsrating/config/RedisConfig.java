@@ -13,10 +13,19 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 
+/**
+ * Configuração de cache Redis para o microserviço de avaliações.
+ */
 @Configuration
 @EnableCaching
 public class RedisConfig {
 
+        /**
+         * Cria o `CacheManager` com serialização JSON e TTL padrão para os caches do serviço.
+         *
+         * @param connectionFactory fábrica de conexões Redis.
+         * @return gerenciador de cache configurado.
+         */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()

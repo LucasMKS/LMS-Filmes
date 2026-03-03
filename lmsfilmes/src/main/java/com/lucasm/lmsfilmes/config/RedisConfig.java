@@ -13,10 +13,19 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 
+/**
+ * Configuração de cache Redis usada pela aplicação.
+ */
 @Configuration
 @EnableCaching
 public class RedisConfig {
 
+        /**
+         * Cria o gerenciador de cache com serialização JSON e TTL padrão.
+         *
+         * @param connectionFactory fábrica de conexões do Redis.
+         * @return gerenciador de cache configurado para o Redis.
+         */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();

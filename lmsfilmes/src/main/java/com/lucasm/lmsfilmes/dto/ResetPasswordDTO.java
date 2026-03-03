@@ -1,6 +1,9 @@
 package com.lucasm.lmsfilmes.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+/**
+ * DTO com informações para redefinição de senha.
+ */
 
 public class ResetPasswordDTO {
 

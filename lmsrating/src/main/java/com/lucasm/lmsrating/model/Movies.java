@@ -11,6 +11,9 @@ import lombok.Data;
 
 @Data
 @Document(collection = "ratings_movies")
+/**
+ * Entidade que representa uma avaliação de filme persistida no MongoDB.
+ */
 public class Movies {
 
     @Id

@@ -20,16 +20,30 @@ import com.lucasm.lmsfilmes.service.AuthService;
 
 import jakarta.validation.Valid;
 
+/**
+ * Expõe os endpoints de autenticação e recuperação de senha.
+ */
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Cria o controller com o serviço de autenticação.
+     *
+     * @param authService serviço responsável pelas regras de autenticação.
+     */
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
+    /**
+     * Endpoint de cadastro de usuário.
+     *
+     * @param reg dados de cadastro enviados pelo cliente.
+     * @return resposta com token e dados do usuário criado.
+     */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<AuthResponseDTO> register(
@@ -38,6 +52,12 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(reg));
     }
 
+    /**
+     * Endpoint de login com criação de cookie de autenticação.
+     *
+     * @param req credenciais de acesso.
+     * @return resposta com token e dados do usuário autenticado.
+     */
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(
             @Valid @RequestBody LoginRequestDTO req) {
@@ -57,6 +77,11 @@ public class AuthController {
                 .body(authResponse);
     }
 
+    /**
+     * Endpoint de logout com expiração imediata do cookie de autenticação.
+     *
+     * @return resposta sem corpo confirmando encerramento de sessão.
+     */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
         ResponseCookie cookie = ResponseCookie.from("auth_token", "")
@@ -71,6 +96,12 @@ public class AuthController {
                 .build();
     }
 
+    /**
+     * Endpoint para solicitação de recuperação de senha.
+     *
+     * @param requestDTO e-mail informado para recuperação.
+     * @return mensagem de confirmação do fluxo de recuperação.
+     */
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponseDTO> forgotPassword(
             @Valid @RequestBody EmailRequestDTO requestDTO) {
@@ -79,6 +110,12 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponseDTO("Se o e-mail existir, um link de redefinição foi enviado."));
     }
 
+    /**
+     * Endpoint para redefinição de senha com token.
+     *
+     * @param resetPasswordDTO token e nova senha.
+     * @return mensagem de confirmação da redefinição.
+     */
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponseDTO> resetPassword(
             @Valid @RequestBody ResetPasswordDTO resetPasswordDTO) {

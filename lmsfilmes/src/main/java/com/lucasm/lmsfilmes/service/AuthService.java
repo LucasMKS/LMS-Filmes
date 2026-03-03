@@ -24,6 +24,9 @@ import com.lucasm.lmsfilmes.model.User;
 import com.lucasm.lmsfilmes.repository.PasswordResetTokenRepository;
 import com.lucasm.lmsfilmes.repository.UserRepository;
 
+/**
+ * Orquestra os fluxos de autenticação e recuperação de senha.
+ */
 @Service
 public class AuthService {
 
@@ -37,6 +40,17 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final String frontendBaseUrl;
 
+    /**
+     * Cria o serviço com as dependências de autenticação, persistência e mensageria.
+     *
+     * @param rabbitMQProducer produtor de eventos para notificação por e-mail.
+     * @param usersRepo repositório de usuários.
+     * @param tokenRepository repositório de tokens de reset de senha.
+     * @param jwtUtils utilitário para geração e validação de JWT.
+     * @param authenticationManager gerenciador de autenticação do Spring Security.
+     * @param passwordEncoder codificador de senha.
+     * @param frontendBaseUrl URL base do frontend para compor links de recuperação.
+     */
     public AuthService(RabbitMQProducer rabbitMQProducer, UserRepository usersRepo,
                        PasswordResetTokenRepository tokenRepository, JWTUtils jwtUtils,
                        AuthenticationManager authenticationManager, PasswordEncoder passwordEncoder,
@@ -50,6 +64,13 @@ public class AuthService {
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
+    /**
+     * Registra um novo usuário, valida unicidade de e-mail/nickname e retorna sessão autenticada.
+     *
+     * @param registrationRequest dados de cadastro do usuário.
+     * @return token JWT e dados públicos do usuário criado.
+     * @throws ResponseStatusException quando e-mail ou nickname já estiverem cadastrados.
+     */
     @Transactional
     public AuthResponseDTO register(RegisterRequestDTO registrationRequest) {
         if (usersRepo.findByEmail(registrationRequest.email()).isPresent()) {
@@ -76,6 +97,14 @@ public class AuthService {
         return new AuthResponseDTO(jwt, new UserResponseDTO(savedUser));
     }
 
+    /**
+     * Autentica credenciais e retorna uma nova sessão JWT para o usuário.
+     *
+     * @param loginRequest credenciais de login.
+     * @return token JWT e dados públicos do usuário autenticado.
+     * @throws BadCredentialsException quando as credenciais forem inválidas.
+     * @throws UsernameNotFoundException quando o usuário autenticado não for encontrado no banco.
+     */
     public AuthResponseDTO login(LoginRequestDTO loginRequest) {
         try {
             authenticationManager.authenticate(
@@ -96,6 +125,11 @@ public class AuthService {
         return new AuthResponseDTO(jwt, new UserResponseDTO(user));
     }
 
+    /**
+     * Inicia o fluxo de recuperação de senha gerando token e enviando link por mensageria.
+     *
+     * @param requestDTO e-mail informado para recuperação de senha.
+     */
     @Transactional
     public void forgotPassword(EmailRequestDTO requestDTO) {
         String email = requestDTO.email();
@@ -122,6 +156,12 @@ public class AuthService {
         }
     }
 
+    /**
+     * Redefine a senha de um usuário a partir de um token de recuperação válido.
+     *
+     * @param resetPasswordDTO token de recuperação e nova senha.
+     * @throws BadCredentialsException quando token for inválido/expirado ou senha não atender ao mínimo.
+     */
     @Transactional
     public void resetPassword(ResetPasswordDTO resetPasswordDTO) {
         String token = resetPasswordDTO.getToken();

@@ -3,6 +3,9 @@ package com.lucasm.lmsfilmes.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+/**
+ * DTO com dados necessários para cadastro de usuário.
+ */
 
 public record RegisterRequestDTO(
     @NotBlank(message = "O nome é obrigatório")

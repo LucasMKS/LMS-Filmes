@@ -9,6 +9,9 @@ import lombok.Data;
 @Data
 @Document(collection = "favorite_series")
 @CompoundIndex(name = "email_serie_idx", def = "{'email' : 1, 'serieId' : 1}", unique = true)
+/**
+ * Entidade que representa uma série favoritada por um usuário.
+ */
 public class FavoriteSerie {
 
     @Id

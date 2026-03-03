@@ -12,6 +12,9 @@ import com.lms.email.dto.UserRegistrationDTO;
 
 import jakarta.mail.MessagingException;
 
+/**
+ * Consumidor de eventos RabbitMQ para disparo de e-mails.
+ */
 @Service
 public class EmailConsumer {
 
@@ -19,10 +22,20 @@ public class EmailConsumer {
 
     private final EmailSender emailSender;
 
+    /**
+     * Inicializa uma nova instância de EmailConsumer.
+     *
+      * @param emailSender serviço responsável pelo envio de e-mails.
+     */
     public EmailConsumer(EmailSender emailSender) {
         this.emailSender = emailSender;
     }
 
+    /**
+     * Processa evento de cadastro para envio de e-mail de boas-vindas.
+     *
+     * @param userDTO dados do usuário recém-cadastrado.
+     */
     @RabbitListener(queues = RabbitMQConfig.USER_REGISTERED_QUEUE)
     public void consumeUserRegistration(UserRegistrationDTO userDTO) {
         try {
@@ -42,6 +55,11 @@ public class EmailConsumer {
         }
     }
 
+    /**
+     * Processa evento de reset de senha para envio do link de recuperação.
+     *
+     * @param resetDTO dados da solicitação de redefinição.
+     */
     @RabbitListener(queues = RabbitMQConfig.USER_RESET_QUEUE)
     public void consumePasswordReset(PasswordResetDTO resetDTO) {
         try {

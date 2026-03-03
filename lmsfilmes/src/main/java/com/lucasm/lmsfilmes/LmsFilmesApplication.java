@@ -8,6 +8,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 @SpringBootApplication
 @EnableCaching
 @EnableDiscoveryClient
+/**
+ * Classe principal de inicialização do serviço LMS Filmes.
+ */
 public class LmsFilmesApplication {
 
 	public static void main(String[] args) {

@@ -14,6 +14,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Document(collection = "passwordResetTokens")
+/**
+ * Entidade que representa token temporário de redefinição de senha.
+ */
 public class PasswordResetToken {
 
     @Id

@@ -23,16 +23,31 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+/**
+ * Expõe endpoints de criação e consulta de avaliações de séries do usuário autenticado.
+ */
 @RestController
 @RequestMapping("/rate/series")
 public class RateSerieController {
 
     private final RateSerieService rateService;
 
+    /**
+     * Cria o controller com o serviço de avaliações de séries.
+     *
+     * @param rateService serviço de regras de avaliação de séries.
+     */
     public RateSerieController(RateSerieService rateService) {
         this.rateService = rateService;
     }
     
+    /**
+     * Cria ou atualiza a avaliação de uma série para o usuário autenticado.
+     *
+     * @param request payload com nota e metadados da série.
+     * @param authentication contexto de autenticação do usuário.
+     * @return avaliação persistida.
+     */
     @PostMapping("")
     public ResponseEntity<Series> ratingSeries(
             @Valid @RequestBody SerieRatingRequestDTO request,
@@ -42,6 +57,12 @@ public class RateSerieController {
         return ResponseEntity.ok(rateService.rateSerie(request, email));
     }
 
+    /**
+     * Lista todas as avaliações de séries do usuário autenticado.
+     *
+     * @param authentication contexto de autenticação do usuário.
+     * @return lista de avaliações de séries.
+     */
     @GetMapping("/")
     public ResponseEntity<List<Series>> getUserRatings(Authentication authentication) {
         String email = authentication.getName();
@@ -49,6 +70,14 @@ public class RateSerieController {
         return ResponseEntity.ok(series);
     }
 
+    /**
+     * Lista avaliações de séries com paginação para o usuário autenticado.
+     *
+     * @param page número da página.
+     * @param size quantidade de itens por página.
+     * @param authentication contexto de autenticação do usuário.
+     * @return página de avaliações de séries.
+     */
     @GetMapping("/paged")
     public ResponseEntity<Page<Series>> getUserRatingsPaged(
             @RequestParam(defaultValue = "0") int page,
@@ -60,6 +89,13 @@ public class RateSerieController {
         return ResponseEntity.ok(rateService.searchRatedSeriesPaged(email, pageable));
     }
 
+    /**
+     * Obtém a avaliação de uma série específica do usuário autenticado.
+     *
+     * @param serieId identificador da série.
+     * @param authentication contexto de autenticação do usuário.
+     * @return avaliação da série solicitada.
+     */
     @GetMapping("/{serieId}")
     public ResponseEntity<Series> getSerieRating(
             @PathVariable String serieId,

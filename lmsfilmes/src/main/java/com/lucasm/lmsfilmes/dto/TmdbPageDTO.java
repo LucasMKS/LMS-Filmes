@@ -5,6 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+/**
+ * DTO genérico para paginação de resultados da API do TMDB.
+ */
 public record TmdbPageDTO<T>(
     
     @JsonProperty("page")

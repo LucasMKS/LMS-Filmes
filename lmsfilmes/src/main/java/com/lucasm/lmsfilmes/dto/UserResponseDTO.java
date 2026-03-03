@@ -1,6 +1,9 @@
 package com.lucasm.lmsfilmes.dto;
 
 import com.lucasm.lmsfilmes.model.User;
+/**
+ * DTO de resposta com dados públicos de usuário.
+ */
 
 public record UserResponseDTO(
     String id,

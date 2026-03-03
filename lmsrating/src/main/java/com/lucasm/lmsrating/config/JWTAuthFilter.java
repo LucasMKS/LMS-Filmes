@@ -17,12 +17,24 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 
+/**
+ * Filtro que valida JWT e injeta autenticação do usuário no contexto de segurança.
+ */
 @Component
 public class JWTAuthFilter extends OncePerRequestFilter {
 
     @Autowired
     private JWTUtils jwtUtils;
 
+    /**
+     * Processa a requisição, valida o token e configura autenticação no `SecurityContext`.
+     *
+     * @param request requisição HTTP recebida.
+     * @param response resposta HTTP em construção.
+     * @param filterChain cadeia de filtros do Spring Security.
+     * @throws ServletException quando ocorrer erro no processamento do filtro.
+     * @throws IOException quando ocorrer erro de I/O durante o fluxo da requisição.
+     */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
@@ -55,6 +67,12 @@ public class JWTAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Recupera o JWT do cookie `auth_token` ou do header `Authorization`.
+     *
+     * @param request requisição HTTP de origem.
+     * @return token JWT encontrado; caso não exista, retorna `null`.
+     */
     private String recuperarToken(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {

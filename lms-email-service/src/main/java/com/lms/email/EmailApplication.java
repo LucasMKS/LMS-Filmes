@@ -6,6 +6,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
 @EnableDiscoveryClient
+/**
+ * Classe principal de inicialização do microserviço de e-mails.
+ */
 public class EmailApplication {
 
 	public static void main(String[] args) {

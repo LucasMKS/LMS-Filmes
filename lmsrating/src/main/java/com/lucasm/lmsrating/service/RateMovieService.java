@@ -18,6 +18,9 @@ import com.lucasm.lmsrating.exceptions.ResourceNotFoundException;
 import com.lucasm.lmsrating.model.Movies;
 import com.lucasm.lmsrating.repository.MovieRepository;
 
+/**
+ * Implementa regras de negócio para criação e consulta de avaliações de filmes.
+ */
 @Service
 public class RateMovieService {
 
@@ -26,10 +29,23 @@ public class RateMovieService {
 
     private final MovieRepository movieRepository;
 
+    /**
+     * Cria o serviço com o repositório de avaliações de filmes.
+     *
+     * @param movieRepository repositório de avaliações de filmes.
+     */
     public RateMovieService(MovieRepository movieRepository) {
         this.movieRepository = movieRepository;
     }
 
+    /**
+     * Cria ou atualiza a avaliação de um filme para o usuário informado.
+     *
+     * @param request payload com nota e metadados do filme.
+     * @param email e-mail do usuário autenticado.
+     * @return avaliação persistida.
+     * @throws MovieServiceException quando ocorrer falha ao salvar a avaliação.
+     */
     @CacheEvict(value = "userRatedMovies", allEntries = true)
     public Movies rateMovie(RatingRequestDTO request, String email) {
         try {
@@ -50,6 +66,13 @@ public class RateMovieService {
         }
     }
 
+    /**
+     * Lista avaliações de filmes do usuário ordenadas da mais recente para a mais antiga.
+     *
+     * @param email e-mail do usuário autenticado.
+     * @return lista de avaliações de filmes.
+     * @throws MovieServiceException quando ocorrer falha na consulta.
+     */
     @Cacheable(value = "userRatedMovies", key = "#email")
     public List<Movies> searchRatedMovies(String email) {
         try {
@@ -61,14 +84,37 @@ public class RateMovieService {
         }
     }
 
+    /**
+     * Consulta avaliações de filmes com paginação.
+     *
+     * @param email e-mail do usuário autenticado.
+     * @param pageable parâmetros de paginação/ordenação.
+     * @return página de avaliações.
+     */
     public Page<Movies> searchRatedMoviesPaged(String email, Pageable pageable) {
         return movieRepository.findAllByEmail(email, pageable);
     }
 
+    /**
+     * Consulta avaliações de filmes filtrando por título com paginação.
+     *
+     * @param email e-mail do usuário autenticado.
+     * @param title termo de busca para o título do filme.
+     * @param pageable parâmetros de paginação/ordenação.
+     * @return página de avaliações filtradas.
+     */
     public Page<Movies> searchRatedMoviesByTitle(String email, String title, Pageable pageable) {
         return movieRepository.findByEmailAndTitleContainingIgnoreCase(email, title, pageable);
     }
 
+    /**
+     * Obtém a avaliação de um filme específico para um usuário.
+     *
+     * @param movieId identificador do filme.
+     * @param email e-mail do usuário autenticado.
+     * @return avaliação encontrada.
+     * @throws ResourceNotFoundException quando não existir avaliação para o filme/usuário.
+     */
     public Movies getMovieRating(String movieId, String email) {
         return movieRepository.findByMovieIdAndEmail(movieId, email)
             .orElseThrow(() -> new ResourceNotFoundException(

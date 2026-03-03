@@ -23,6 +23,9 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.net.URLEncoder;
 
+/**
+ * Serviço responsável por consultar dados de séries na API do TMDB.
+ */
 @Service
 public class SerieService {
 
@@ -33,6 +36,13 @@ public class SerieService {
     private final String tmdbApiUrl;
     private final String apiKey;
 
+    /**
+     * Inicializa uma nova instância de SerieService.
+     *
+      * @param objectMapper serializador usado para converter respostas JSON do TMDB.
+      * @param tmdbApiUrl URL base da API do TMDB.
+      * @param apiKey token Bearer usado na autenticação das requisições.
+     */
     public SerieService(ObjectMapper objectMapper,
             @Value("${tmdb.api.url}") String tmdbApiUrl,
             @Value("${tmdb.api.key}") String apiKey) {
@@ -72,6 +82,13 @@ public class SerieService {
         }
     }
 
+    /**
+     * Busca séries por texto na API do TMDB.
+     *
+     * @param query termo de pesquisa informado pelo usuário.
+     * @param page número da página de resultados.
+     * @return página de séries correspondente à busca.
+     */
     @Cacheable(value = "searchSeries", key = "#query + '_' + #page")
     public TmdbPageDTO<SeriesDTO> searchSeries(String query, int page) {
         try {
@@ -84,6 +101,12 @@ public class SerieService {
         }
     }
 
+    /**
+     * Obtém os detalhes completos de uma série pelo identificador.
+     *
+     * @param serieId identificador da série no TMDB.
+     * @return dados detalhados da série.
+     */
     @Cacheable(value = "seriesDetails", key = "#serieId")
     public SeriesDTO getSeriesDetails(String serieId) {
         try {
@@ -107,24 +130,48 @@ public class SerieService {
         }
     }
 
+    /**
+     * Lista as séries em alta da semana.
+     *
+     * @param page número da página de resultados.
+     * @return página de séries populares.
+     */
     @Cacheable(value = "seriesPopular", key = "#page")
     public TmdbPageDTO<SeriesDTO> getPopularSeries(int page) {
         String path = "/trending/tv/week?page=" + page;
         return fetchPaginatedData(path);
     }
 
+    /**
+     * Lista as séries com episódio exibido no dia atual.
+     *
+     * @param page número da página de resultados.
+     * @return página de séries exibidas hoje.
+     */
     @Cacheable(value = "seriesAiringToday", key = "#page")
     public TmdbPageDTO<SeriesDTO> getAiringTodaySeries(int page) {
         String path = "/tv/airing_today?page=" + page + "&timezone=America%2FSao_Paulo";
         return fetchPaginatedData(path);
     }
 
+    /**
+     * Lista séries que estão atualmente em exibição.
+     *
+     * @param page número da página de resultados.
+     * @return página de séries no ar.
+     */
     @Cacheable(value = "seriesOnTheAir", key = "#page")
     public TmdbPageDTO<SeriesDTO> getOnTheAirSeries(int page) {
         String path = "/tv/on_the_air?page=" + page + "&timezone=America%2FSao_Paulo";
         return fetchPaginatedData(path);
     }
 
+    /**
+     * Lista séries com melhor avaliação no TMDB.
+     *
+     * @param page número da página de resultados.
+     * @return página de séries mais bem avaliadas.
+     */
     @Cacheable(value = "seriesTopRated", key = "#page")
     public TmdbPageDTO<SeriesDTO> getTopRatedSeries(int page) {
         String path = "/tv/top_rated?page=" + page;

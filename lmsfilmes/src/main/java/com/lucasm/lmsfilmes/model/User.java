@@ -23,6 +23,9 @@ import lombok.Setter;
 @Getter
 @Document(collection = "user")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+/**
+ * Entidade de usuário usada para autenticação e perfil.
+ */
 public class User implements UserDetails, Serializable {
 
     private static final long serialVersionUID = 1L;

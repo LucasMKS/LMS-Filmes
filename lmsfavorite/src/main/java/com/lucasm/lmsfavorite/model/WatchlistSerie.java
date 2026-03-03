@@ -11,6 +11,9 @@ import java.time.LocalDateTime;
 @Setter
 @Document(collection = "watchlist_series")
 @CompoundIndex(name = "email_watchlist_serie_idx", def = "{'email': 1, 'serieId': 1}", unique = true)
+/**
+ * Entidade que representa uma série salva na watchlist do usuário.
+ */
 public class WatchlistSerie {
     @Id
     private String id;

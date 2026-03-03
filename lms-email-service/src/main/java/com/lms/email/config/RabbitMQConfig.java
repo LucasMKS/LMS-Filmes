@@ -11,6 +11,9 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuração de exchange, filas, bindings e conversão de mensagens do RabbitMQ.
+ */
 @Configuration
 public class RabbitMQConfig {
 
@@ -25,16 +28,31 @@ public class RabbitMQConfig {
     public static final String USER_REGISTERED_DLQ = USER_REGISTERED_QUEUE + ".dlq";
     public static final String USER_RESET_DLQ = USER_RESET_QUEUE + ".dlq";
 
+    /**
+     * Declara a exchange principal para eventos de usuário.
+     *
+     * @return exchange de tópicos durável.
+     */
     @Bean
     public TopicExchange userExchange() {
         return new TopicExchange(USER_EXCHANGE, true, false);
     }
 
+    /**
+     * Declara a exchange de dead-letter para mensagens rejeitadas.
+     *
+     * @return exchange de dead-letter durável.
+     */
     @Bean
     public TopicExchange deadLetterExchange() {
         return new TopicExchange(DEAD_LETTER_EXCHANGE, true, false);
     }
     
+    /**
+        * Declara a fila de eventos de usuário cadastrado.
+     *
+        * @return fila principal de cadastro com política de dead-letter.
+     */
     @Bean
     public Queue userRegisteredQueue() {
         return QueueBuilder.durable(USER_REGISTERED_QUEUE)
@@ -43,6 +61,11 @@ public class RabbitMQConfig {
                 .build();
     }
 
+    /**
+        * Declara a fila de eventos de reset de senha.
+     *
+        * @return fila principal de reset com política de dead-letter.
+     */
     @Bean
     public Queue userResetQueue() {
         return QueueBuilder.durable(USER_RESET_QUEUE)
@@ -51,26 +74,57 @@ public class RabbitMQConfig {
                 .build();
     }
 
+    /**
+        * Declara a fila de dead-letter de cadastro.
+     *
+        * @return fila de mensagens de cadastro rejeitadas.
+     */
     @Bean
     public Queue userRegisteredDlq() {
         return new Queue(USER_REGISTERED_DLQ, true);
     }
 
+    /**
+        * Declara a fila de dead-letter de reset de senha.
+     *
+        * @return fila de mensagens de reset rejeitadas.
+     */
     @Bean
     public Queue userResetDlq() {
         return new Queue(USER_RESET_DLQ, true);
     }
 
+    /**
+        * Cria o binding da fila de cadastro com a exchange principal.
+     *
+        * @param userRegisteredQueue fila principal de cadastro.
+        * @param userExchange exchange principal de eventos de usuário.
+        * @return binding da rota de cadastro.
+     */
     @Bean
     public Binding bindUserRegistered(Queue userRegisteredQueue, TopicExchange userExchange) {
         return BindingBuilder.bind(userRegisteredQueue).to(userExchange).with(USER_REGISTERED_ROUTING_KEY);
     }
 
+    /**
+        * Cria o binding da fila de reset com a exchange principal.
+     *
+        * @param userResetQueue fila principal de reset.
+        * @param userExchange exchange principal de eventos de usuário.
+        * @return binding da rota de reset.
+     */
     @Bean
     public Binding bindUserReset(Queue userResetQueue, TopicExchange userExchange) {
         return BindingBuilder.bind(userResetQueue).to(userExchange).with(USER_RESET_ROUTING_KEY);
     }
 
+    /**
+        * Cria o binding da fila DLQ de cadastro com a exchange de dead-letter.
+     *
+        * @param userRegisteredDlq fila DLQ de cadastro.
+        * @param deadLetterExchange exchange de dead-letter.
+        * @return binding da rota DLQ de cadastro.
+     */
     @Bean
     public Binding bindUserRegisteredDlq(Queue userRegisteredDlq, TopicExchange deadLetterExchange) {
         return BindingBuilder.bind(userRegisteredDlq)
@@ -78,6 +132,13 @@ public class RabbitMQConfig {
                 .with(USER_REGISTERED_ROUTING_KEY);
     }
 
+    /**
+        * Cria o binding da fila DLQ de reset com a exchange de dead-letter.
+     *
+        * @param userResetDlq fila DLQ de reset.
+        * @param deadLetterExchange exchange de dead-letter.
+        * @return binding da rota DLQ de reset.
+     */
     @Bean
     public Binding bindUserResetDlq(Queue userResetDlq, TopicExchange deadLetterExchange) {
         return BindingBuilder.bind(userResetDlq)
@@ -85,11 +146,23 @@ public class RabbitMQConfig {
                 .with(USER_RESET_ROUTING_KEY);
     }
 
+    /**
+        * Cria o conversor JSON das mensagens AMQP.
+     *
+        * @return conversor Jackson para serialização/deserialização de payloads.
+     */
     @Bean
     public Jackson2JsonMessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
     }
 
+    /**
+        * Cria o template de publicação no RabbitMQ com conversão JSON.
+     *
+        * @param connectionFactory fábrica de conexões AMQP.
+        * @param converter conversor JSON das mensagens.
+        * @return template configurado para envio de eventos.
+     */
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
             Jackson2JsonMessageConverter converter) {

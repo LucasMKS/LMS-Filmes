@@ -2,6 +2,9 @@ package com.lucasm.lmsfilmes.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+/**
+ * DTO com credenciais de login enviadas pelo cliente.
+ */
 
 public record LoginRequestDTO(
     @NotBlank(message = "O e-mail é obrigatório")

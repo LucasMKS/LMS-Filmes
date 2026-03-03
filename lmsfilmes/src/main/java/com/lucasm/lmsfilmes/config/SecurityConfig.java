@@ -18,6 +18,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.lucasm.lmsfilmes.service.UserDetailsService;
 
+/**
+ * Define as regras de segurança HTTP e os beans de autenticação da aplicação.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -26,6 +29,14 @@ public class SecurityConfig {
     private JWTAuthFilter jwtAuthFilter;
 
 
+    /**
+     * Configura a cadeia de filtros de segurança, rotas públicas e autorização por perfil.
+     *
+     * @param http objeto de configuração de segurança HTTP.
+     * @param authenticationProvider provedor de autenticação utilizado no fluxo.
+     * @return cadeia de filtros de segurança configurada.
+     * @throws Exception quando ocorrer falha durante a configuração da cadeia.
+     */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception{
         http.csrf(AbstractHttpConfigurer::disable)
@@ -46,6 +57,13 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Cria o provider de autenticação baseado em usuário/senha.
+     *
+     * @param passwordEncoder codificador de senha utilizado na comparação de credenciais.
+     * @param userDetailsService serviço de carregamento de usuários.
+     * @return provider de autenticação configurado.
+     */
     @Bean
     AuthenticationProvider authenticationProvider(PasswordEncoder passwordEncoder, UserDetailsService userDetailsService){
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService); 
@@ -54,11 +72,23 @@ public class SecurityConfig {
         return provider;
     }
 
+    /**
+     * Disponibiliza o codificador de senha padrão da aplicação.
+     *
+     * @return instância de BCrypt para hash de senha.
+     */
     @Bean
     PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Expõe o AuthenticationManager gerenciado pelo Spring Security.
+     *
+     * @param authenticationConfiguration configuração central de autenticação.
+     * @return gerenciador de autenticação pronto para uso.
+     * @throws Exception quando não for possível obter o AuthenticationManager.
+     */
     @Bean
     AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception{
         return authenticationConfiguration.getAuthenticationManager();

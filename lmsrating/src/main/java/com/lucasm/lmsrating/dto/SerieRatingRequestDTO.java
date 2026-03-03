@@ -7,6 +7,9 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
+/**
+ * DTO de entrada para registrar ou atualizar a nota de uma série.
+ */
 public class SerieRatingRequestDTO {
 
     @NotBlank(message = "O ID da série é obrigatório")

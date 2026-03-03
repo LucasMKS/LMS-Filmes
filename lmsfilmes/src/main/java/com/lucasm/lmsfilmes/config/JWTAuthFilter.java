@@ -18,6 +18,9 @@ import com.lucasm.lmsfilmes.service.UserDetailsService;
 
 import java.io.IOException;
 
+/**
+ * Filtro responsável por extrair, validar e propagar autenticação JWT no contexto de segurança.
+ */
 @Component
 public class JWTAuthFilter extends OncePerRequestFilter {
 
@@ -27,6 +30,15 @@ public class JWTAuthFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    /**
+     * Processa a requisição HTTP, validando token JWT e populando o SecurityContext quando válido.
+     *
+     * @param request requisição HTTP recebida.
+     * @param response resposta HTTP em construção.
+     * @param filterChain cadeia de filtros do Spring Security.
+     * @throws ServletException quando houver falha de processamento no pipeline de filtros.
+     * @throws IOException quando ocorrer erro de I/O durante o fluxo do filtro.
+     */
    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
@@ -60,6 +72,12 @@ public class JWTAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Recupera o token de autenticação a partir do cookie `auth_token` ou header `Authorization`.
+     *
+     * @param request requisição HTTP de origem.
+     * @return token JWT quando encontrado; caso contrário, `null`.
+     */
     private String recuperarToken(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
