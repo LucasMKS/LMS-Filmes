@@ -85,6 +85,7 @@ export default function SeriesPage() {
     loadByCategory,
     searchMedia: seriesApi.searchSeries,
     getFavoriteStatus: favoriteSeriesApi.getFavoriteStatus,
+    getFavoriteStatuses: favoriteSeriesApi.getFavoriteStatuses,
     toggleFavorite: favoriteSeriesApi.toggleFavorite,
     messages: listingMessages,
   });

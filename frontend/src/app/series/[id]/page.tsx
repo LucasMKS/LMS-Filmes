@@ -153,6 +153,15 @@ export default function SerieDetailsPage() {
   const cast = serie.credits?.cast?.slice(0, 10) || [];
   const providers = serie["watch/providers"]?.results?.BR?.flatrate || [];
 
+  const currentGenreIds = serie.genres?.map((g) => g.id) || [];
+
+  const filteredRecommendations = (serie.recommendations?.results || [])
+    .filter((rec) => {
+      if (!rec.genre_ids || rec.genre_ids.length === 0) return false;
+      return rec.genre_ids.some((id) => currentGenreIds.includes(id));
+    })
+    .slice(0, 12);
+
   const backdropUrl = serie.backdrop_path
     ? `https://image.tmdb.org/t/p/original${serie.backdrop_path}`
     : null;
@@ -597,6 +606,45 @@ export default function SerieDetailsPage() {
                           </p>
                         )}
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {filteredRecommendations.length > 0 && (
+              <div className="mb-12 w-full mt-10">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <Tv className="w-5 h-5 mr-2 text-green-500" />
+                  Séries Semelhantes
+                </h3>
+                <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x w-full">
+                  {filteredRecommendations.map((rec) => (
+                    <div
+                      key={rec.id}
+                      className="w-32 sm:w-36 shrink-0 snap-start cursor-pointer group"
+                      onClick={() => router.push(`/series/${rec.id}`)}
+                    >
+                      <div className="w-full aspect-[2/3] mb-3 rounded-xl overflow-hidden bg-slate-800 border border-slate-700 relative shadow-md">
+                        <img
+                          src={
+                            rec.poster_path
+                              ? `https://image.tmdb.org/t/p/w342${rec.poster_path}`
+                              : "/placeholder-movie.jpg"
+                          }
+                          alt={rec.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
+                          <ExternalLink className="w-6 h-6 text-white drop-shadow-lg" />
+                        </div>
+                      </div>
+                      <h4
+                        className="text-sm font-semibold text-slate-200 line-clamp-2 group-hover:text-green-400 transition-colors"
+                        title={rec.name}
+                      >
+                        {rec.name}
+                      </h4>
                     </div>
                   ))}
                 </div>

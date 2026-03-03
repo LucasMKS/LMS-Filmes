@@ -58,6 +58,12 @@ const apiLmsFavorite = axios.create({
   withCredentials: true,
 });
 
+const buildBatchQuery = (paramName: string, ids: string[]): string => {
+  const params = new URLSearchParams();
+  ids.forEach((id) => params.append(paramName, id));
+  return params.toString();
+};
+
 const attachAuthInterceptor = (apiInstance: any) => {
   apiInstance.interceptors.request.use((config: any) => {
     const token = Cookies.get("auth_token");
@@ -221,6 +227,18 @@ export const favoriteMoviesApi = {
     apiLmsFavorite
       .get("/favorite/movies/status", { params: { movieId } })
       .then((res) => res.data),
+  getFavoriteStatuses: (
+    movieIds: string[],
+  ): Promise<Record<string, boolean>> => {
+    if (movieIds.length === 0) {
+      return Promise.resolve({});
+    }
+
+    const query = buildBatchQuery("movieIds", movieIds);
+    return apiLmsFavorite
+      .get(`/favorite/movies/status/batch?${query}`)
+      .then((res) => res.data);
+  },
   getFavoriteMovies: () =>
     apiLmsFavorite.get("/favorite/movies/").then((res) => res.data.data),
 };
@@ -234,6 +252,18 @@ export const favoriteSeriesApi = {
     apiLmsFavorite
       .get("/favorite/series/status", { params: { serieId } })
       .then((res) => res.data),
+  getFavoriteStatuses: (
+    serieIds: string[],
+  ): Promise<Record<string, boolean>> => {
+    if (serieIds.length === 0) {
+      return Promise.resolve({});
+    }
+
+    const query = buildBatchQuery("serieIds", serieIds);
+    return apiLmsFavorite
+      .get(`/favorite/series/status/batch?${query}`)
+      .then((res) => res.data);
+  },
   getFavoriteSeries: () =>
     apiLmsFavorite.get("/favorite/series/").then((res) => res.data.data),
 };

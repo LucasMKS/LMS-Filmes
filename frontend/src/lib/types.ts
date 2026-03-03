@@ -127,7 +127,7 @@ export interface TmdbMovie {
   credits?: { cast: TmdbCast[] };
   videos?: { results: TmdbVideo[] };
   "watch/providers"?: TmdbWatchProviders;
-  recommendations?: { results: any[] };
+  recommendations?: { results: TmdbMovie[] };
   tagline?: string;
 }
 
@@ -195,7 +195,7 @@ export interface TmdbSerie {
   credits?: { cast: TmdbCast[] };
   videos?: { results: TmdbVideo[] };
   "watch/providers"?: TmdbWatchProviders;
-  recommendations?: { results: any[] };
+  recommendations?: { results: TmdbSerie[] };
   tagline?: string;
 }
 

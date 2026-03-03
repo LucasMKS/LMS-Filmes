@@ -92,6 +92,7 @@ export default function MoviesPage() {
     loadByCategory,
     searchMedia: moviesApi.searchMovies,
     getFavoriteStatus: favoriteMoviesApi.getFavoriteStatus,
+    getFavoriteStatuses: favoriteMoviesApi.getFavoriteStatuses,
     toggleFavorite: favoriteMoviesApi.toggleFavorite,
     messages: listingMessages,
   });

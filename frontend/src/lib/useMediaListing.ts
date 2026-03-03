@@ -9,6 +9,7 @@ import {
 import AuthService from "./auth";
 
 const MAX_FAVORITE_STATUS_CONCURRENCY = 5;
+const FAVORITE_STATUS_BATCH_SIZE = 50;
 
 interface ListingMessages {
   loadTitle: string;
@@ -26,9 +27,18 @@ interface UseMediaListingParams<T extends { id: number }, C extends string> {
   loadByCategory: (category: C, page: number) => Promise<TmdbPage<T>>;
   searchMedia: (query: string, page: number) => Promise<TmdbPage<T>>;
   getFavoriteStatus: (id: string) => Promise<boolean>;
+  getFavoriteStatuses?: (ids: string[]) => Promise<Record<string, boolean>>;
   toggleFavorite: (id: string) => Promise<{ isFavorite: boolean }>;
   messages: ListingMessages;
 }
+
+const chunkArray = <T>(items: T[], chunkSize: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+};
 
 export function useMediaListing<T extends { id: number }, C extends string>({
   mediaType,
@@ -36,6 +46,7 @@ export function useMediaListing<T extends { id: number }, C extends string>({
   loadByCategory,
   searchMedia,
   getFavoriteStatus,
+  getFavoriteStatuses,
   toggleFavorite,
   messages,
 }: UseMediaListingParams<T, C>) {
@@ -102,6 +113,73 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     if (pendingMedia.length === 0) return;
 
     pendingMedia.forEach((media) => favoriteInFlightRef.current.add(media.id));
+
+    const clearInFlight = () => {
+      pendingMedia.forEach((media) =>
+        favoriteInFlightRef.current.delete(media.id),
+      );
+    };
+
+    if (getFavoriteStatuses) {
+      const pendingIds = pendingMedia.map((media) => media.id.toString());
+      const chunks = chunkArray(pendingIds, FAVORITE_STATUS_BATCH_SIZE);
+
+      const loadBatchStatuses = async () => {
+        try {
+          for (const idsChunk of chunks) {
+            const statuses = await getFavoriteStatuses(idsChunk);
+
+            setFavoriteStatus((prev) => {
+              const next = { ...prev };
+              idsChunk.forEach((id) => {
+                const numericId = Number(id);
+                const isFavorite = Boolean(statuses[id]);
+                next[numericId] = isFavorite;
+                favoriteStatusRef.current[numericId] = isFavorite;
+              });
+              return next;
+            });
+          }
+        } catch (error) {
+          console.error("Erro no carregamento em lote de favoritos:", error);
+          const queue = [...pendingMedia];
+          const workerCount = Math.min(
+            MAX_FAVORITE_STATUS_CONCURRENCY,
+            queue.length,
+          );
+
+          const runWorker = async () => {
+            while (queue.length > 0) {
+              const media = queue.shift();
+              if (!media) return;
+
+              try {
+                const isFavorite = await getFavoriteStatus(media.id.toString());
+                favoriteStatusRef.current[media.id] = isFavorite;
+                setFavoriteStatus((prev) => ({
+                  ...prev,
+                  [media.id]: isFavorite,
+                }));
+              } catch (singleError) {
+                console.error(
+                  `Erro ao verificar favorito para o item ${media.id}:`,
+                  singleError,
+                );
+                favoriteStatusRef.current[media.id] = false;
+                setFavoriteStatus((prev) => ({ ...prev, [media.id]: false }));
+              }
+            }
+          };
+
+          await Promise.all(Array.from({ length: workerCount }, runWorker));
+        } finally {
+          clearInFlight();
+        }
+      };
+
+      void loadBatchStatuses();
+      return;
+    }
 
     const queue = [...pendingMedia];
     const workerCount = Math.min(MAX_FAVORITE_STATUS_CONCURRENCY, queue.length);
