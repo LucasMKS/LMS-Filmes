@@ -9,10 +9,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+/**
+ * DTO que representa dados de série retornados pelo TMDB.
+ */
 public record SeriesDTO(
     String backdrop_path,
     List<CreatedByDTO> created_by,
     String first_air_date,
+    List<Integer> genre_ids,
     List<GenreDTO> genres,
     String homepage,
     int id,

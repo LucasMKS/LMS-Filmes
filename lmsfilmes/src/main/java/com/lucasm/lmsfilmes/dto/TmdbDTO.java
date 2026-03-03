@@ -9,6 +9,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+/**
+ * DTO principal para detalhes de filme e estruturas relacionadas do TMDB.
+ */
 public record TmdbDTO(
         String backdrop_path,
         String homepage,
@@ -28,6 +31,7 @@ public record TmdbDTO(
         List<TmdbDTO> results,
         List<ProductionCompany> production_companies,
         List<Genre> genres,
+        List<Integer> genre_ids,
         String media_type,
 
         Credits credits,
