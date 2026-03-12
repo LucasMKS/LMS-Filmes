@@ -113,16 +113,14 @@ export default function RatingsPage() {
 
   const isAuth = AuthService.isAuthenticated();
 
-  // Função auxiliar para extrair os valores numéricos do filtro atual
   const getRatingRange = () => {
-    if (filterRating === "9-10") return { min: 9, max: 10 };
-    if (filterRating === "7-8") return { min: 7, max: 8.9 };
-    if (filterRating === "5-6") return { min: 5, max: 6.9 };
-    if (filterRating === "0-4") return { min: 0, max: 4.9 };
+    if (filterRating === "9-10") return { min: 9.0, max: 10.0 };
+    if (filterRating === "7-8") return { min: 7.0, max: 8.9 };
+    if (filterRating === "5-6") return { min: 5.0, max: 6.9 };
+    if (filterRating === "0-4") return { min: 0.0, max: 4.9 };
     return { min: undefined, max: undefined };
   };
 
-  // Infinite Query para Filmes Avaliados
   const {
     data: moviesData,
     fetchNextPage: fetchNextMovies,
@@ -130,7 +128,6 @@ export default function RatingsPage() {
     isFetchingNextPage: isFetchingNextMovies,
     isLoading: isLoadingMovies,
   } = useInfiniteQuery({
-    // A query key agora OBSERVA o filterRating. Se mudar, ele recarrega do zero!
     queryKey: ["ratings", "movies", filterRating],
     queryFn: async ({ pageParam = 0 }) => {
       const { min, max } = getRatingRange();
@@ -165,7 +162,6 @@ export default function RatingsPage() {
     enabled: isAuth,
   });
 
-  // Infinite Query para Séries Avaliadas
   const {
     data: seriesData,
     fetchNextPage: fetchNextSeries,
