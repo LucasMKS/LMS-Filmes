@@ -18,7 +18,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Star, Film, Tv, Search, Filter, TrendingUp, X } from "lucide-react";
+import {
+  Star,
+  Film,
+  Tv,
+  Search,
+  Filter,
+  TrendingUp,
+  X,
+  ChevronDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
@@ -97,13 +106,23 @@ export default function RatingsPage() {
   const [isSerieDialogOpen, setIsSerieDialogOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterRating, setFilterRating] = useState<number | null>(null);
+  const [filterRating, setFilterRating] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">(
     "all",
   );
 
   const isAuth = AuthService.isAuthenticated();
 
+  // Função auxiliar para extrair os valores numéricos do filtro atual
+  const getRatingRange = () => {
+    if (filterRating === "9-10") return { min: 9, max: 10 };
+    if (filterRating === "7-8") return { min: 7, max: 8.9 };
+    if (filterRating === "5-6") return { min: 5, max: 6.9 };
+    if (filterRating === "0-4") return { min: 0, max: 4.9 };
+    return { min: undefined, max: undefined };
+  };
+
+  // Infinite Query para Filmes Avaliados
   const {
     data: moviesData,
     fetchNextPage: fetchNextMovies,
@@ -111,9 +130,17 @@ export default function RatingsPage() {
     isFetchingNextPage: isFetchingNextMovies,
     isLoading: isLoadingMovies,
   } = useInfiniteQuery({
-    queryKey: ["ratings", "movies"],
+    // A query key agora OBSERVA o filterRating. Se mudar, ele recarrega do zero!
+    queryKey: ["ratings", "movies", filterRating],
     queryFn: async ({ pageParam = 0 }) => {
-      const response = await ratingMoviesApi.getRatedMoviesPaged(pageParam, 20);
+      const { min, max } = getRatingRange();
+
+      const response = await ratingMoviesApi.getRatedMoviesPaged(
+        pageParam,
+        20,
+        min,
+        max,
+      );
       const enriched = await mapWithConcurrency(
         response.content || [],
         MAX_CONCURRENT_DETAILS,
@@ -138,6 +165,7 @@ export default function RatingsPage() {
     enabled: isAuth,
   });
 
+  // Infinite Query para Séries Avaliadas
   const {
     data: seriesData,
     fetchNextPage: fetchNextSeries,
@@ -145,9 +173,16 @@ export default function RatingsPage() {
     isFetchingNextPage: isFetchingNextSeries,
     isLoading: isLoadingSeries,
   } = useInfiniteQuery({
-    queryKey: ["ratings", "series"],
+    queryKey: ["ratings", "series", filterRating],
     queryFn: async ({ pageParam = 0 }) => {
-      const response = await ratingSeriesApi.getRatedSeriesPaged(pageParam, 20);
+      const { min, max } = getRatingRange();
+
+      const response = await ratingSeriesApi.getRatedSeriesPaged(
+        pageParam,
+        20,
+        min,
+        max,
+      );
       const enriched = await mapWithConcurrency(
         response.content || [],
         MAX_CONCURRENT_DETAILS,
@@ -215,14 +250,14 @@ export default function RatingsPage() {
 
   const clearSearch = () => {
     setSearchQuery("");
-    setFilterRating(null);
+    setFilterRating("all");
     setTypeFilter("all");
   };
 
-  const filterItems = (
+  // Como o Backend já filtrou as notas, no frontend a gente só filtra Texto e Tipo
+  const filterItemsLocally = (
     items: any[],
     searchTerm: string,
-    ratingFilter: number | null,
     itemType: "movie" | "serie",
   ) => {
     return items.filter((item) => {
@@ -233,15 +268,9 @@ export default function RatingsPage() {
           .includes(searchTerm.toLowerCase()) ||
         item.tmdbData?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const itemRating =
-        item.rating !== undefined && item.rating !== null
-          ? Number(item.rating)
-          : null;
-      const matchesRating =
-        ratingFilter === null || itemRating === ratingFilter;
       const matchesType = typeFilter === "all" || typeFilter === itemType;
 
-      return matchesSearch && matchesRating && matchesType;
+      return matchesSearch && matchesType;
     });
   };
 
@@ -266,18 +295,8 @@ export default function RatingsPage() {
     avgOverall: getAverageRating([...ratedMovies, ...ratedSeries]),
   };
 
-  const filteredMovies = filterItems(
-    ratedMovies,
-    searchQuery,
-    filterRating,
-    "movie",
-  );
-  const filteredSeries = filterItems(
-    ratedSeries,
-    searchQuery,
-    filterRating,
-    "serie",
-  );
+  const filteredMovies = filterItemsLocally(ratedMovies, searchQuery, "movie");
+  const filteredSeries = filterItemsLocally(ratedSeries, searchQuery, "serie");
 
   const ContentGridLoader = () => (
     <div className="flex flex-col items-center justify-center py-32 text-center bg-slate-900/20 rounded-2xl border border-slate-800/50 mt-8">
@@ -304,7 +323,7 @@ export default function RatingsPage() {
 
         <Card className="mb-10 bg-slate-900 border-slate-800 shadow-xl">
           <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-5 w-5 text-slate-500" />
@@ -325,50 +344,74 @@ export default function RatingsPage() {
                 )}
               </div>
 
-              <div className="flex gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 overflow-x-auto shrink-0 hide-scrollbar">
-                <Button
-                  variant={typeFilter === "all" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setTypeFilter("all")}
-                  className={cn(
-                    "rounded-lg px-4 font-medium transition-all",
-                    typeFilter === "all"
-                      ? "bg-slate-800 text-white"
-                      : "text-slate-400 hover:text-slate-200",
-                  )}
-                >
-                  Todos
-                </Button>
-                <Button
-                  variant={typeFilter === "movie" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setTypeFilter("movie")}
-                  className={cn(
-                    "rounded-lg px-4 font-medium transition-all flex items-center",
-                    typeFilter === "movie"
-                      ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
-                      : "text-slate-400 hover:text-slate-200",
-                  )}
-                >
-                  <Film className="w-4 h-4 mr-2" /> Filmes
-                </Button>
-                <Button
-                  variant={typeFilter === "serie" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setTypeFilter("serie")}
-                  className={cn(
-                    "rounded-lg px-4 font-medium transition-all flex items-center",
-                    typeFilter === "serie"
-                      ? "bg-green-600/20 text-green-400 border border-green-500/20"
-                      : "text-slate-400 hover:text-slate-200",
-                  )}
-                >
-                  <Tv className="w-4 h-4 mr-2" /> Séries
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                <div className="relative w-full sm:w-auto min-w-[180px]">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Star className="h-4 w-4 text-yellow-500 fill-current/20" />
+                  </div>
+                  <select
+                    value={filterRating}
+                    onChange={(e) => setFilterRating(e.target.value)}
+                    className="w-full h-11 pl-9 pr-8 bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500 appearance-none cursor-pointer outline-none transition-all"
+                  >
+                    <option value="all">Todas as Notas</option>
+                    <option value="9-10">Obras-primas (9 - 10)</option>
+                    <option value="7-8">Muito Bons (7 - 8.9)</option>
+                    <option value="5-6">Medianos (5 - 6.9)</option>
+                    <option value="0-4">Não Gostei (0 - 4.9)</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <ChevronDown className="h-4 w-4 text-slate-500" />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 overflow-x-auto w-full sm:w-auto hide-scrollbar">
+                  <Button
+                    variant={typeFilter === "all" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setTypeFilter("all")}
+                    className={cn(
+                      "rounded-lg px-4 font-medium transition-all",
+                      typeFilter === "all"
+                        ? "bg-slate-800 text-white"
+                        : "text-slate-400 hover:text-slate-200",
+                    )}
+                  >
+                    Todos
+                  </Button>
+                  <Button
+                    variant={typeFilter === "movie" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setTypeFilter("movie")}
+                    className={cn(
+                      "rounded-lg px-4 font-medium transition-all flex items-center",
+                      typeFilter === "movie"
+                        ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
+                        : "text-slate-400 hover:text-slate-200",
+                    )}
+                  >
+                    <Film className="w-4 h-4 mr-2" /> Filmes
+                  </Button>
+                  <Button
+                    variant={typeFilter === "serie" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setTypeFilter("serie")}
+                    className={cn(
+                      "rounded-lg px-4 font-medium transition-all flex items-center",
+                      typeFilter === "serie"
+                        ? "bg-green-600/20 text-green-400 border border-green-500/20"
+                        : "text-slate-400 hover:text-slate-200",
+                    )}
+                  >
+                    <Tv className="w-4 h-4 mr-2" /> Séries
+                  </Button>
+                </div>
               </div>
             </div>
 
-            {(searchQuery || filterRating || typeFilter !== "all") && (
+            {(searchQuery ||
+              filterRating !== "all" ||
+              typeFilter !== "all") && (
               <div className="mt-4 flex items-center justify-between pt-4 border-t border-slate-800/60">
                 <div className="flex items-center space-x-3">
                   <Badge
@@ -379,7 +422,7 @@ export default function RatingsPage() {
                   </Badge>
                   <span className="text-slate-400 text-sm font-medium">
                     {filteredMovies.length + filteredSeries.length} resultados
-                    encontrados
+                    encontrados na página atual
                   </span>
                 </div>
               </div>
@@ -396,7 +439,7 @@ export default function RatingsPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-slate-400">
-                      Total Avaliado
+                      Exibindo
                     </p>
                     <Star className="w-4 h-4 text-slate-500" />
                   </div>
@@ -409,7 +452,7 @@ export default function RatingsPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-slate-400">
-                      Média Geral
+                      Média da Busca
                     </p>
                     <TrendingUp className="w-4 h-4 text-yellow-500" />
                   </div>
@@ -458,16 +501,18 @@ export default function RatingsPage() {
                   <Star className="w-8 h-8 text-slate-500" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-300 mb-2">
-                  {searchQuery || filterRating || typeFilter !== "all"
-                    ? "Nenhum resultado para o filtro"
+                  {searchQuery || filterRating !== "all" || typeFilter !== "all"
+                    ? "Nenhum resultado para o filtro no momento"
                     : "Você ainda não avaliou nada"}
                 </h3>
                 <p className="text-slate-500 text-center max-w-md">
-                  {searchQuery || filterRating || typeFilter !== "all"
+                  {searchQuery || filterRating !== "all" || typeFilter !== "all"
                     ? "Tente limpar a sua busca ou trocar de categoria para ver outras avaliações."
                     : "Sua prateleira está vazia. Vá até a aba de Filmes ou Séries e comece a dar notas!"}
                 </p>
-                {(searchQuery || filterRating || typeFilter !== "all") && (
+                {(searchQuery ||
+                  filterRating !== "all" ||
+                  typeFilter !== "all") && (
                   <Button
                     onClick={clearSearch}
                     variant="outline"

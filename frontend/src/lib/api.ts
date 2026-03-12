@@ -192,10 +192,26 @@ export const ratingMoviesApi = {
   getRatedMovies: (): Promise<Movie[]> =>
     apiLmsRating.get("/rate/movies/").then((res) => res.data),
 
-  getRatedMoviesPaged: (page: number = 0, size: number = 20): Promise<any> =>
-    apiLmsRating
-      .get(`/rate/movies/paged?page=${page}&size=${size}`)
-      .then((res) => res.data),
+  // ATUALIZADO: Agora aceita minRating e maxRating
+  getRatedMoviesPaged: (
+    page: number = 0,
+    size: number = 20,
+    minRating?: number,
+    maxRating?: number,
+  ): Promise<any> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    });
+    if (minRating !== undefined)
+      params.append("minRating", minRating.toString());
+    if (maxRating !== undefined)
+      params.append("maxRating", maxRating.toString());
+
+    return apiLmsRating
+      .get(`/rate/movies/paged?${params.toString()}`)
+      .then((res) => res.data);
+  },
 
   getMovieRating: (movieId: string): Promise<Movie> =>
     apiLmsRating.get(`/rate/movies/${movieId}`).then((res) => res.data),
@@ -209,10 +225,26 @@ export const ratingSeriesApi = {
   getRatedSeries: (): Promise<Serie[]> =>
     apiLmsRating.get("/rate/series/").then((res) => res.data),
 
-  getRatedSeriesPaged: (page: number = 0, size: number = 20): Promise<any> =>
-    apiLmsRating
-      .get(`/rate/series/paged?page=${page}&size=${size}`)
-      .then((res) => res.data),
+  // ATUALIZADO: Agora aceita minRating e maxRating
+  getRatedSeriesPaged: (
+    page: number = 0,
+    size: number = 20,
+    minRating?: number,
+    maxRating?: number,
+  ): Promise<any> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    });
+    if (minRating !== undefined)
+      params.append("minRating", minRating.toString());
+    if (maxRating !== undefined)
+      params.append("maxRating", maxRating.toString());
+
+    return apiLmsRating
+      .get(`/rate/series/paged?${params.toString()}`)
+      .then((res) => res.data);
+  },
 
   getSerieRating: (serieId: string): Promise<Serie> =>
     apiLmsRating.get(`/rate/series/${serieId}`).then((res) => res.data),
