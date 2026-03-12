@@ -52,5 +52,13 @@ public interface SerieRepository extends MongoRepository<Series, String>  {
      */
     List<Series> findAllByEmailOrderByCreatedAtDesc(String email);
 
-    Page<Series> findByEmailAndRatingBetweenOrderByCreatedAtDesc(String email, double minRating, double maxRating, Pageable pageable);
+    /**
+     * Busca avaliações de filmes de um usuário filtrando por uma faixa exata de notas.
+     * @param email e-mail do usuário.
+     * @param minRating nota mínima (inclusiva >=).
+     * @param maxRating nota máxima (inclusiva <=).
+     * @param pageable parâmetros de paginação.
+     * @return página de avaliações.
+     */
+    Page<Series> findByEmailAndRatingGreaterThanEqualAndRatingLessThanEqualOrderByCreatedAtDesc(String email, double minRating, double maxRating, Pageable pageable);
 }
