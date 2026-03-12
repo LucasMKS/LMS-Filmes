@@ -78,14 +78,31 @@ public class RateSerieController {
      * @param authentication contexto de autenticação do usuário.
      * @return página de avaliações de séries.
      */
+    /**
+     * Lista avaliações de filmes com paginação para o usuário autenticado, permitindo filtro por nota.
+     *
+     * @param page número da página.
+     * @param size quantidade de itens por página.
+     * @param minRating nota mínima para o filtro (opcional).
+     * @param maxRating nota máxima para o filtro (opcional).
+     * @param authentication contexto de autenticação do usuário.
+     * @return página de avaliações de filmes.
+     */
     @GetMapping("/paged")
     public ResponseEntity<Page<Series>> getUserRatingsPaged(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Double minRating,
+            @RequestParam(required = false) Double maxRating,
             Authentication authentication) {
         
         String email = authentication.getName();
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        if (minRating != null && maxRating != null) {
+            return ResponseEntity.ok(rateService.searchRatedSeriesByRatingRange(email, minRating, maxRating, pageable));
+        }
+        
         return ResponseEntity.ok(rateService.searchRatedSeriesPaged(email, pageable));
     }
 

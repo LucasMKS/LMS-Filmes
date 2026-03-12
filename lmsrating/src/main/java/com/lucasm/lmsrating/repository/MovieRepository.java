@@ -52,4 +52,5 @@ public interface MovieRepository extends MongoRepository<Movies, String> {
      */
     List<Movies> findAllByEmailOrderByCreatedAtDesc(String email);
 
+    Page<Movies> findByEmailAndRatingBetweenOrderByCreatedAtDesc(String email, double minRating, double maxRating, Pageable pageable);
 }

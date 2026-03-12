@@ -101,6 +101,19 @@ public class RateSerieService {
         }
     }
 
+/**
+     * Consulta avaliações de filmes filtrando por um intervalo de notas com paginação.
+     *
+     * @param email e-mail do usuário autenticado.
+     * @param minRating nota mínima.
+     * @param maxRating nota máxima.
+     * @param pageable parâmetros de paginação/ordenação.
+     * @return página de avaliações filtradas por nota.
+     */
+    public Page<Series> searchRatedSeriesByRatingRange(String email, double minRating, double maxRating, Pageable pageable) {
+        return serieRepository.findByEmailAndRatingBetweenOrderByCreatedAtDesc(email, minRating, maxRating, pageable);
+    }
+
     /**
      * Consulta avaliações de séries filtrando por título com paginação.
      *

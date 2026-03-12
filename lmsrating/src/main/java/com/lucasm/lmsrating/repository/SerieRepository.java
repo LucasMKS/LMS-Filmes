@@ -52,4 +52,5 @@ public interface SerieRepository extends MongoRepository<Series, String>  {
      */
     List<Series> findAllByEmailOrderByCreatedAtDesc(String email);
 
+    Page<Series> findByEmailAndRatingBetweenOrderByCreatedAtDesc(String email, double minRating, double maxRating, Pageable pageable);
 }
