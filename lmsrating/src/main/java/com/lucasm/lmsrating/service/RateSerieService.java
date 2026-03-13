@@ -111,7 +111,7 @@ public class RateSerieService {
      * @return página de avaliações filtradas por nota.
      */
     public Page<Series> searchRatedSeriesByRatingRange(String email, double minRating, double maxRating, Pageable pageable) {
-        return serieRepository.findByEmailAndRatingGreaterThanEqualAndRatingLessThanEqualOrderByCreatedAtDesc(email, minRating, maxRating, pageable);
+        return serieRepository.findByEmailAndRatingRange(email, minRating, maxRating, pageable);
     }
 
     /**

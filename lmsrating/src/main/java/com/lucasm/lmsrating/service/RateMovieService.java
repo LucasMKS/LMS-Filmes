@@ -105,7 +105,7 @@ public class RateMovieService {
      * @return página de avaliações filtradas por nota.
      */
     public Page<Movies> searchRatedMoviesByRatingRange(String email, double minRating, double maxRating, Pageable pageable) {
-        return movieRepository.findByEmailAndRatingGreaterThanEqualAndRatingLessThanEqualOrderByCreatedAtDesc(email, minRating, maxRating, pageable);
+        return movieRepository.findByEmailAndRatingRange(email, minRating, maxRating, pageable);
     }
 
     /**

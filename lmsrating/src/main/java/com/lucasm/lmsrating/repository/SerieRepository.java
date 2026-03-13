@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.lucasm.lmsrating.model.Series;
@@ -53,12 +54,13 @@ public interface SerieRepository extends MongoRepository<Series, String>  {
     List<Series> findAllByEmailOrderByCreatedAtDesc(String email);
 
     /**
-     * Busca avaliações de filmes de um usuário filtrando por uma faixa exata de notas.
+     * Busca avaliações de séries de um usuário filtrando por uma faixa exata de notas.
      * @param email e-mail do usuário.
      * @param minRating nota mínima (inclusiva >=).
      * @param maxRating nota máxima (inclusiva <=).
      * @param pageable parâmetros de paginação.
      * @return página de avaliações.
      */
-    Page<Series> findByEmailAndRatingGreaterThanEqualAndRatingLessThanEqualOrderByCreatedAtDesc(String email, double minRating, double maxRating, Pageable pageable);
+    @Query("{ 'email': ?0, 'rating': { $gte: ?1, $lte: ?2 } }")
+    Page<Series> findByEmailAndRatingRange(String email, double minRating, double maxRating, Pageable pageable);
 }

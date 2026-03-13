@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.lucasm.lmsrating.model.Movies;
@@ -52,13 +53,15 @@ public interface MovieRepository extends MongoRepository<Movies, String> {
      */
     List<Movies> findAllByEmailOrderByCreatedAtDesc(String email);
 
-    /**
-     * Busca avaliações de filmes de um usuário filtrando por uma faixa exata de notas.
+/**
+     * Busca avaliações de filmes filtrando por uma faixa de notas (inclusive) de forma nativa no MongoDB.
      * @param email e-mail do usuário.
-     * @param minRating nota mínima (inclusiva >=).
-     * @param maxRating nota máxima (inclusiva <=).
-     * @param pageable parâmetros de paginação.
+     * @param minRating nota mínima.
+     * @param maxRating nota máxima.
+     * @param pageable parâmetros de paginação e ordenação.
      * @return página de avaliações.
      */
-    Page<Movies> findByEmailAndRatingGreaterThanEqualAndRatingLessThanEqualOrderByCreatedAtDesc(String email, double minRating, double maxRating, Pageable pageable);
+    @Query("{ 'email': ?0, 'rating': { $gte: ?1, $lte: ?2 } }")
+    Page<Movies> findByEmailAndRatingRange(String email, double minRating, double maxRating, Pageable pageable);
+
 }
