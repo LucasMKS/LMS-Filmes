@@ -28,9 +28,11 @@ public class CorsGlobalConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOriginPatterns(Arrays.asList(
+			allowedOrigins,
             "https://lms-filmes.vercel.app",
             "https://lucasmks.me",
             "https://www.lucasmks.me",
+			"https://lifeos.lucasmks.com.br",
             "http://localhost:*"
         ));
 

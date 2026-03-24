@@ -16,8 +16,7 @@ import {
 } from "./types";
 
 const resolveApiGatewayUrl = (): string => {
-  const envUrl =
-    process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
   if (envUrl && envUrl.trim()) {
     return envUrl.replace(/\/$/, "");
@@ -25,12 +24,16 @@ const resolveApiGatewayUrl = (): string => {
 
   if (typeof window !== "undefined") {
     const { protocol, hostname } = window.location;
-    return `${protocol}//${hostname}:8080`;
+    const apiHostname = hostname.startsWith("filmes") 
+      ? hostname.replace("filmes", "api-filmes") 
+      : hostname;
+    
+    return `${protocol}//${apiHostname}`;
   }
 
-  return "http://localhost:8080";
+  return "https://api-filmes.lucasmks.com.br";
 };
-
+  
 const API_GATEWAY_URL = resolveApiGatewayUrl();
 
 const timeoutFromEnv = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
