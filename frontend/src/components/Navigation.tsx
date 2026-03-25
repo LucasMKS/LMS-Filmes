@@ -61,17 +61,10 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
   };
 
   const handleLogin = () => {
-    router.push(isAuthenticated ? "/dashboard" : "/login");
+    router.push(isAuthenticated ? "/filmes" : "/login");
   };
 
   const allNavigationItems = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: Home,
-      current: pathname === "/dashboard",
-      requiresAuth: true,
-    },
     {
       name: "Filmes",
       href: "/filmes",
