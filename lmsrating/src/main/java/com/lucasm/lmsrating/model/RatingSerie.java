@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "ratings_series")
 /**
- * Entidade que representa uma avaliação de série persistida no MongoDB.
+ * Entidade que representa uma avaliação de série persistida.
  */
 public class RatingSerie {
 
