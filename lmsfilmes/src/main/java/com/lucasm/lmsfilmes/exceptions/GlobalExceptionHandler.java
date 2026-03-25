@@ -1,12 +1,14 @@
 package com.lucasm.lmsfilmes.exceptions;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,8 +16,10 @@ import java.util.Map;
 /**
  * Handler global para padronizar respostas de erro da API.
  */
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * Trata erros de argumento inválido retornando HTTP 400.
@@ -79,8 +83,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
+        log.error("Erro interno capturado pelo ControllerAdvice: ", ex);
+
         Map<String, String> error = new HashMap<>();
-        error.put("error", "Erro interno: " + ex.getMessage());
+        error.put("error", "Internal Server Error");
+        error.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }
