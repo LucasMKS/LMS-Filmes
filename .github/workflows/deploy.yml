@@ -128,7 +128,13 @@ jobs:
             cd ~/lms-filmes 
 
             echo "Baixando as novas imagens do Docker Hub..."
-            docker compose pull
+            docker compose pull gateway
+            docker compose pull eureka
+            docker compose pull lmsfilmes
+            docker compose pull lms-email-service
+            docker compose pull lmsfavorite
+            docker compose pull lmsrating
+            docker compose pull lms-frontend
 
             echo "Reiniciando apenas os containers alterados..."
             docker compose up -d
