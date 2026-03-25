@@ -12,6 +12,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/filmes",
+        permanent: true,
+      },
+    ];
+  },
+
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
