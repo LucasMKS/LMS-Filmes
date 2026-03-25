@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Film,
-  Tv,
-  Star,
-  Heart,
-  TrendingUp,
-  Play,
-} from "lucide-react";
+import { Film, Tv, Star, Heart, TrendingUp, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function HomePage() {
@@ -140,3 +133,4 @@ export default function HomePage() {
       </footer>
     </div>
   );
+}
