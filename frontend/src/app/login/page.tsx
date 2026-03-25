@@ -35,7 +35,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (AuthService.isAuthenticated()) {
-      router.push("/dashboard");
+      router.push("/filmes");
     }
   }, [router]);
 
