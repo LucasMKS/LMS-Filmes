@@ -143,7 +143,7 @@ public class AuthService {
             });
 
             PasswordResetToken tokenEntity = new PasswordResetToken();
-            tokenEntity.setUserId(user.getId());
+            tokenEntity.setUser(user);
             tokenRepository.save(tokenEntity);
 
             String resetUrl = frontendBaseUrl + "/reset-password?token=" + tokenEntity.getToken();
@@ -183,7 +183,7 @@ public class AuthService {
             throw new BadCredentialsException("Token inválido ou expirado");
         }
 
-        User user = usersRepo.findById(tokenEntity.getUserId())
+        User user = usersRepo.findById(tokenEntity.getUser().getId())
                 .orElseThrow(() -> {
                     log.error("Usuário não encontrado para o token: {}", token);
                     return new BadCredentialsException("Token inválido ou expirado");

@@ -2,102 +2,82 @@ package com.lucasm.lmsfavorite.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.lucasm.lmsfavorite.dto.CatalogSyncDTO;
 import com.lucasm.lmsfavorite.model.FavoriteMovie;
 import com.lucasm.lmsfavorite.repository.FavoriteMovieRepository;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-/**
- * Implementa regras de negócio para favoritos de filmes por usuário.
- */
 @Service
 public class FavoriteMovieService {
 
     private final FavoriteMovieRepository favoriteRepository;
+    private final JdbcTemplate jdbcTemplate;
+    private final RabbitMQProducer rabbitMQProducer; 
 
-    /**
-     * Cria o serviço com acesso ao repositório de favoritos de filmes.
-     *
-     * @param favoriteRepository repositório de persistência de favoritos de filmes.
-     */
-    public FavoriteMovieService(FavoriteMovieRepository favoriteRepository) {
+    public FavoriteMovieService(FavoriteMovieRepository favoriteRepository, JdbcTemplate jdbcTemplate, RabbitMQProducer rabbitMQProducer) {
         this.favoriteRepository = favoriteRepository;
+        this.jdbcTemplate = jdbcTemplate;
+        this.rabbitMQProducer = rabbitMQProducer;
     }
 
-    /**
-         * Alterna o estado de favorito de um filme para um usuário.
-     *
-         * @param movieId identificador do filme.
-         * @param email e-mail do usuário autenticado.
-         * @return `true` se o filme ficar favoritado após a operação; caso contrário, `false`.
-     */
-        @Caching(evict = {
-            @CacheEvict(value = "userFavoriteMovies", key = "#email")
-        }, put = {
-            @CachePut(value = "userFavoriteMovieStatus", key = "#email + '_' + #movieId")
-        })
+    private Long getUserIdByEmail(String email) {
+        String sql = "SELECT id FROM users WHERE email = ?";
+        return jdbcTemplate.queryForObject(sql, Long.class, email);
+    }
+
+    @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "userFavoriteMovies", key = "#email")
+    }, put = {
+        @CachePut(value = "userFavoriteMovieStatus", key = "#email + '_' + #movieId")
+    })
     public boolean toggleFavoriteMovie(String movieId, String email) {
-        Optional<FavoriteMovie> optionalFavorite = favoriteRepository.findByMovieIdAndEmail(movieId, email);
+        Long userId = getUserIdByEmail(email);
+
+        Optional<FavoriteMovie> optionalFavorite = favoriteRepository.findByMovieIdAndUserId(movieId, userId);
 
         FavoriteMovie favoriteMovie = optionalFavorite.orElseGet(() -> {
             FavoriteMovie newMovie = new FavoriteMovie();
             newMovie.setMovieId(movieId);
-            newMovie.setEmail(email);
+            newMovie.setUserId(userId);
             newMovie.setFavorite(false);
+            
+            CatalogSyncDTO syncDTO = new CatalogSyncDTO(movieId, null, null);
+            rabbitMQProducer.sendMovieCatalogSync(syncDTO);
+            
             return newMovie;
         });
 
         favoriteMovie.setFavorite(!favoriteMovie.isFavorite());
-
         favoriteRepository.save(favoriteMovie);
 
         return favoriteMovie.isFavorite();
     }
 
-    /**
-     * Verifica se um filme está marcado como favorito por um usuário.
-     *
-     * @param movieId identificador do filme.
-     * @param email e-mail do usuário autenticado.
-     * @return `true` quando estiver favoritado; caso contrário, `false`.
-     */
     @Cacheable(value = "userFavoriteMovieStatus", key = "#email + '_' + #movieId")
     public boolean isFavoriteMovie(String movieId, String email) {
-        Optional<FavoriteMovie> optionalFavorite = favoriteRepository.findByMovieIdAndEmail(movieId, email);
-        boolean result = optionalFavorite.map(FavoriteMovie::isFavorite).orElse(false);
-
-        return result;
+        Long userId = getUserIdByEmail(email);
+        Optional<FavoriteMovie> optionalFavorite = favoriteRepository.findByMovieIdAndUserId(movieId, userId);
+        return optionalFavorite.map(FavoriteMovie::isFavorite).orElse(false);
     }
 
-    /**
-     * Lista todos os filmes favoritados de um usuário.
-     *
-     * @param email e-mail do usuário autenticado.
-     * @return lista de filmes favoritados.
-     */
     @Cacheable(value = "userFavoriteMovies", key = "#email")
     public List<FavoriteMovie> getAllFavoritesMovies(String email) {
-        List<FavoriteMovie> allFavorites = favoriteRepository.findByEmailAndFavorite(email, true);
-
-        return allFavorites;
+        Long userId = getUserIdByEmail(email);
+        return favoriteRepository.findByUserIdAndFavorite(userId, true);
     }
 
-    /**
-     * Consulta por lote o status de favoritos de filmes para um usuário.
-     *
-     * @param movieIds identificadores de filmes a consultar.
-     * @param email e-mail do usuário autenticado.
-     * @return mapa `movieId -> isFavorite` para todos os IDs recebidos.
-     */
     public Map<String, Boolean> getFavoriteMoviesStatusBatch(List<String> movieIds, String email) {
         Map<String, Boolean> statusByMovieId = new LinkedHashMap<>();
 
@@ -116,7 +96,8 @@ public class FavoriteMovieService {
             return statusByMovieId;
         }
 
-        List<FavoriteMovie> favorites = favoriteRepository.findByEmailAndMovieIdInAndFavorite(email, normalizedIds, true);
+        Long userId = getUserIdByEmail(email);
+        List<FavoriteMovie> favorites = favoriteRepository.findByUserIdAndMovieIdInAndFavorite(userId, normalizedIds, true);
         favorites.forEach(favorite -> statusByMovieId.put(favorite.getMovieId(), true));
 
         return statusByMovieId;

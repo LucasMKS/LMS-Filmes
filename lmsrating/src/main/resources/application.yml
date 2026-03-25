@@ -8,11 +8,18 @@ spring:
   cache:
     type: redis
 
-  data:
-    mongodb:
-      uri: ${MONGODB_URL}
-      database: ${MONGODB_DATABASE}
+  datasource:
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASS}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+  data:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
@@ -37,7 +44,6 @@ logging:
   level:
     org:
       springframework:
-        cache: DEBUG
-        data:
-          mongodb: DEBUG
-          redis: DEBUG
+        cache: INFO
+        orm:
+          jpa: INFO

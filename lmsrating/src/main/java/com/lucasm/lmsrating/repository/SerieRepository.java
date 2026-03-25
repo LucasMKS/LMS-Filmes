@@ -5,62 +5,27 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.lucasm.lmsrating.model.Series;
+import com.lucasm.lmsrating.model.RatingSerie;
 
-/**
- * Repositório de acesso a dados para avaliações de séries.
- */
 @Repository
-public interface SerieRepository extends MongoRepository<Series, String>  {
+public interface SerieRepository extends JpaRepository<RatingSerie, Long>  {
 
-    /**
-     * Lista avaliações de séries de um usuário com paginação.
-     *
-     * @param email e-mail do usuário.
-     * @param pageable parâmetros de paginação/ordenação.
-     * @return página de avaliações de séries.
-     */
-    Page<Series> findAllByEmail(String email, Pageable pageable);
+    Page<RatingSerie> findAllByUserId(Long userId, Pageable pageable);
 
-    /**
-     * Busca avaliações de séries por termo de título (case-insensitive) com paginação.
-     *
-     * @param email e-mail do usuário.
-     * @param title termo de busca no título.
-     * @param pageable parâmetros de paginação/ordenação.
-     * @return página de avaliações filtradas.
-     */
-    Page<Series> findByEmailAndTitleContainingIgnoreCase(String email, String title, Pageable pageable);
+    // SOLUÇÃO: Busca o título fazendo um JOIN direto no banco de dados
+    @Query(value = "SELECT r.* FROM ratings_series r JOIN series s ON r.serie_id = s.serie_id WHERE r.user_id = :userId AND LOWER(s.title) LIKE LOWER(CONCAT('%', :title, '%'))", nativeQuery = true)
+    Page<RatingSerie> findByUserIdAndTitleContainingIgnoreCase(@Param("userId") Long userId, @Param("title") String title, Pageable pageable);
 
-    /**
-     * Busca a avaliação de uma série específica para um usuário.
-     *
-     * @param serieId identificador da série.
-     * @param email e-mail do usuário.
-     * @return avaliação encontrada, quando existir.
-     */
-    Optional<Series> findBySerieIdAndEmail(String serieId, String email);
+    Optional<RatingSerie> findBySerieIdAndUserId(String serieId, Long userId);
 
-    /**
-     * Lista avaliações de séries de um usuário ordenadas da mais recente para a mais antiga.
-     *
-     * @param email e-mail do usuário.
-     * @return lista de avaliações ordenadas por criação.
-     */
-    List<Series> findAllByEmailOrderByCreatedAtDesc(String email);
+    List<RatingSerie> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 
-    /**
-     * Busca avaliações de séries de um usuário filtrando por uma faixa exata de notas.
-     * @param email e-mail do usuário.
-     * @param minRating nota mínima (inclusiva >=).
-     * @param maxRating nota máxima (inclusiva <=).
-     * @param pageable parâmetros de paginação.
-     * @return página de avaliações.
-     */
-    @Query("{ 'email': ?0, 'rating': { $gte: ?1, $lte: ?2 } }")
-    Page<Series> findByEmailAndRatingRange(String email, double minRating, double maxRating, Pageable pageable);
+    // Consulta JPQL para buscar por faixa de notas
+    @Query("SELECT r FROM RatingSerie r WHERE r.userId = :userId AND r.rating BETWEEN :minRating AND :maxRating")
+    Page<RatingSerie> findByUserIdAndRatingRange(@Param("userId") Long userId, @Param("minRating") double minRating, @Param("maxRating") double maxRating, Pageable pageable);
 }

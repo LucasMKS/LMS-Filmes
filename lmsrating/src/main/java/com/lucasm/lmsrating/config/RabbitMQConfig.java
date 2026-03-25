@@ -1,5 +1,6 @@
 package com.lucasm.lmsrating.config;
 
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -16,11 +17,11 @@ public class RabbitMQConfig {
 
     public static final String RATING_QUEUE = "ratingQueue";
     public static final String USER_EXCHANGE = "user.exchange";
+    
+    public static final String CATALOG_EXCHANGE = "catalog.direct";
 
     /**
      * Cria o conversor JSON usado nas mensagens RabbitMQ.
-     *
-     * @return conversor Jackson para payloads de mensagem.
      */
     @Bean
     public Jackson2JsonMessageConverter jackson2JsonMessageConverter() {
@@ -29,10 +30,6 @@ public class RabbitMQConfig {
 
     /**
      * Cria o template RabbitMQ com conversão JSON.
-     *
-     * @param connectionFactory fábrica de conexões RabbitMQ.
-     * @param converter conversor de mensagens utilizado no template.
-     * @return template RabbitMQ configurado.
      */
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
@@ -43,9 +40,7 @@ public class RabbitMQConfig {
     }
 
     /**
-     * Declara o exchange de usuários utilizado para roteamento de eventos.
-     *
-     * @return exchange do tipo topic.
+     * Declara o exchange de usuários utilizado para roteamento de eventos antigos.
      */
     @Bean
     public TopicExchange userExchange() {
@@ -54,11 +49,17 @@ public class RabbitMQConfig {
 
     /**
      * Declara a fila de avaliações do serviço.
-     *
-     * @return fila durável de avaliações.
      */
     @Bean
     public Queue ratingQueue() {
         return new Queue(RATING_QUEUE, true);
+    }
+
+    /**
+     * Declara o exchange direto para sincronização de catálogo de filmes e séries.
+     */
+    @Bean
+    public DirectExchange catalogExchange() {
+        return new DirectExchange(CATALOG_EXCHANGE);
     }
 }

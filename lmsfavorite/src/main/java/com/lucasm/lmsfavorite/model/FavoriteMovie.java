@@ -1,26 +1,28 @@
 package com.lucasm.lmsfavorite.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
-import org.springframework.data.mongodb.core.mapping.Document;
-
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
-@Document(collection = "favorite_movies")
-@CompoundIndex(name = "email_movie_idx", def = "{'email': 1, 'movieId': 1}", unique = true)
-/**
- * Entidade que representa um filme favoritado por um usuário.
- */
+@Entity
+@Table(name = "favorite_movies", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"user_id", "movie_id"})
+})
 public class FavoriteMovie {
 
     @Id
-    private String id;
-    
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "movie_id", nullable = false)
     private String movieId;
-    
-    private String email;
 
-    private boolean favorite;
+    @Column(name = "is_favorite")
+    private boolean favorite = true;
 
+    @Column(name = "mongo_id")
+    private String mongoId;
 }

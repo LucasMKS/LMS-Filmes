@@ -1,23 +1,32 @@
 package com.lucasm.lmsfavorite.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
-import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@Document(collection = "watchlist_movies")
-@CompoundIndex(name = "email_watchlist_movie_idx", def = "{'email': 1, 'movieId': 1}", unique = true)
-/**
- * Entidade que representa um filme salvo na watchlist do usuário.
- */
+@Entity
+@Table(name = "watchlist_movies", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"user_id", "movie_id"})
+})
 public class WatchlistMovie {
     @Id
-    private String id;
-    private String email;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "movie_id", nullable = false)
     private String movieId;
-    private LocalDateTime addedAt = LocalDateTime.now();
+
+    @CreationTimestamp
+    @Column(name = "added_at", updatable = false)
+    private LocalDateTime addedAt;
+    
+    @Column(name = "mongo_id")
+    private String mongoId;
 }

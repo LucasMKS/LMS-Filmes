@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.lucasm.lmsrating.dto.RatingRequestDTO;
-import com.lucasm.lmsrating.model.Movies;
+import com.lucasm.lmsrating.model.RatingMovie;
 import com.lucasm.lmsrating.service.RateMovieService;
 
 import jakarta.validation.Valid;
@@ -41,7 +41,7 @@ public class RateMovieController {
      * @return avaliação persistida.
      */
     @PostMapping("")
-    public ResponseEntity<Movies> ratingMovies(
+    public ResponseEntity<RatingMovie> ratingMovies(
             @Valid @RequestBody RatingRequestDTO request,
             Authentication authentication) {
         
@@ -56,9 +56,9 @@ public class RateMovieController {
      * @return lista de avaliações de filmes.
      */
     @GetMapping("/")
-    public ResponseEntity<List<Movies>> getUserRatings(Authentication authentication) {
+    public ResponseEntity<List<RatingMovie>> getUserRatings(Authentication authentication) {
         String email = authentication.getName();
-        List<Movies> movies = rateService.searchRatedMovies(email);
+        List<RatingMovie> movies = rateService.searchRatedMovies(email);
         return ResponseEntity.ok(movies);
     }
 
@@ -73,7 +73,7 @@ public class RateMovieController {
      * @return página de avaliações de filmes.
      */
     @GetMapping("/paged")
-    public ResponseEntity<Page<Movies>> getUserRatingsPaged(
+    public ResponseEntity<Page<RatingMovie>> getUserRatingsPaged(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Double minRating,
@@ -98,12 +98,12 @@ public class RateMovieController {
      * @return avaliação do filme solicitado.
      */
     @GetMapping("/{movieId}")
-    public ResponseEntity<Movies> getMovieRating(
+    public ResponseEntity<RatingMovie> getMovieRating(
             @PathVariable String movieId,
             Authentication authentication) {
         
         String email = authentication.getName();
-        Movies movie = rateService.getMovieRating(movieId, email);
+        RatingMovie movie = rateService.getMovieRating(movieId, email);
         return ResponseEntity.ok(movie);
     }
 }

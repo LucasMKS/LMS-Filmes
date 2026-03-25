@@ -3,7 +3,7 @@ package com.lucasm.lmsrating.controller;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.lucasm.lmsrating.dto.SerieRatingRequestDTO;
-import com.lucasm.lmsrating.model.Series;
+import com.lucasm.lmsrating.model.RatingSerie;
 import com.lucasm.lmsrating.service.RateSerieService;
 
 import jakarta.validation.Valid;
@@ -49,7 +49,7 @@ public class RateSerieController {
      * @return avaliação persistida.
      */
     @PostMapping("")
-    public ResponseEntity<Series> ratingSeries(
+    public ResponseEntity<RatingSerie> ratingSeries(
             @Valid @RequestBody SerieRatingRequestDTO request,
             Authentication authentication) {
         
@@ -64,9 +64,9 @@ public class RateSerieController {
      * @return lista de avaliações de séries.
      */
     @GetMapping("/")
-    public ResponseEntity<List<Series>> getUserRatings(Authentication authentication) {
+    public ResponseEntity<List<RatingSerie>> getUserRatings(Authentication authentication) {
         String email = authentication.getName();
-        List<Series> series = rateService.searchRatedSeries(email);
+        List<RatingSerie> series = rateService.searchRatedSeries(email);
         return ResponseEntity.ok(series);
     }
 
@@ -89,7 +89,7 @@ public class RateSerieController {
      * @return página de avaliações de filmes.
      */
     @GetMapping("/paged")
-    public ResponseEntity<Page<Series>> getUserRatingsPaged(
+    public ResponseEntity<Page<RatingSerie>> getUserRatingsPaged(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Double minRating,
@@ -114,12 +114,12 @@ public class RateSerieController {
      * @return avaliação da série solicitada.
      */
     @GetMapping("/{serieId}")
-    public ResponseEntity<Series> getSerieRating(
+    public ResponseEntity<RatingSerie> getSerieRating(
             @PathVariable String serieId,
             Authentication authentication) {
         
         String email = authentication.getName();
-        Series serie = rateService.getSerieRating(serieId, email);
+        RatingSerie serie = rateService.getSerieRating(serieId, email);
         return ResponseEntity.ok(serie);
     }
     

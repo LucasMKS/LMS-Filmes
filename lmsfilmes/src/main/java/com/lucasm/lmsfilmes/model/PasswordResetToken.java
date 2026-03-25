@@ -3,32 +3,31 @@ package com.lucasm.lmsfilmes.model;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
-
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
-
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-@Document(collection = "passwordResetTokens")
-/**
- * Entidade que representa token temporário de redefinição de senha.
- */
+@Entity
+@Table(name = "password_reset_tokens")
 public class PasswordResetToken {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Indexed(unique = true)
+    @Column(unique = true, nullable = false)
     private String token;
 
-    @Indexed
-    private String userId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     private Instant expiryDate;
+
+    @Column(name = "mongo_id")
+    private String mongoId;
 
     public PasswordResetToken() {
         this.token = UUID.randomUUID().toString();
@@ -38,5 +37,4 @@ public class PasswordResetToken {
     public boolean isExpired() {
         return Instant.now().isAfter(this.expiryDate);
     }
-
 }

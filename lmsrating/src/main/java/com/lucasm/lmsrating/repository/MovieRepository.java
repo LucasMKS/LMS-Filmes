@@ -5,63 +5,27 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.lucasm.lmsrating.model.Movies;
+import com.lucasm.lmsrating.model.RatingMovie;
 
-/**
- * Repositório de acesso a dados para avaliações de filmes.
- */
 @Repository
-public interface MovieRepository extends MongoRepository<Movies, String> {
+public interface MovieRepository extends JpaRepository<RatingMovie, Long> {
 
-    /**
-     * Lista avaliações de filmes de um usuário com paginação.
-     *
-     * @param email e-mail do usuário.
-     * @param pageable parâmetros de paginação/ordenação.
-     * @return página de avaliações de filmes.
-     */
-    Page<Movies> findAllByEmail(String email, Pageable pageable);
+    Page<RatingMovie> findAllByUserId(Long userId, Pageable pageable);
 
-    /**
-     * Busca avaliações de filmes por termo de título (case-insensitive) com paginação.
-     *
-     * @param email e-mail do usuário.
-     * @param title termo de busca no título.
-     * @param pageable parâmetros de paginação/ordenação.
-     * @return página de avaliações filtradas.
-     */
-    Page<Movies> findByEmailAndTitleContainingIgnoreCase(String email, String title, Pageable pageable);
+    // SOLUÇÃO: Busca o título fazendo um JOIN direto no banco de dados
+    @Query(value = "SELECT r.* FROM ratings_movies r JOIN movies m ON r.movie_id = m.movie_id WHERE r.user_id = :userId AND LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%'))", nativeQuery = true)
+    Page<RatingMovie> findByUserIdAndTitleContainingIgnoreCase(@Param("userId") Long userId, @Param("title") String title, Pageable pageable);
 
-    /**
-     * Busca a avaliação de um filme específico para um usuário.
-     *
-     * @param movieId identificador do filme.
-     * @param email e-mail do usuário.
-     * @return avaliação encontrada, quando existir.
-     */
-    Optional<Movies> findByMovieIdAndEmail(String movieId, String email);
+    Optional<RatingMovie> findByMovieIdAndUserId(String movieId, Long userId);
 
-    /**
-     * Lista avaliações de filmes de um usuário ordenadas da mais recente para a mais antiga.
-     *
-     * @param email e-mail do usuário.
-     * @return lista de avaliações ordenadas por criação.
-     */
-    List<Movies> findAllByEmailOrderByCreatedAtDesc(String email);
+    List<RatingMovie> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 
-/**
-     * Busca avaliações de filmes filtrando por uma faixa de notas (inclusive) de forma nativa no MongoDB.
-     * @param email e-mail do usuário.
-     * @param minRating nota mínima.
-     * @param maxRating nota máxima.
-     * @param pageable parâmetros de paginação e ordenação.
-     * @return página de avaliações.
-     */
-    @Query("{ 'email': ?0, 'rating': { $gte: ?1, $lte: ?2 } }")
-    Page<Movies> findByEmailAndRatingRange(String email, double minRating, double maxRating, Pageable pageable);
-
+    // Consulta JPQL para buscar por faixa de notas
+    @Query("SELECT r FROM RatingMovie r WHERE r.userId = :userId AND r.rating BETWEEN :minRating AND :maxRating")
+    Page<RatingMovie> findByUserIdAndRatingRange(@Param("userId") Long userId, @Param("minRating") double minRating, @Param("maxRating") double maxRating, Pageable pageable);
 }

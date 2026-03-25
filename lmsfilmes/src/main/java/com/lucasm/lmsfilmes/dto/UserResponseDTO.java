@@ -6,7 +6,7 @@ import com.lucasm.lmsfilmes.model.User;
  */
 
 public record UserResponseDTO(
-    String id,
+    Long id,
     String name,
     String email,
     String nickname,

@@ -10,54 +10,53 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.lucasm.lmsrating.dto.CatalogSyncDTO;
 import com.lucasm.lmsrating.dto.RatingRequestDTO;
 import com.lucasm.lmsrating.exceptions.MovieServiceException;
 import com.lucasm.lmsrating.exceptions.ResourceNotFoundException;
-import com.lucasm.lmsrating.model.Movies;
+import com.lucasm.lmsrating.model.RatingMovie;
 import com.lucasm.lmsrating.repository.MovieRepository;
 
-/**
- * Implementa regras de negócio para criação e consulta de avaliações de filmes.
- */
 @Service
 public class RateMovieService {
 
     private static final Logger logger = LoggerFactory.getLogger(RateMovieService.class);
 
-
     private final MovieRepository movieRepository;
+    private final JdbcTemplate jdbcTemplate;
+    private final RabbitMQProducer rabbitMQProducer;
 
-    /**
-     * Cria o serviço com o repositório de avaliações de filmes.
-     *
-     * @param movieRepository repositório de avaliações de filmes.
-     */
-    public RateMovieService(MovieRepository movieRepository) {
+    public RateMovieService(MovieRepository movieRepository, JdbcTemplate jdbcTemplate, RabbitMQProducer rabbitMQProducer) {
         this.movieRepository = movieRepository;
+        this.jdbcTemplate = jdbcTemplate;
+        this.rabbitMQProducer = rabbitMQProducer;
     }
 
-    /**
-     * Cria ou atualiza a avaliação de um filme para o usuário informado.
-     *
-     * @param request payload com nota e metadados do filme.
-     * @param email e-mail do usuário autenticado.
-     * @return avaliação persistida.
-     * @throws MovieServiceException quando ocorrer falha ao salvar a avaliação.
-     */
+    private Long getUserIdByEmail(String email) {
+        String sql = "SELECT id FROM users WHERE email = ?";
+        return jdbcTemplate.queryForObject(sql, Long.class, email);
+    }
+
+    @Transactional
     @CacheEvict(value = "userRatedMovies", allEntries = true)
-    public Movies rateMovie(RatingRequestDTO request, String email) {
+    public RatingMovie rateMovie(RatingRequestDTO request, String email) {
         try {
-            Movies movie = movieRepository.findByMovieIdAndEmail(request.getMovieId(), email)
-                .orElse(new Movies());
+            Long userId = getUserIdByEmail(email);
+
+            RatingMovie movie = movieRepository.findByMovieIdAndUserId(request.getMovieId(), userId)
+                .orElse(new RatingMovie());
 
             movie.setMovieId(request.getMovieId());
-            movie.setEmail(email);
+            movie.setUserId(userId);
             movie.setRating(request.getRating());
             movie.setComment(request.getComment());
-            movie.setTitle(request.getTitle());
-            movie.setPoster_path(request.getPoster_path());
+            
+            CatalogSyncDTO syncDTO = new CatalogSyncDTO(request.getMovieId(), request.getTitle(), request.getPoster_path());
+            rabbitMQProducer.sendMovieCatalogSync(syncDTO);
             
             return movieRepository.save(movie);
 
@@ -66,17 +65,11 @@ public class RateMovieService {
         }
     }
 
-    /**
-     * Lista avaliações de filmes do usuário ordenadas da mais recente para a mais antiga.
-     *
-     * @param email e-mail do usuário autenticado.
-     * @return lista de avaliações de filmes.
-     * @throws MovieServiceException quando ocorrer falha na consulta.
-     */
     @Cacheable(value = "userRatedMovies", key = "#email")
-    public List<Movies> searchRatedMovies(String email) {
+    public List<RatingMovie> searchRatedMovies(String email) {
         try {
-            List<Movies> result = movieRepository.findAllByEmailOrderByCreatedAtDesc(email);
+            Long userId = getUserIdByEmail(email);
+            List<RatingMovie> result = movieRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
             return result.isEmpty() ? Collections.emptyList() : result;
         } catch (Exception e) {
             logger.error("Erro ao buscar filmes avaliados para o usuário {}: {}", email, e.getMessage(), e);
@@ -84,54 +77,26 @@ public class RateMovieService {
         }
     }
 
-    /**
-     * Consulta avaliações de filmes com paginação.
-     *
-     * @param email e-mail do usuário autenticado.
-     * @param pageable parâmetros de paginação/ordenação.
-     * @return página de avaliações.
-     */
-    public Page<Movies> searchRatedMoviesPaged(String email, Pageable pageable) {
-        return movieRepository.findAllByEmail(email, pageable);
+    public Page<RatingMovie> searchRatedMoviesPaged(String email, Pageable pageable) {
+        Long userId = getUserIdByEmail(email);
+        return movieRepository.findAllByUserId(userId, pageable);
     }
 
-    /**
-     * Consulta avaliações de filmes filtrando por um intervalo de notas com paginação.
-     *
-     * @param email e-mail do usuário autenticado.
-     * @param minRating nota mínima.
-     * @param maxRating nota máxima.
-     * @param pageable parâmetros de paginação/ordenação.
-     * @return página de avaliações filtradas por nota.
-     */
-    public Page<Movies> searchRatedMoviesByRatingRange(String email, double minRating, double maxRating, Pageable pageable) {
-        return movieRepository.findByEmailAndRatingRange(email, minRating, maxRating, pageable);
+    public Page<RatingMovie> searchRatedMoviesByRatingRange(String email, double minRating, double maxRating, Pageable pageable) {
+        Long userId = getUserIdByEmail(email);
+        return movieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
     }
 
-    /**
-     * Consulta avaliações de filmes filtrando por título com paginação.
-     *
-     * @param email e-mail do usuário autenticado.
-     * @param title termo de busca para o título do filme.
-     * @param pageable parâmetros de paginação/ordenação.
-     * @return página de avaliações filtradas.
-     */
-    public Page<Movies> searchRatedMoviesByTitle(String email, String title, Pageable pageable) {
-        return movieRepository.findByEmailAndTitleContainingIgnoreCase(email, title, pageable);
+    public Page<RatingMovie> searchRatedMoviesByTitle(String email, String title, Pageable pageable) {
+        Long userId = getUserIdByEmail(email);
+        return movieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
     }
 
-    /**
-     * Obtém a avaliação de um filme específico para um usuário.
-     *
-     * @param movieId identificador do filme.
-     * @param email e-mail do usuário autenticado.
-     * @return avaliação encontrada.
-     * @throws ResourceNotFoundException quando não existir avaliação para o filme/usuário.
-     */
-    public Movies getMovieRating(String movieId, String email) {
-        return movieRepository.findByMovieIdAndEmail(movieId, email)
+    public RatingMovie getMovieRating(String movieId, String email) {
+        Long userId = getUserIdByEmail(email);
+        return movieRepository.findByMovieIdAndUserId(movieId, userId)
             .orElseThrow(() -> new ResourceNotFoundException(
-                "Avaliação não encontrada para o filme " + movieId + " e usuário " + email
+                "Avaliação não encontrada para o filme " + movieId
             ));
     }
 }
