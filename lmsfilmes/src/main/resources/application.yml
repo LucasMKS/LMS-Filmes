@@ -45,10 +45,10 @@ logging:
   level:
     org:
       springframework:
-        cache: DEBUG
+        cache: INFO
         data:
-          mongodb: DEBUG
-          redis: DEBUG
+          mongodb: INFO
+          redis: INFO
 
 management:
   endpoints:
