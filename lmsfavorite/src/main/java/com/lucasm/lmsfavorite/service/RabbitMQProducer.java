@@ -28,4 +28,9 @@ public class RabbitMQProducer {
         log.info("Favoritos: Solicitando sincronização da série ID: {}", dto.getId());
         rabbitTemplate.convertAndSend(RabbitMQConfig.CATALOG_EXCHANGE, "serie.sync", dto);
     }
+
+    public void sendMediaNotification(String message) {
+        log.info("LMS Favorites: Enviando sugestão de mídia para o Telegram...");
+        rabbitTemplate.convertAndSend("notification.exchange", "notify.media", message);
+    }
 }
