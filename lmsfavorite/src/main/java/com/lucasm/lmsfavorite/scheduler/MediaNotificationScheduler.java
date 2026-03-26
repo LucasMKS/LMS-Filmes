@@ -25,7 +25,7 @@ public class MediaNotificationScheduler {
      * SESSÃO PIPOCA: Roda todos os dias às 18:30.
      * Sorteia um filme da Watchlist para sugerir.
      */
-    @Scheduled(cron = "0 30 20 * * *")
+    @Scheduled(cron = "0 0 21 * * *")
     public void suggestDailyMovie() {
         log.info("Cronjob Media: Iniciando sorteio do filme diário...");
 
@@ -52,7 +52,7 @@ public class MediaNotificationScheduler {
                 String message = String.format(
                     "🍿 <b>Sessão Pipoca LifeOS</b>\n\n" +
                     "O expediente acabou! Que tal finalmente assistir àquele filme que está na sua Watchlist?\n\n" +
-                    "🔗 %s\n\n" +
+                    "🔗 <a href=\"%s\">Ver Detalhes do Filme</a>\n\n" +
                     "<i>Prepare a pipoca e bom filme!</i>",
                     myFrontLink
                 );
