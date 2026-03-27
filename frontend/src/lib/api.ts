@@ -16,7 +16,8 @@ import {
 } from "./types";
 
 const resolveApiGatewayUrl = (): string => {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const envUrl =
+    process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
   if (envUrl && envUrl.trim()) {
     return envUrl.replace(/\/$/, "");
@@ -24,16 +25,16 @@ const resolveApiGatewayUrl = (): string => {
 
   if (typeof window !== "undefined") {
     const { protocol, hostname } = window.location;
-    const apiHostname = hostname.startsWith("filmes") 
-      ? hostname.replace("filmes", "api-filmes") 
+    const apiHostname = hostname.startsWith("filmes")
+      ? hostname.replace("filmes", "api-filmes")
       : hostname;
-    
+
     return `${protocol}//${apiHostname}`;
   }
 
   return "https://api-filmes.lucasmks.com.br";
 };
-  
+
 const API_GATEWAY_URL = resolveApiGatewayUrl();
 
 const timeoutFromEnv = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
@@ -82,11 +83,19 @@ const attachAuthInterceptor = (apiInstance: any) => {
       const apiError = ErrorHandler.createApiError(error);
 
       if (error.response?.status === 401) {
-        Cookies.remove("auth_token");
-        Cookies.remove("user_data");
-        toast.error("Sessão expirada", { description: "Faça login novamente" });
-        if (!window.location.pathname.includes("/login")) {
-          window.location.href = "/login";
+        Cookies.remove("auth_token", { path: "/" });
+        Cookies.remove("user_data", { path: "/" });
+
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("session_active");
+        }
+
+        toast.error("Sessão expirada", {
+          description: "Por favor, faça login novamente.",
+        });
+
+        if (window.location.pathname !== "/filmes") {
+          window.location.href = "/filmes";
         }
       }
       return Promise.reject(apiError);
