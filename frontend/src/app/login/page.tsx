@@ -60,7 +60,7 @@ export default function LoginPage() {
           description: "Bem-vindo de volta!",
         });
 
-        router.push("/dashboard");
+        router.push("/filmes");
       } else {
         if (data.password !== data.confirmPassword) {
           toast.error("Erro de validação", {
