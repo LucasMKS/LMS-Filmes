@@ -88,18 +88,30 @@ class AuthService {
 
   isAuthenticated(): boolean {
     const token = Cookies.get(this.TOKEN_KEY);
-    const userCookie = Cookies.get(this.USER_KEY);
-    return !!token || !!userCookie || this.getSessionMarker();
+
+    if (!token) {
+      this.clearTokens();
+      return false;
+    }
+
+    return true;
   }
 
   getUser(): User | null {
+    const token = Cookies.get(this.TOKEN_KEY);
+
+    if (!token) {
+      this.clearTokens();
+      return null;
+    }
+
     const userCookie = Cookies.get(this.USER_KEY);
     if (userCookie) {
       try {
         return JSON.parse(userCookie) as User;
       } catch (e) {
         console.error("Erro ao parsear cookie de usuário:", e);
-        this.logout();
+        this.clearTokens();
         return null;
       }
     }
