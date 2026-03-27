@@ -25,7 +25,7 @@ public class MediaNotificationScheduler {
      * SESSÃO PIPOCA: Roda todos os dias às 18:30.
      * Sorteia um filme da Watchlist para sugerir.
      */
-    @Scheduled(cron = "0 20 21 * * *")
+    @Scheduled(cron = "0 30 18 * * *")
     public void suggestDailyMovie() {
         log.info("Cronjob Media: Iniciando sorteio do filme diário...");
 
