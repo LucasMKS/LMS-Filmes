@@ -2,6 +2,9 @@ package com.lucasm.lmsfavorite.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageBuilder;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +34,12 @@ public class RabbitMQProducer {
 
     public void sendMediaNotification(String message) {
         log.info("LMS Favorites: Enviando sugestão de mídia para o Telegram...");
-        rabbitTemplate.convertAndSend("notification.exchange", "notify.media", message);
+        
+        Message amqpMessage = MessageBuilder
+                .withBody(message.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .setContentType(MessageProperties.CONTENT_TYPE_TEXT_PLAIN)
+                .build();
+
+        rabbitTemplate.send("notification.exchange", "notify.media", amqpMessage);
     }
 }
