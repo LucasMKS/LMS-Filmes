@@ -54,34 +54,34 @@ export default function SerieDetailsPage() {
 
       try {
         setLoading(true);
-        const serieData = await seriesApi.getSerieDetails(serieId);
+        if (logged) setLoadingRating(true);
+
+        const [serieData, ratingData, watchlistData] = await Promise.all([
+          seriesApi.getSerieDetails(serieId),
+          logged
+            ? ratingSeriesApi.getSerieRating(serieId).catch((e: any) => {
+                if (e?.status !== 404)
+                  console.error("Erro ao buscar avaliação:", e);
+                return null;
+              })
+            : Promise.resolve(null),
+          logged
+            ? watchlistSeriesApi.getWatchlistStatus(serieId).catch((e: any) => {
+                console.error("Erro ao buscar watchlist:", e);
+                return { inWatchlist: false };
+              })
+            : Promise.resolve({ inWatchlist: false }),
+        ]);
+
         setSerie(serieData);
-
-        if (logged) {
-          try {
-            setLoadingRating(true);
-            const ratingData = await ratingSeriesApi.getSerieRating(serieId);
-            setUserRating(ratingData);
-          } catch (ratingErr: any) {
-            if (ratingErr?.status !== 404)
-              console.error("Erro ao buscar avaliação:", ratingErr);
-          } finally {
-            setLoadingRating(false);
-          }
-
-          try {
-            const watchlistData =
-              await watchlistSeriesApi.getWatchlistStatus(serieId);
-            setIsInWatchlist(watchlistData.inWatchlist);
-          } catch (wlErr) {
-            console.error("Erro ao buscar watchlist:", wlErr);
-          }
-        }
+        if (ratingData) setUserRating(ratingData);
+        setIsInWatchlist(watchlistData.inWatchlist);
       } catch (err) {
         console.error("Erro ao buscar série:", err);
         setError("Não foi possível carregar os detalhes desta série.");
       } finally {
         setLoading(false);
+        setLoadingRating(false);
       }
     };
 

@@ -10,7 +10,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,18 +21,13 @@ import com.lucasm.lmsfavorite.repository.FavoriteMovieRepository;
 public class FavoriteMovieService {
 
     private final FavoriteMovieRepository favoriteRepository;
-    private final JdbcTemplate jdbcTemplate;
-    private final RabbitMQProducer rabbitMQProducer; 
+    private final RabbitMQProducer rabbitMQProducer;
+    private final UserLookupService userLookupService;
 
-    public FavoriteMovieService(FavoriteMovieRepository favoriteRepository, JdbcTemplate jdbcTemplate, RabbitMQProducer rabbitMQProducer) {
+    public FavoriteMovieService(FavoriteMovieRepository favoriteRepository, RabbitMQProducer rabbitMQProducer, UserLookupService userLookupService) {
         this.favoriteRepository = favoriteRepository;
-        this.jdbcTemplate = jdbcTemplate;
         this.rabbitMQProducer = rabbitMQProducer;
-    }
-
-    private Long getUserIdByEmail(String email) {
-        String sql = "SELECT id FROM users WHERE email = ?";
-        return jdbcTemplate.queryForObject(sql, Long.class, email);
+        this.userLookupService = userLookupService;
     }
 
     @Transactional
@@ -43,7 +37,7 @@ public class FavoriteMovieService {
         @CachePut(value = "userFavoriteMovieStatus", key = "#email + '_' + #movieId")
     })
     public boolean toggleFavoriteMovie(String movieId, String email) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
 
         Optional<FavoriteMovie> optionalFavorite = favoriteRepository.findByMovieIdAndUserId(movieId, userId);
 
@@ -52,10 +46,10 @@ public class FavoriteMovieService {
             newMovie.setMovieId(movieId);
             newMovie.setUserId(userId);
             newMovie.setFavorite(false);
-            
+
             CatalogSyncDTO syncDTO = new CatalogSyncDTO(movieId, null, null);
             rabbitMQProducer.sendMovieCatalogSync(syncDTO);
-            
+
             return newMovie;
         });
 
@@ -67,14 +61,14 @@ public class FavoriteMovieService {
 
     @Cacheable(value = "userFavoriteMovieStatus", key = "#email + '_' + #movieId")
     public boolean isFavoriteMovie(String movieId, String email) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         Optional<FavoriteMovie> optionalFavorite = favoriteRepository.findByMovieIdAndUserId(movieId, userId);
         return optionalFavorite.map(FavoriteMovie::isFavorite).orElse(false);
     }
 
     @Cacheable(value = "userFavoriteMovies", key = "#email")
     public List<FavoriteMovie> getAllFavoritesMovies(String email) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         return favoriteRepository.findByUserIdAndFavorite(userId, true);
     }
 
@@ -96,7 +90,7 @@ public class FavoriteMovieService {
             return statusByMovieId;
         }
 
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         List<FavoriteMovie> favorites = favoriteRepository.findByUserIdAndMovieIdInAndFavorite(userId, normalizedIds, true);
         favorites.forEach(favorite -> statusByMovieId.put(favorite.getMovieId(), true));
 

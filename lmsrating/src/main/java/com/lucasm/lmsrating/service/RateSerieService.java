@@ -24,30 +24,25 @@ import com.lucasm.lmsrating.repository.SerieRepository;
 @Service
 public class RateSerieService {
 
-    private final RabbitMQProducer rabbitMQProducer;
-
     private static final Logger logger = LoggerFactory.getLogger(RateSerieService.class);
 
     private final SerieRepository serieRepository;
     private final JdbcTemplate jdbcTemplate;
-    // private final RabbitMQProducer rabbitMQProducer;
+    private final RabbitMQProducer rabbitMQProducer;
+    private final UserLookupService userLookupService;
 
-    public RateSerieService(SerieRepository serieRepository, JdbcTemplate jdbcTemplate, RabbitMQProducer rabbitMQProducer) {
+    public RateSerieService(SerieRepository serieRepository, JdbcTemplate jdbcTemplate, RabbitMQProducer rabbitMQProducer, UserLookupService userLookupService) {
         this.serieRepository = serieRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.rabbitMQProducer = rabbitMQProducer;
-    }
-
-    private Long getUserIdByEmail(String email) {
-        String sql = "SELECT id FROM users WHERE email = ?";
-        return jdbcTemplate.queryForObject(sql, Long.class, email);
+        this.userLookupService = userLookupService;
     }
 
     @Transactional
-    @CacheEvict(value = "userRatedSeries", allEntries = true)
+    @CacheEvict(value = "userRatedSeries", key = "#email")
     public RatingSerie rateSerie(SerieRatingRequestDTO request, String email) {
         try {
-            Long userId = getUserIdByEmail(email);
+            Long userId = userLookupService.getUserIdByEmail(email);
 
             RatingSerie serie = serieRepository.findBySerieIdAndUserId(request.getSerieId(), userId)
                 .orElse(new RatingSerie());
@@ -82,7 +77,7 @@ public class RateSerieService {
     @Cacheable(value = "userRatedSeries", key = "#email")
     public List<RatingSerie> searchRatedSeries(String email) {
         try {
-            Long userId = getUserIdByEmail(email);
+            Long userId = userLookupService.getUserIdByEmail(email);
             List<RatingSerie> result = serieRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
             return result.isEmpty() ? Collections.emptyList() : result;
         } catch (Exception e) {
@@ -93,7 +88,7 @@ public class RateSerieService {
 
     public Page<RatingSerie> searchRatedSeriesPaged(String email, Pageable pageable) {
         try {
-            Long userId = getUserIdByEmail(email);
+            Long userId = userLookupService.getUserIdByEmail(email);
             return serieRepository.findAllByUserId(userId, pageable);
         } catch (Exception e) {
             logger.error("Erro ao buscar séries paginadas para o usuário {}: {}", email, e.getMessage());
@@ -102,13 +97,13 @@ public class RateSerieService {
     }
 
     public Page<RatingSerie> searchRatedSeriesByRatingRange(String email, double minRating, double maxRating, Pageable pageable) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         return serieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
     }
 
     public Page<RatingSerie> searchRatedSeriesByTitle(String email, String title, Pageable pageable) {
         try {
-            Long userId = getUserIdByEmail(email);
+            Long userId = userLookupService.getUserIdByEmail(email);
             return serieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
         } catch (Exception e) {
             logger.error("Erro na busca por título para o usuário {}: {}", email, e.getMessage());
@@ -117,7 +112,7 @@ public class RateSerieService {
     }
 
     public RatingSerie getSerieRating(String serieId, String email) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         return serieRepository.findBySerieIdAndUserId(serieId, userId)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Avaliação não encontrada para a série " + serieId

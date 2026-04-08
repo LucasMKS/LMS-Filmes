@@ -29,23 +29,20 @@ public class RateMovieService {
     private final MovieRepository movieRepository;
     private final JdbcTemplate jdbcTemplate;
     private final RabbitMQProducer rabbitMQProducer;
+    private final UserLookupService userLookupService;
 
-    public RateMovieService(MovieRepository movieRepository, JdbcTemplate jdbcTemplate, RabbitMQProducer rabbitMQProducer) {
+    public RateMovieService(MovieRepository movieRepository, JdbcTemplate jdbcTemplate, RabbitMQProducer rabbitMQProducer, UserLookupService userLookupService) {
         this.movieRepository = movieRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.rabbitMQProducer = rabbitMQProducer;
-    }
-
-    private Long getUserIdByEmail(String email) {
-        String sql = "SELECT id FROM users WHERE email = ?";
-        return jdbcTemplate.queryForObject(sql, Long.class, email);
+        this.userLookupService = userLookupService;
     }
 
     @Transactional
-    @CacheEvict(value = "userRatedMovies", allEntries = true)
+    @CacheEvict(value = "userRatedMovies", key = "#email")
     public RatingMovie rateMovie(RatingRequestDTO request, String email) {
         try {
-            Long userId = getUserIdByEmail(email);
+            Long userId = userLookupService.getUserIdByEmail(email);
 
             RatingMovie movie = movieRepository.findByMovieIdAndUserId(request.getMovieId(), userId)
                 .orElse(new RatingMovie());
@@ -79,7 +76,7 @@ public class RateMovieService {
     @Cacheable(value = "userRatedMovies", key = "#email")
     public List<RatingMovie> searchRatedMovies(String email) {
         try {
-            Long userId = getUserIdByEmail(email);
+            Long userId = userLookupService.getUserIdByEmail(email);
             List<RatingMovie> result = movieRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
             return result.isEmpty() ? Collections.emptyList() : result;
         } catch (Exception e) {
@@ -89,22 +86,22 @@ public class RateMovieService {
     }
 
     public Page<RatingMovie> searchRatedMoviesPaged(String email, Pageable pageable) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         return movieRepository.findAllByUserId(userId, pageable);
     }
 
     public Page<RatingMovie> searchRatedMoviesByRatingRange(String email, double minRating, double maxRating, Pageable pageable) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         return movieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
     }
 
     public Page<RatingMovie> searchRatedMoviesByTitle(String email, String title, Pageable pageable) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         return movieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
     }
 
     public RatingMovie getMovieRating(String movieId, String email) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         return movieRepository.findByMovieIdAndUserId(movieId, userId)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Avaliação não encontrada para o filme " + movieId

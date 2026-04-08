@@ -10,7 +10,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,18 +21,13 @@ import com.lucasm.lmsfavorite.repository.FavoriteSerieRepository;
 public class FavoriteSerieService {
 
     private final FavoriteSerieRepository favoriteRepository;
-    private final JdbcTemplate jdbcTemplate;
     private final RabbitMQProducer rabbitMQProducer;
+    private final UserLookupService userLookupService;
 
-    public FavoriteSerieService(FavoriteSerieRepository favoriteRepository, JdbcTemplate jdbcTemplate, RabbitMQProducer rabbitMQProducer) {
+    public FavoriteSerieService(FavoriteSerieRepository favoriteRepository, RabbitMQProducer rabbitMQProducer, UserLookupService userLookupService) {
         this.favoriteRepository = favoriteRepository;
-        this.jdbcTemplate = jdbcTemplate;
         this.rabbitMQProducer = rabbitMQProducer;
-    }
-
-    private Long getUserIdByEmail(String email) {
-        String sql = "SELECT id FROM users WHERE email = ?";
-        return jdbcTemplate.queryForObject(sql, Long.class, email);
+        this.userLookupService = userLookupService;
     }
 
     @Transactional
@@ -43,21 +37,21 @@ public class FavoriteSerieService {
         @CachePut(value = "userFavoriteSerieStatus", key = "#email + '_' + #serieId")
     })
     public boolean toggleFavoriteSerie(String serieId, String email) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         Optional<FavoriteSerie> optionalFavorite = favoriteRepository.findBySerieIdAndUserId(serieId, userId);
-        
+
         FavoriteSerie favoriteSerie = optionalFavorite.orElseGet(() -> {
             FavoriteSerie newSerie = new FavoriteSerie();
             newSerie.setSerieId(serieId);
             newSerie.setUserId(userId);
             newSerie.setFavorite(false);
-            
+
             CatalogSyncDTO syncDTO = new CatalogSyncDTO(serieId, null, null);
             rabbitMQProducer.sendSerieCatalogSync(syncDTO);
-            
+
             return newSerie;
         });
-        
+
         favoriteSerie.setFavorite(!favoriteSerie.isFavorite());
         favoriteRepository.save(favoriteSerie);
 
@@ -66,14 +60,14 @@ public class FavoriteSerieService {
 
     @Cacheable(value = "userFavoriteSerieStatus", key = "#email + '_' + #serieId")
     public boolean isFavoriteSerie(String serieId, String email) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         Optional<FavoriteSerie> optionalFavorite = favoriteRepository.findBySerieIdAndUserId(serieId, userId);
         return optionalFavorite.map(FavoriteSerie::isFavorite).orElse(false);
     }
 
     @Cacheable(value = "userFavoriteSeries", key = "#email")
     public List<FavoriteSerie> getAllFavoritesSeries(String email) {
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         return favoriteRepository.findByUserIdAndFavorite(userId, true);
     }
 
@@ -91,7 +85,7 @@ public class FavoriteSerieService {
 
         if (normalizedIds.isEmpty()) return statusBySerieId;
 
-        Long userId = getUserIdByEmail(email);
+        Long userId = userLookupService.getUserIdByEmail(email);
         List<FavoriteSerie> favorites = favoriteRepository.findByUserIdAndSerieIdInAndFavorite(userId, normalizedIds, true);
         favorites.forEach(favorite -> statusBySerieId.put(favorite.getSerieId(), true));
 

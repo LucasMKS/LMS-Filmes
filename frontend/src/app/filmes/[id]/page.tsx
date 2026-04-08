@@ -54,34 +54,34 @@ export default function MovieDetailsPage() {
 
       try {
         setLoading(true);
-        const movieData = await moviesApi.getMovieDetails(movieId);
-        setMovie(movieData);
+        if (logged) setLoadingRating(true);
 
-        if (logged) {
-          try {
-            setLoadingRating(true);
-            const ratingData = await ratingMoviesApi.getMovieRating(movieId);
-            setUserRating(ratingData);
-          } catch (ratingErr: any) {
-            if (ratingErr?.status !== 404)
-              console.error("Erro ao buscar avaliação:", ratingErr);
-          } finally {
-            setLoadingRating(false);
-          }
-          console.log(movieData.recommendations);
-          try {
-            const watchlistData =
-              await watchlistMoviesApi.getWatchlistStatus(movieId);
-            setIsInWatchlist(watchlistData.inWatchlist);
-          } catch (wlErr) {
-            console.error("Erro ao buscar watchlist:", wlErr);
-          }
-        }
+        const [movieData, ratingData, watchlistData] = await Promise.all([
+          moviesApi.getMovieDetails(movieId),
+          logged
+            ? ratingMoviesApi.getMovieRating(movieId).catch((e: any) => {
+                if (e?.status !== 404)
+                  console.error("Erro ao buscar avaliação:", e);
+                return null;
+              })
+            : Promise.resolve(null),
+          logged
+            ? watchlistMoviesApi.getWatchlistStatus(movieId).catch((e: any) => {
+                console.error("Erro ao buscar watchlist:", e);
+                return { inWatchlist: false };
+              })
+            : Promise.resolve({ inWatchlist: false }),
+        ]);
+
+        setMovie(movieData);
+        if (ratingData) setUserRating(ratingData);
+        setIsInWatchlist(watchlistData.inWatchlist);
       } catch (err) {
         console.error("Erro ao buscar filme:", err);
         setError("Não foi possível carregar os detalhes deste filme.");
       } finally {
         setLoading(false);
+        setLoadingRating(false);
       }
     };
 
