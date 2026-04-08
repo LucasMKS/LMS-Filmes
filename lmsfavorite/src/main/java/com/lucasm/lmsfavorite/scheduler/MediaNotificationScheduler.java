@@ -50,10 +50,9 @@ public class MediaNotificationScheduler {
                 String myFrontLink = "https://filmes.lucasmks.com.br/filmes/" + suggestedMovie.getMovieId();
 
                 String message = String.format(
-                    "🍿 <b>Sessão Pipoca LifeOS</b>\n\n" +
-                    "O expediente acabou! Que tal finalmente assistir àquele filme que está na sua Watchlist?\n\n" +
-                    "🔗 <a href='%s'>Ver Detalhes do Filme</a>\n\n" +
-                    "<i>Prepare a pipoca e bom filme!</i>",
+                    "🍿 <b>Sessão Pipoca!</b>\n\n" +
+                    "Filme escolhido da sua Watchlist para assistir hoje:\n\n" +
+                    "🔗 <a href='%s'>Ver Detalhes do Filme</a>\n\n",
                     myFrontLink
                 );
 
