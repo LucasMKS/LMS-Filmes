@@ -49,8 +49,10 @@ public class MovieController {
      * @return resposta HTTP com os detalhes do filme.
      */
     @GetMapping("/{movieId}")
-    public ResponseEntity<TmdbDTO> getMoviesDetails(@PathVariable String movieId) {
-        TmdbDTO movie = movieService.getMovieDetails(movieId); 
+    public ResponseEntity<TmdbDTO> getMoviesDetails(
+            @PathVariable String movieId,
+            @RequestParam(defaultValue = "false") boolean includeRecommendations) {
+        TmdbDTO movie = movieService.getMovieDetails(movieId, includeRecommendations);
         return ResponseEntity.ok(movie);
     }
     /**

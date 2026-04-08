@@ -2,6 +2,7 @@ package com.lucasm.lmsrating.service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,12 +60,10 @@ public class RateMovieService {
 
             RatingMovie saved = movieRepository.save(movie);
 
-            try {
-                CatalogSyncDTO syncDTO = new CatalogSyncDTO(request.getMovieId(), request.getTitle(), request.getPoster_path());
-                rabbitMQProducer.sendMovieCatalogSync(syncDTO);
-            } catch (Exception e) {
-                logger.warn("Falha ao sincronizar catálogo para filme {}: {}", request.getMovieId(), e.getMessage());
-            }
+            String movieId = request.getMovieId();
+            CatalogSyncDTO syncDTO = new CatalogSyncDTO(movieId, request.getTitle(), request.getPoster_path());
+            CompletableFuture.runAsync(() -> rabbitMQProducer.sendMovieCatalogSync(syncDTO))
+                .exceptionally(e -> { logger.warn("Falha ao sincronizar catálogo para filme {}: {}", movieId, e.getMessage()); return null; });
 
             return saved;
 

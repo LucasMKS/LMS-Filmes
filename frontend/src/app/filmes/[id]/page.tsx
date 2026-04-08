@@ -57,7 +57,7 @@ export default function MovieDetailsPage() {
         if (logged) setLoadingRating(true);
 
         const [movieData, ratingData, watchlistData] = await Promise.all([
-          moviesApi.getMovieDetails(movieId),
+          moviesApi.getMovieDetails(movieId, true),
           logged
             ? ratingMoviesApi.getMovieRating(movieId).catch((e: any) => {
                 if (e?.status !== 404)

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CacheEvict;
@@ -47,7 +48,7 @@ public class FavoriteSerieService {
             newSerie.setFavorite(false);
 
             CatalogSyncDTO syncDTO = new CatalogSyncDTO(serieId, null, null);
-            rabbitMQProducer.sendSerieCatalogSync(syncDTO);
+            CompletableFuture.runAsync(() -> rabbitMQProducer.sendSerieCatalogSync(syncDTO));
 
             return newSerie;
         });

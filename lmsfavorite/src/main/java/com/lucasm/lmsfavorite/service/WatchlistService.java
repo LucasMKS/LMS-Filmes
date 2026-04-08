@@ -40,18 +40,16 @@ public class WatchlistService {
     })
     public Map<String, Boolean> toggleMovieInWatchlist(String movieId, String email) {
         Long userId = userLookupService.getUserIdByEmail(email);
-        boolean exists = movieRepo.existsByUserIdAndMovieId(userId, movieId);
 
-        if (exists) {
-            movieRepo.deleteByUserIdAndMovieId(userId, movieId);
+        if (movieRepo.deleteByUserIdAndMovieId(userId, movieId) > 0) {
             return Map.of("inWatchlist", false);
-        } else {
-            WatchlistMovie wlMovie = new WatchlistMovie();
-            wlMovie.setUserId(userId);
-            wlMovie.setMovieId(movieId);
-            movieRepo.save(wlMovie);
-            return Map.of("inWatchlist", true);
         }
+
+        WatchlistMovie wlMovie = new WatchlistMovie();
+        wlMovie.setUserId(userId);
+        wlMovie.setMovieId(movieId);
+        movieRepo.save(wlMovie);
+        return Map.of("inWatchlist", true);
     }
 
     @Cacheable(value = "userWatchlistMovieStatus", key = "#email + '_' + #movieId")
@@ -74,18 +72,16 @@ public class WatchlistService {
     })
     public Map<String, Boolean> toggleSerieInWatchlist(String serieId, String email) {
         Long userId = userLookupService.getUserIdByEmail(email);
-        boolean exists = serieRepo.existsByUserIdAndSerieId(userId, serieId);
 
-        if (exists) {
-            serieRepo.deleteByUserIdAndSerieId(userId, serieId);
+        if (serieRepo.deleteByUserIdAndSerieId(userId, serieId) > 0) {
             return Map.of("inWatchlist", false);
-        } else {
-            WatchlistSerie wlSerie = new WatchlistSerie();
-            wlSerie.setUserId(userId);
-            wlSerie.setSerieId(serieId);
-            serieRepo.save(wlSerie);
-            return Map.of("inWatchlist", true);
         }
+
+        WatchlistSerie wlSerie = new WatchlistSerie();
+        wlSerie.setUserId(userId);
+        wlSerie.setSerieId(serieId);
+        serieRepo.save(wlSerie);
+        return Map.of("inWatchlist", true);
     }
 
     @Cacheable(value = "userWatchlistSerieStatus", key = "#email + '_' + #serieId")

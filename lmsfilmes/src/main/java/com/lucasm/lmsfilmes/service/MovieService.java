@@ -104,10 +104,13 @@ public class MovieService {
      * @param movieId identificador do filme no TMDB.
      * @return dados detalhados do filme.
      */
-    @Cacheable(value = "movieDetails", key = "#movieId")
-    public TmdbDTO getMovieDetails(String movieId) {
+    @Cacheable(value = "movieDetails", key = "#movieId + '_' + #includeRecommendations")
+    public TmdbDTO getMovieDetails(String movieId, boolean includeRecommendations) {
         try {
-            String path = "/movie/" + movieId + "?append_to_response=credits,videos,watch/providers,recommendations";
+            String appendTo = includeRecommendations
+                ? "credits,videos,watch/providers,recommendations"
+                : "credits,videos,watch/providers";
+            String path = "/movie/" + movieId + "?append_to_response=" + appendTo;
             HttpRequest request = buildRequest(path);
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

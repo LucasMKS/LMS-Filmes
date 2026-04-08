@@ -51,8 +51,10 @@ public class SerieController {
      * @return resposta HTTP com os detalhes da série.
      */
     @GetMapping("/{serieId}")
-    public ResponseEntity<SeriesDTO> getSeriesDetails(@PathVariable String serieId) {
-        SeriesDTO serie = serieService.getSeriesDetails(serieId);
+    public ResponseEntity<SeriesDTO> getSeriesDetails(
+            @PathVariable String serieId,
+            @RequestParam(defaultValue = "false") boolean includeRecommendations) {
+        SeriesDTO serie = serieService.getSeriesDetails(serieId, includeRecommendations);
         return ResponseEntity.ok(serie);
     }
 

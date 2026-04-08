@@ -149,8 +149,10 @@ export const moviesApi = {
       .get(`/movies/search?query=${encodeURIComponent(query)}&page=${page}`)
       .then((res) => res.data),
 
-  getMovieDetails: (movieId: string | number): Promise<TmdbMovie> =>
-    apiLmsFilmes.get(`/movies/${movieId}`).then((res) => res.data),
+  getMovieDetails: (movieId: string | number, includeRecommendations = false): Promise<TmdbMovie> =>
+    apiLmsFilmes
+      .get(`/movies/${movieId}${includeRecommendations ? "?includeRecommendations=true" : ""}`)
+      .then((res) => res.data),
 };
 
 export const seriesApi = {
@@ -176,8 +178,10 @@ export const seriesApi = {
       .get(`/series/search?query=${encodeURIComponent(query)}&page=${page}`)
       .then((res) => res.data),
 
-  getSerieDetails: (serieId: string | number): Promise<TmdbSerie> =>
-    apiLmsFilmes.get(`/series/${serieId}`).then((res) => res.data),
+  getSerieDetails: (serieId: string | number, includeRecommendations = false): Promise<TmdbSerie> =>
+    apiLmsFilmes
+      .get(`/series/${serieId}${includeRecommendations ? "?includeRecommendations=true" : ""}`)
+      .then((res) => res.data),
 };
 
 interface RateMoviePayload {

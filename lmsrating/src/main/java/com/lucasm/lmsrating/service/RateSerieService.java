@@ -2,6 +2,7 @@ package com.lucasm.lmsrating.service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,12 +60,10 @@ public class RateSerieService {
 
             RatingSerie saved = serieRepository.save(serie);
 
-            try {
-                CatalogSyncDTO syncDTO = new CatalogSyncDTO(request.getSerieId(), request.getTitle(), request.getPoster_path());
-                rabbitMQProducer.sendSerieCatalogSync(syncDTO);
-            } catch (Exception e) {
-                logger.warn("Falha ao sincronizar catálogo para série {}: {}", request.getSerieId(), e.getMessage());
-            }
+            String serieId = request.getSerieId();
+            CatalogSyncDTO syncDTO = new CatalogSyncDTO(serieId, request.getTitle(), request.getPoster_path());
+            CompletableFuture.runAsync(() -> rabbitMQProducer.sendSerieCatalogSync(syncDTO))
+                .exceptionally(e -> { logger.warn("Falha ao sincronizar catálogo para série {}: {}", serieId, e.getMessage()); return null; });
 
             return saved;
 

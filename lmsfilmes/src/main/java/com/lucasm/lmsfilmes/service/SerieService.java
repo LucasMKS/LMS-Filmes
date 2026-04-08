@@ -107,10 +107,13 @@ public class SerieService {
      * @param serieId identificador da série no TMDB.
      * @return dados detalhados da série.
      */
-    @Cacheable(value = "seriesDetails", key = "#serieId")
-    public SeriesDTO getSeriesDetails(String serieId) {
+    @Cacheable(value = "seriesDetails", key = "#serieId + '_' + #includeRecommendations")
+    public SeriesDTO getSeriesDetails(String serieId, boolean includeRecommendations) {
         try {
-            String path = "/tv/" + serieId + "?append_to_response=credits,videos,watch/providers,recommendations";
+            String appendTo = includeRecommendations
+                ? "credits,videos,watch/providers,recommendations"
+                : "credits,videos,watch/providers";
+            String path = "/tv/" + serieId + "?append_to_response=" + appendTo;
             HttpRequest request = buildRequest(path);
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

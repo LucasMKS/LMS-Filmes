@@ -57,7 +57,7 @@ export default function SerieDetailsPage() {
         if (logged) setLoadingRating(true);
 
         const [serieData, ratingData, watchlistData] = await Promise.all([
-          seriesApi.getSerieDetails(serieId),
+          seriesApi.getSerieDetails(serieId, true),
           logged
             ? ratingSeriesApi.getSerieRating(serieId).catch((e: any) => {
                 if (e?.status !== 404)

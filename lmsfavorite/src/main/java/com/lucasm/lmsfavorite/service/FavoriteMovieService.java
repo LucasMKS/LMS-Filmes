@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CacheEvict;
@@ -48,7 +49,7 @@ public class FavoriteMovieService {
             newMovie.setFavorite(false);
 
             CatalogSyncDTO syncDTO = new CatalogSyncDTO(movieId, null, null);
-            rabbitMQProducer.sendMovieCatalogSync(syncDTO);
+            CompletableFuture.runAsync(() -> rabbitMQProducer.sendMovieCatalogSync(syncDTO));
 
             return newMovie;
         });
