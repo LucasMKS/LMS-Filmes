@@ -53,8 +53,8 @@ api.interceptors.response.use(
     ErrorHandler.logError(apiError, "Response Interceptor");
 
     if (error.response?.status === 401) {
-      Cookies.remove("auth_token");
-      Cookies.remove("user_data");
+      Cookies.remove("auth_token", { domain: ".lucasmks.com.br", path: "/" });
+      Cookies.remove("user_data", { domain: ".lucasmks.com.br", path: "/" });
       showToast(
         "error",
         "Sessão expirada",

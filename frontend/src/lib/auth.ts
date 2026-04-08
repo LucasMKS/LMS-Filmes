@@ -1,6 +1,7 @@
 import Cookies from "js-cookie";
 import { authApi, apiLmsFilmes } from "./api";
 import { AuthDTO, User } from "./types";
+import { cookieUtils } from "./cookieUtils";
 
 class AuthService {
   private readonly USER_KEY = "user_data";
@@ -20,26 +21,12 @@ class AuthService {
     }
 
     if (response.user) {
-      const cookieOptions = {
-        expires: 1,
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Lax" as const,
-      };
-
-      Cookies.set(this.USER_KEY, JSON.stringify(response.user), cookieOptions);
+      cookieUtils.setUserData(response.user);
       this.setSessionMarker();
     }
 
     if (response.token) {
-      const cookieOptions = {
-        expires: 1,
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Lax" as const,
-      };
-
-      Cookies.set(this.TOKEN_KEY, response.token, cookieOptions);
+      cookieUtils.setAuthToken(response.token);
       this.setSessionMarker();
     }
   }
@@ -57,15 +44,8 @@ class AuthService {
   }
 
   setSession(user: User, token: string) {
-    const cookieOptions = {
-      expires: 1,
-      path: "/",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax" as const,
-    };
-
-    Cookies.set(this.USER_KEY, JSON.stringify(user), cookieOptions);
-    Cookies.set(this.TOKEN_KEY, token, cookieOptions);
+    cookieUtils.setUserData(user);
+    cookieUtils.setAuthToken(token);
     this.setSessionMarker();
   }
 
@@ -81,8 +61,7 @@ class AuthService {
   }
 
   clearTokens(): void {
-    Cookies.remove(this.USER_KEY, { path: "/" });
-    Cookies.remove(this.TOKEN_KEY, { path: "/" });
+    cookieUtils.clearAll();
     this.clearSessionMarker();
   }
 

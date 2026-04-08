@@ -83,8 +83,8 @@ const attachAuthInterceptor = (apiInstance: any) => {
       const apiError = ErrorHandler.createApiError(error);
 
       if (error.response?.status === 401) {
-        Cookies.remove("auth_token", { path: "/" });
-        Cookies.remove("user_data", { path: "/" });
+        Cookies.remove("auth_token", { domain: ".lucasmks.com.br", path: "/" });
+        Cookies.remove("user_data", { domain: ".lucasmks.com.br", path: "/" });
 
         if (typeof window !== "undefined") {
           window.localStorage.removeItem("session_active");

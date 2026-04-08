@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
+import { cookieUtils } from "../../lib/cookieUtils";
 import AuthService from "../../lib/auth";
 import { ErrorHandler } from "../../lib/errorHandler";
 import {
