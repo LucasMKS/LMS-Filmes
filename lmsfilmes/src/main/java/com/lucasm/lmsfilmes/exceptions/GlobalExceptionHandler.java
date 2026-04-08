@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -81,6 +82,11 @@ public class GlobalExceptionHandler {
      * @param ex exceção inesperada capturada globalmente.
      * @return corpo de erro com mensagem interna.
      */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleBrokenPipe(AsyncRequestNotUsableException ex) {
+        log.debug("Client disconnected before response completed: {}", ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
         log.error("Erro interno capturado pelo ControllerAdvice: ", ex);
