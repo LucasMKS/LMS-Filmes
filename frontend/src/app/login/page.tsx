@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import Cookies from "js-cookie";
 import AuthService from "../../lib/auth";
 import { ErrorHandler } from "../../lib/errorHandler";
 import {
@@ -26,8 +27,23 @@ interface FormData {
   confirmPassword?: string;
 }
 
-export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true);
+const ALLOWED_CALLBACK_ORIGINS = ["https://lifeos.lucasmks.com.br"];
+
+function isAllowedCallback(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return ALLOWED_CALLBACK_ORIGINS.includes(parsed.origin);
+  } catch {
+    return false;
+  }
+}
+
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
+  const action = searchParams.get("action");
+
+  const [isLogin, setIsLogin] = useState(action !== "register");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -35,9 +51,18 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (AuthService.isAuthenticated()) {
+      if (callbackUrl && isAllowedCallback(callbackUrl)) {
+        const token = Cookies.get("auth_token");
+        if (token) {
+          const redirectUrl = new URL(callbackUrl);
+          redirectUrl.searchParams.set("token", token);
+          window.location.href = redirectUrl.toString();
+          return;
+        }
+      }
       router.push("/filmes");
     }
-  }, [router]);
+  }, [router, callbackUrl]);
 
   const {
     register: registerForm,
@@ -45,6 +70,16 @@ export default function LoginPage() {
     formState: { errors },
     reset,
   } = useForm<FormData>();
+
+  const redirectToCallback = (token: string) => {
+    if (callbackUrl && isAllowedCallback(callbackUrl) && token) {
+      const redirectUrl = new URL(callbackUrl);
+      redirectUrl.searchParams.set("token", token);
+      window.location.href = redirectUrl.toString();
+      return true;
+    }
+    return false;
+  };
 
   const onSubmit = async (data: any) => {
     setLoading(true);
@@ -55,6 +90,9 @@ export default function LoginPage() {
           email: data.email,
           password: data.password,
         });
+
+        const token = Cookies.get("auth_token");
+        if (token && redirectToCallback(token)) return;
 
         toast.success("Login realizado com sucesso!", {
           description: "Bem-vindo de volta!",
@@ -70,12 +108,17 @@ export default function LoginPage() {
           return;
         }
 
-        await AuthService.register({
+        const response = await AuthService.register({
           name: data.name,
           email: data.email,
           nickname: data.nickname,
           password: data.password,
         });
+
+        if (response?.token && response?.user && redirectToCallback(response.token)) {
+          AuthService.setSession(response.user, response.token);
+          return;
+        }
 
         toast.success("Usuário registrado com sucesso!", {
           description: "Faça login para continuar",
@@ -116,7 +159,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-3 sm:p-4">
-      {/* Background Pattern */}
       <div className="absolute inset-0 " />
 
       <div className="relative w-full max-w-sm sm:max-w-md">
@@ -134,6 +176,11 @@ export default function LoginPage() {
                   ? "Entre na sua conta do LMS Films"
                   : "Junte-se à nossa comunidade de cinéfilos"}
               </CardDescription>
+              {callbackUrl && isAllowedCallback(callbackUrl) && (
+                <p className="text-xs text-blue-400 mt-2">
+                  Você será redirecionado de volta após {isLogin ? "o login" : "o cadastro"}.
+                </p>
+              )}
             </div>
           </CardHeader>
 
@@ -144,7 +191,6 @@ export default function LoginPage() {
             >
               {!isLogin && (
                 <>
-                  {/* Nome */}
                   <div className="space-y-1 sm:space-y-2">
                     <Label
                       htmlFor="name"
@@ -171,7 +217,6 @@ export default function LoginPage() {
                     )}
                   </div>
 
-                  {/* Nickname */}
                   <div className="space-y-1 sm:space-y-2">
                     <Label
                       htmlFor="nickname"
@@ -200,7 +245,6 @@ export default function LoginPage() {
                 </>
               )}
 
-              {/* Email */}
               <div className="space-y-1 sm:space-y-2">
                 <Label
                   htmlFor="email"
@@ -231,7 +275,6 @@ export default function LoginPage() {
                 )}
               </div>
 
-              {/* Senha */}
               <div className="space-y-2">
                 <Label
                   htmlFor="password"
@@ -366,5 +409,19 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-3 sm:p-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
