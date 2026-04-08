@@ -54,7 +54,12 @@ public class RateMovieService {
             movie.setUserId(userId);
             movie.setRating(request.getRating());
             movie.setComment(request.getComment());
-            
+
+            jdbcTemplate.update(
+                "INSERT INTO movies (movie_id, title, poster_path) VALUES (?, ?, ?) ON CONFLICT (movie_id) DO NOTHING",
+                request.getMovieId(), request.getTitle(), request.getPoster_path()
+            );
+
             RatingMovie saved = movieRepository.save(movie);
 
             try {

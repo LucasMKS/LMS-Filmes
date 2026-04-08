@@ -56,7 +56,12 @@ public class RateSerieService {
             serie.setUserId(userId);
             serie.setRating(request.getRating());
             serie.setComment(request.getComment());
-            
+
+            jdbcTemplate.update(
+                "INSERT INTO series (serie_id, title, poster_path) VALUES (?, ?, ?) ON CONFLICT (serie_id) DO NOTHING",
+                request.getSerieId(), request.getTitle(), request.getPoster_path()
+            );
+
             RatingSerie saved = serieRepository.save(serie);
 
             try {
