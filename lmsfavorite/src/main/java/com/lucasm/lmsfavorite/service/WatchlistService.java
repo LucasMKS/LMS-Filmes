@@ -11,6 +11,7 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,21 +43,27 @@ public class WatchlistService {
         Long userId = userLookupService.getUserIdByEmail(email);
 
         if (movieRepo.deleteByUserIdAndMovieId(userId, movieId) > 0) {
-            return Map.of("inWatchlist", false);
+            Map<String, Boolean> result = new HashMap<>();
+            result.put("inWatchlist", false);
+            return result;
         }
 
         WatchlistMovie wlMovie = new WatchlistMovie();
         wlMovie.setUserId(userId);
         wlMovie.setMovieId(movieId);
         movieRepo.save(wlMovie);
-        return Map.of("inWatchlist", true);
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("inWatchlist", true);
+        return result;
     }
 
     @Cacheable(value = "userWatchlistMovieStatus", key = "#email + '_' + #movieId")
     public Map<String, Boolean> checkMovieStatus(String movieId, String email) {
         Long userId = userLookupService.getUserIdByEmail(email);
         boolean exists = movieRepo.existsByUserIdAndMovieId(userId, movieId);
-        return Map.of("inWatchlist", exists);
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("inWatchlist", exists);
+        return result;
     }
 
     @Cacheable(value = "userWatchlistSeries", key = "#email")
@@ -74,20 +81,26 @@ public class WatchlistService {
         Long userId = userLookupService.getUserIdByEmail(email);
 
         if (serieRepo.deleteByUserIdAndSerieId(userId, serieId) > 0) {
-            return Map.of("inWatchlist", false);
+            Map<String, Boolean> result = new HashMap<>();
+            result.put("inWatchlist", false);
+            return result;
         }
 
         WatchlistSerie wlSerie = new WatchlistSerie();
         wlSerie.setUserId(userId);
         wlSerie.setSerieId(serieId);
         serieRepo.save(wlSerie);
-        return Map.of("inWatchlist", true);
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("inWatchlist", true);
+        return result;
     }
 
     @Cacheable(value = "userWatchlistSerieStatus", key = "#email + '_' + #serieId")
     public Map<String, Boolean> checkSerieStatus(String serieId, String email) {
         Long userId = userLookupService.getUserIdByEmail(email);
         boolean exists = serieRepo.existsByUserIdAndSerieId(userId, serieId);
-        return Map.of("inWatchlist", exists);
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("inWatchlist", exists);
+        return result;
     }
 }
