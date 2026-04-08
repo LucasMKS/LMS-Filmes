@@ -122,6 +122,7 @@ export default function MovieDetailsPage() {
       setUserRating(updatedRating);
     } catch (error) {
       console.error("Erro ao avaliar:", error);
+      throw error;
     }
   };
 

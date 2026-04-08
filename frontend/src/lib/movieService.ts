@@ -40,10 +40,6 @@ class MovieService {
       };
       const response = await ratingMoviesApi.rateMovie(payload);
 
-      toast.success("Filme avaliado!", {
-        description: `Avaliação salva para "${title}"`,
-      });
-
       return response;
     } catch (error: any) {
       throw error;
@@ -107,10 +103,6 @@ class MovieService {
       );
 
       const response = await ratingSeriesApi.rateSerie(payload);
-
-      toast.success("Série avaliada!", {
-        description: `Avaliação salva para "${title}"`,
-      });
 
       return response;
     } catch (error: any) {

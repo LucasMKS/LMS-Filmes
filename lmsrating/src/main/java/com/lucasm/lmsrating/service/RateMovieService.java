@@ -55,10 +55,16 @@ public class RateMovieService {
             movie.setRating(request.getRating());
             movie.setComment(request.getComment());
             
-            CatalogSyncDTO syncDTO = new CatalogSyncDTO(request.getMovieId(), request.getTitle(), request.getPoster_path());
-            rabbitMQProducer.sendMovieCatalogSync(syncDTO);
-            
-            return movieRepository.save(movie);
+            RatingMovie saved = movieRepository.save(movie);
+
+            try {
+                CatalogSyncDTO syncDTO = new CatalogSyncDTO(request.getMovieId(), request.getTitle(), request.getPoster_path());
+                rabbitMQProducer.sendMovieCatalogSync(syncDTO);
+            } catch (Exception e) {
+                logger.warn("Falha ao sincronizar catálogo para filme {}: {}", request.getMovieId(), e.getMessage());
+            }
+
+            return saved;
 
         } catch (Exception e) {
             throw new MovieServiceException("Erro ao salvar avaliação do filme: " + e.getMessage(), e);

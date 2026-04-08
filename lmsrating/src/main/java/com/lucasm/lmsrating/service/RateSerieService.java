@@ -57,10 +57,16 @@ public class RateSerieService {
             serie.setRating(request.getRating());
             serie.setComment(request.getComment());
             
-            CatalogSyncDTO syncDTO = new CatalogSyncDTO(request.getSerieId(), request.getTitle(), request.getPoster_path());
-            rabbitMQProducer.sendSerieCatalogSync(syncDTO);
-            
-            return serieRepository.save(serie);
+            RatingSerie saved = serieRepository.save(serie);
+
+            try {
+                CatalogSyncDTO syncDTO = new CatalogSyncDTO(request.getSerieId(), request.getTitle(), request.getPoster_path());
+                rabbitMQProducer.sendSerieCatalogSync(syncDTO);
+            } catch (Exception e) {
+                logger.warn("Falha ao sincronizar catálogo para série {}: {}", request.getSerieId(), e.getMessage());
+            }
+
+            return saved;
 
         } catch (Exception e) {
             logger.error("Erro ao salvar avaliação da série {}: {}", request.getSerieId(), e.getMessage(), e);

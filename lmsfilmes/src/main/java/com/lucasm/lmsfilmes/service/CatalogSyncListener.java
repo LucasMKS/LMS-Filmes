@@ -22,7 +22,6 @@ public class CatalogSyncListener {
 
     @RabbitListener(queues = "movie.catalog.sync.queue")
     public void syncMovie(CatalogSyncDTO dto) {
-        // Se o filme não existir no banco, ele insere
         if (!movieRepository.existsById(dto.getId())) {
             Movie movie = new Movie();
             movie.setMovieId(dto.getId());

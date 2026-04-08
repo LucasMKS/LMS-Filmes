@@ -123,6 +123,7 @@ export default function SerieDetailsPage() {
       setUserRating(updatedRating);
     } catch (error) {
       console.error("Erro ao avaliar:", error);
+      throw error;
     }
   };
 

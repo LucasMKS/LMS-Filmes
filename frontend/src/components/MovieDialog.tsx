@@ -157,6 +157,7 @@ export function MovieDialog({
       setUserRating(updatedRating);
     } catch (error) {
       console.error("Erro capturado no Dialog ao submeter avaliação:", error);
+      throw error;
     }
   };
 
