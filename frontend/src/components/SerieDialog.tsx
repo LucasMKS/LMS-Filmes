@@ -4,16 +4,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { RatingDialog } from "./RatingDialog";
 import { TmdbSerie, Serie } from "@/lib/types";
 import {
   Star,
   Tv,
   Users,
-  Play,
   Clock,
   ExternalLink,
   CalendarDays,
@@ -74,9 +70,7 @@ export function SerieDialog({
       const rating = await ratingSeriesApi.getSerieRating(serieId);
       setUserRating(rating);
     } catch (error: any) {
-      if (error?.status !== 404) {
-        console.error("Erro ao carregar avaliação:", error);
-      }
+      if (error?.status !== 404) console.error("Erro ao carregar avaliação:", error);
       setUserRating(null);
     } finally {
       setLoadingRating(false);
@@ -96,18 +90,11 @@ export function SerieDialog({
     if (!serieData) return;
     setLoadingWatchlist(true);
     try {
-      const res = await watchlistSeriesApi.toggleWatchlist(
-        String(serieData.id),
-      );
+      const res = await watchlistSeriesApi.toggleWatchlist(String(serieData.id));
       setIsInWatchlist(res.inWatchlist);
-
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
-      toast.success(
-        res.inWatchlist
-          ? "Série adicionada à Watchlist!"
-          : "Série removida da Watchlist!",
-      );
-    } catch (error) {
+      toast.success(res.inWatchlist ? "Série adicionada à Watchlist!" : "Série removida da Watchlist!");
+    } catch {
       toast.error("Erro ao atualizar a Watchlist.");
     } finally {
       setLoadingWatchlist(false);
@@ -123,13 +110,8 @@ export function SerieDialog({
     : null;
 
   const getYearRange = () => {
-    const firstYear = serieData.first_air_date
-      ? new Date(serieData.first_air_date).getFullYear()
-      : null;
-    const lastYear = serieData.last_air_date
-      ? new Date(serieData.last_air_date).getFullYear()
-      : null;
-
+    const firstYear = serieData.first_air_date ? new Date(serieData.first_air_date).getFullYear() : null;
+    const lastYear = serieData.last_air_date ? new Date(serieData.last_air_date).getFullYear() : null;
     if (!firstYear) return "N/A";
     if (!lastYear || firstYear === lastYear) return firstYear.toString();
     return `${firstYear}-${lastYear}`;
@@ -155,17 +137,18 @@ export function SerieDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-slate-950 border-slate-800 shadow-2xl sm:rounded-2xl">
+      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-[#0a0a0f] border border-white/[0.06] shadow-2xl sm:rounded-2xl">
         <div className="max-h-[90vh] overflow-y-auto custom-scrollbar relative w-full">
-          <div className="relative w-full h-48 sm:h-64 md:h-80 bg-slate-900 shrink-0">
+          {/* Backdrop */}
+          <div className="relative w-full h-48 sm:h-64 md:h-80 bg-[#14141c] shrink-0">
             {backdropUrl && (
               <>
                 <img
                   src={backdropUrl}
                   alt={serieData.name}
-                  className="w-full h-full object-cover opacity-50 md:opacity-60 mix-blend-overlay"
+                  className="w-full h-full object-cover opacity-40 md:opacity-50"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/60 to-transparent" />
               </>
             )}
           </div>
@@ -176,11 +159,8 @@ export function SerieDialog({
                 <img
                   src={imageUrl}
                   alt={serieData.name}
-                  className="w-full rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.6)] border-2 border-slate-800/80 object-cover aspect-[2/3]"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "/placeholder-movie.jpg";
-                  }}
+                  className="w-full rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] border-2 border-white/[0.08] object-cover aspect-[2/3]"
+                  onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-movie.jpg"; }}
                 />
               </div>
 
@@ -191,7 +171,7 @@ export function SerieDialog({
                   </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-2 mt-3 text-xs sm:text-sm text-slate-300 font-medium">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-2 mt-3 text-xs sm:text-sm text-white/60 font-medium">
                   <div className="flex items-center text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-md">
                     <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 fill-current" />
                     {serieData.vote_average?.toFixed(1) || "N/A"}
@@ -207,9 +187,7 @@ export function SerieDialog({
                   {serieData.status && (
                     <>
                       <span className="hidden sm:inline">•</span>
-                      <span
-                        className={`${serieData.status === "Ended" ? "text-red-400" : "text-emerald-400"}`}
-                      >
+                      <span className={serieData.status === "Ended" ? "text-red-400" : "text-emerald-400"}>
                         {serieData.status === "Ended"
                           ? "Finalizada"
                           : serieData.status === "Returning Series"
@@ -223,77 +201,62 @@ export function SerieDialog({
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-5 w-full">
                   {isLoggedIn ? (
                     <>
-                      <Button
-                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-900/20"
+                      <button
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-semibold shadow-lg shadow-violet-900/30 transition-all text-sm"
                         onClick={() => setIsRatingOpen(true)}
                         disabled={loadingRating}
                       >
-                        <Star className="w-4 h-4 mr-2" />
-                        {loadingRating
-                          ? "Carregando..."
-                          : userRating
-                            ? "Editar Avaliação"
-                            : "Avaliar Série"}
-                      </Button>
+                        <Star className="w-4 h-4" />
+                        {loadingRating ? "Carregando..." : userRating ? "Editar Avaliação" : "Avaliar Série"}
+                      </button>
 
-                      {/* NOVO BOTÃO DE WATCHLIST */}
-                      <Button
-                        variant={isInWatchlist ? "secondary" : "outline"}
+                      <button
                         className={cn(
-                          "w-full sm:w-auto font-semibold transition-all",
+                          "w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50",
                           isInWatchlist
-                            ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600/30"
-                            : "border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white",
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                            : "border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5",
                         )}
                         onClick={handleToggleWatchlist}
                         disabled={loadingWatchlist}
                       >
-                        {isInWatchlist ? (
-                          <Check className="w-4 h-4 mr-2" />
-                        ) : (
-                          <ListPlus className="w-4 h-4 mr-2" />
-                        )}
-                        {loadingWatchlist
-                          ? "Salvando..."
-                          : isInWatchlist
-                            ? "Na Watchlist"
-                            : "Add à Watchlist"}
-                      </Button>
+                        {isInWatchlist ? <Check className="w-4 h-4" /> : <ListPlus className="w-4 h-4" />}
+                        {loadingWatchlist ? "Salvando..." : isInWatchlist ? "Na Watchlist" : "Add à Watchlist"}
+                      </button>
                     </>
                   ) : (
-                    <Button
+                    <button
                       disabled
-                      className="w-full sm:w-auto bg-slate-800/50 text-slate-400 font-semibold border border-slate-700 cursor-not-allowed"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 text-white/30 font-semibold border border-white/[0.06] cursor-not-allowed text-sm"
                     >
-                      <Star className="w-4 h-4 mr-2 opacity-50" />
+                      <Star className="w-4 h-4 opacity-50" />
                       Faça login para interagir
-                    </Button>
+                    </button>
                   )}
                   {serieData.homepage && (
-                    <Button
-                      variant="outline"
-                      className="w-full sm:w-auto border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+                    <button
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 text-sm font-medium transition-all"
                       onClick={() => window.open(serieData.homepage, "_blank")}
                     >
-                      <ExternalLink className="w-4 h-4 mr-2" />
+                      <ExternalLink className="w-4 h-4" />
                       Site Oficial
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>
             </div>
 
-            <Separator className="my-6 sm:my-8 bg-slate-800" />
+            <div className="my-6 sm:my-8 border-t border-white/[0.06]" />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
               <div className="lg:col-span-2 space-y-6 sm:space-y-8">
                 {serieData.overview && (
                   <section>
-                    <h3 className="text-lg sm:text-xl font-semibold text-slate-100 mb-3 flex items-center">
-                      <Info className="w-5 h-5 mr-2 text-slate-400" />
+                    <h3 className="text-lg sm:text-xl font-semibold text-white/80 mb-3 flex items-center gap-2">
+                      <Info className="w-5 h-5 text-white/30" />
                       Sinopse
                     </h3>
-                    <p className="text-slate-300 leading-relaxed text-sm sm:text-base">
+                    <p className="text-white/55 leading-relaxed text-sm sm:text-base">
                       {serieData.overview}
                     </p>
                   </section>
@@ -302,35 +265,30 @@ export function SerieDialog({
                 {(serieData.last_air_date || serieData.next_episode_to_air) && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {serieData.last_air_date && (
-                      <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                        <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/[0.06]">
+                        <p className="text-xs text-white/35 font-medium uppercase tracking-wider mb-1">
                           Último Episódio
                         </p>
-                        <div className="flex items-center text-slate-200 text-sm sm:text-base">
-                          <Clock className="w-4 h-4 mr-2 text-slate-400" />
-                          {new Date(serieData.last_air_date).toLocaleDateString(
-                            "pt-BR",
-                          )}
+                        <div className="flex items-center text-white/70 text-sm sm:text-base">
+                          <Clock className="w-4 h-4 mr-2 text-white/30" />
+                          {new Date(serieData.last_air_date).toLocaleDateString("pt-BR")}
                         </div>
                       </div>
                     )}
 
                     {serieData.next_episode_to_air && (
-                      <div className="bg-emerald-900/20 p-4 rounded-xl border border-emerald-500/20">
+                      <div className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/20">
                         <p className="text-xs text-emerald-400 font-medium uppercase tracking-wider mb-1">
                           Próximo Episódio
                         </p>
-                        <p className="text-slate-200 font-medium text-sm sm:text-base line-clamp-1">
+                        <p className="text-white/80 font-medium text-sm sm:text-base line-clamp-1">
                           {serieData.next_episode_to_air.name}
                         </p>
-                        <div className="flex flex-wrap items-center mt-2 text-xs sm:text-sm text-emerald-200/80">
+                        <div className="flex flex-wrap items-center mt-2 text-xs sm:text-sm text-emerald-300/70">
                           <CalendarDays className="w-4 h-4 mr-1.5 shrink-0" />
-                          {new Date(
-                            serieData.next_episode_to_air.air_date,
-                          ).toLocaleDateString("pt-BR")}
-                          <span className="mx-2">•</span>T
-                          {serieData.next_episode_to_air.season_number}:E
-                          {serieData.next_episode_to_air.episode_number}
+                          {new Date(serieData.next_episode_to_air.air_date).toLocaleDateString("pt-BR")}
+                          <span className="mx-2">•</span>
+                          T{serieData.next_episode_to_air.season_number}:E{serieData.next_episode_to_air.episode_number}
                         </div>
                       </div>
                     )}
@@ -339,37 +297,33 @@ export function SerieDialog({
 
                 {serieData.seasons && serieData.seasons.length > 0 && (
                   <section>
-                    <h3 className="text-lg sm:text-xl font-semibold text-slate-100 mb-4 flex items-center">
-                      <Tv className="w-5 h-5 mr-2 text-slate-400" />
+                    <h3 className="text-lg sm:text-xl font-semibold text-white/80 mb-4 flex items-center gap-2">
+                      <Tv className="w-5 h-5 text-white/30" />
                       Temporadas
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       {serieData.seasons.map((season) => (
                         <div
                           key={`season-${season.id}`}
-                          className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors"
+                          className="bg-white/5 p-4 rounded-xl border border-white/[0.06] hover:bg-white/[0.07] transition-colors"
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="text-slate-100 font-semibold text-sm sm:text-base">
+                              <h4 className="text-white/80 font-semibold text-sm sm:text-base">
                                 {season.name}
                               </h4>
                               {season.air_date && (
-                                <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
+                                <p className="text-white/35 text-xs sm:text-sm mt-0.5">
                                   {new Date(season.air_date).getFullYear()}
                                 </p>
                               )}
                             </div>
-                            <Badge
-                              variant="secondary"
-                              className="bg-slate-700 text-slate-300 ml-2 shrink-0"
-                            >
-                              {season.episode_count} ep
-                              {season.episode_count !== 1 ? "s" : ""}
-                            </Badge>
+                            <span className="ml-2 shrink-0 px-2 py-0.5 rounded-lg bg-white/10 text-white/50 text-xs font-medium">
+                              {season.episode_count} ep{season.episode_count !== 1 ? "s" : ""}
+                            </span>
                           </div>
                           {season.overview && (
-                            <p className="text-slate-400 text-xs sm:text-sm mt-3 line-clamp-2">
+                            <p className="text-white/35 text-xs sm:text-sm mt-3 line-clamp-2">
                               {season.overview}
                             </p>
                           )}
@@ -382,9 +336,9 @@ export function SerieDialog({
 
               <div className="space-y-6">
                 {isLoggedIn && userRating && (
-                  <div className="bg-gradient-to-br from-slate-800 to-slate-800/50 p-4 sm:p-5 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-bl-full -mr-4 -mt-4 blur-xl" />
-                    <h3 className="text-xs sm:text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  <div className="bg-[#14141c] p-4 sm:p-5 rounded-2xl border border-white/[0.06] shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-bl-full -mr-4 -mt-4 blur-xl" />
+                    <h3 className="text-xs sm:text-sm font-semibold text-white/40 uppercase tracking-wider mb-2">
                       Sua Avaliação
                     </h3>
                     <div className="flex items-end gap-2 mb-3">
@@ -392,12 +346,10 @@ export function SerieDialog({
                       <span className="text-3xl sm:text-4xl font-bold text-white leading-none">
                         {userRating.rating}
                       </span>
-                      <span className="text-slate-400 text-sm sm:text-base font-medium mb-1">
-                        /10
-                      </span>
+                      <span className="text-white/35 text-sm sm:text-base font-medium mb-1">/10</span>
                     </div>
                     {userRating.comment && (
-                      <p className="text-slate-300 text-xs sm:text-sm italic bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 mt-2">
+                      <p className="text-white/50 text-xs sm:text-sm italic bg-[#0a0a0f]/60 p-3 rounded-xl border border-white/[0.06] mt-2">
                         "{userRating.comment}"
                       </p>
                     )}
@@ -406,18 +358,17 @@ export function SerieDialog({
 
                 {serieData.genres && serieData.genres.length > 0 && (
                   <div>
-                    <h4 className="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2 sm:mb-3">
+                    <h4 className="text-xs sm:text-sm font-semibold text-white/35 uppercase tracking-wider mb-2 sm:mb-3">
                       Gêneros
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {serieData.genres.map((genre) => (
-                        <Badge
+                        <span
                           key={`genre-${genre.id}`}
-                          variant="outline"
-                          className="border-slate-700 text-slate-300"
+                          className="px-2.5 py-1 rounded-lg border border-white/[0.06] text-white/50 bg-white/5 text-xs sm:text-sm"
                         >
                           {genre.name}
-                        </Badge>
+                        </span>
                       ))}
                     </div>
                   </div>
@@ -425,19 +376,17 @@ export function SerieDialog({
 
                 {serieData.created_by && serieData.created_by.length > 0 && (
                   <div>
-                    <h4 className="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2 sm:mb-3">
+                    <h4 className="text-xs sm:text-sm font-semibold text-white/35 uppercase tracking-wider mb-2 sm:mb-3">
                       Criadores
                     </h4>
                     <div className="space-y-2 flex flex-col">
                       {serieData.created_by.map((creator) => (
                         <div
                           key={creator.id}
-                          className="flex items-center text-slate-300 bg-slate-800/30 p-2 rounded-lg border border-slate-700/30 w-fit sm:w-full"
+                          className="flex items-center text-white/60 bg-white/5 p-2 rounded-xl border border-white/[0.06] w-fit sm:w-full"
                         >
-                          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 text-slate-500 shrink-0" />
-                          <span className="text-xs sm:text-sm font-medium">
-                            {creator.name}
-                          </span>
+                          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 text-white/30 shrink-0" />
+                          <span className="text-xs sm:text-sm font-medium">{creator.name}</span>
                         </div>
                       ))}
                     </div>
@@ -446,14 +395,14 @@ export function SerieDialog({
 
                 {serieData.networks && serieData.networks.length > 0 && (
                   <div>
-                    <h4 className="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2 sm:mb-3">
+                    <h4 className="text-xs sm:text-sm font-semibold text-white/35 uppercase tracking-wider mb-2 sm:mb-3">
                       Exibição Original
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {serieData.networks.map((network) => (
                         <div
                           key={`network-${network.id}`}
-                          className="bg-slate-200 text-slate-900 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs sm:text-sm font-bold shadow-sm"
+                          className="bg-white/90 text-[#0a0a0f] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-bold shadow-sm"
                         >
                           {network.name}
                         </div>
@@ -474,12 +423,7 @@ export function SerieDialog({
           itemType="série"
           itemId={serieData.id}
           currentRating={
-            userRating
-              ? {
-                  myVote: String(userRating.rating),
-                  comment: userRating.comment,
-                }
-              : null
+            userRating ? { myVote: String(userRating.rating), comment: userRating.comment } : null
           }
         />
       </DialogContent>

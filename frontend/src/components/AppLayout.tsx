@@ -33,7 +33,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-[#0a0a0f]">
       {shouldShowNavigation() && <Navigation title={getPageTitle(pathname)} />}
       <main className={shouldShowNavigation() ? "" : "min-h-screen"}>
         {children}

@@ -130,24 +130,23 @@ export default function MoviesPage() {
   };
 
   const MovieGridLoader = () => (
-    <div className="flex flex-col items-center justify-center py-32 text-center bg-slate-900/20 rounded-2xl border border-slate-800/50 mt-8">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-      <p className="text-slate-400 font-medium">
+    <div className="flex flex-col items-center justify-center py-32 text-center bg-[#14141c]/40 rounded-2xl border border-white/[0.06] mt-8">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500 mb-4"></div>
+      <p className="text-white/35 font-medium text-sm">
         Buscando os melhores filmes...
       </p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-[#0a0a0f]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-        {/* Cabeçalho Opcional da Página */}
         <div className="mb-8">
-          <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center">
-            <Film className="w-8 h-8 mr-3 text-blue-500" />
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Film className="w-6 h-6 text-purple-400" />
             Catálogo de Filmes
           </h2>
-          <p className="text-slate-400 mt-2">
+          <p className="text-white/35 mt-1.5 text-sm">
             Explore os maiores sucessos de bilheteria e encontre a sua próxima
             sessão pipoca.
           </p>
@@ -155,11 +154,11 @@ export default function MoviesPage() {
 
         <MediaSearchSection
           title="Buscar"
-          titleIconColorClassName="text-blue-400 hidden"
-          searchButtonClassName="bg-blue-600 hover:bg-blue-700 text-white"
+          titleIconColorClassName="text-purple-400 hidden"
+          searchButtonClassName="bg-purple-600 hover:bg-purple-500 text-white"
           searchPlaceholder="Digite o nome de um filme (ex: Clube da Luta)..."
           resultLabel="filmes encontrados"
-          cardClassName="mb-10 bg-slate-900 border-slate-800 shadow-xl"
+          cardClassName="mb-10"
           searchQuery={searchQuery}
           isSearching={isSearching}
           isSearchMode={isSearchMode}

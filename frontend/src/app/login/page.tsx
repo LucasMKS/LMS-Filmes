@@ -8,17 +8,9 @@ import Cookies from "js-cookie";
 import { cookieUtils } from "../../lib/cookieUtils";
 import AuthService from "../../lib/auth";
 import { ErrorHandler } from "../../lib/errorHandler";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Film, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Play, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 interface FormData {
   name?: string;
@@ -84,69 +76,43 @@ function LoginContent() {
 
   const onSubmit = async (data: any) => {
     setLoading(true);
-
     try {
       if (isLogin) {
-        await AuthService.login({
-          email: data.email,
-          password: data.password,
-        });
-
+        await AuthService.login({ email: data.email, password: data.password });
         const token = Cookies.get("auth_token");
         if (token && redirectToCallback(token)) return;
-
-        toast.success("Login realizado com sucesso!", {
-          description: "Bem-vindo de volta!",
-        });
-
+        toast.success("Login realizado com sucesso!", { description: "Bem-vindo de volta!" });
         router.push("/filmes");
       } else {
         if (data.password !== data.confirmPassword) {
-          toast.error("Erro de validação", {
-            description: "As senhas não coincidem",
-          });
+          toast.error("Erro de validação", { description: "As senhas não coincidem" });
           setLoading(false);
           return;
         }
-
         const response = await AuthService.register({
           name: data.name,
           email: data.email,
           nickname: data.nickname,
           password: data.password,
         });
-
         if (response?.token && response?.user && redirectToCallback(response.token)) {
           AuthService.setSession(response.user, response.token);
           return;
         }
-
-        toast.success("Usuário registrado com sucesso!", {
-          description: "Faça login para continuar",
-        });
-
+        toast.success("Usuário registrado com sucesso!", { description: "Faça login para continuar" });
         setIsLogin(true);
         reset();
       }
     } catch (error: any) {
       const errorMessage = ErrorHandler.extractErrorMessage(error);
-
       if (ErrorHandler.isLoginError(error)) {
-        toast.error("Erro de login", {
-          description: errorMessage,
-        });
+        toast.error("Erro de login", { description: errorMessage });
       } else if (ErrorHandler.isValidationError(error)) {
-        toast.error("Dados inválidos", {
-          description: errorMessage,
-        });
+        toast.error("Dados inválidos", { description: errorMessage });
       } else if (ErrorHandler.isNetworkError(error)) {
-        toast.error("Erro de conexão", {
-          description: errorMessage,
-        });
+        toast.error("Erro de conexão", { description: errorMessage });
       } else {
-        toast.error("Erro inesperado", {
-          description: errorMessage,
-        });
+        toast.error("Erro inesperado", { description: errorMessage });
       }
     } finally {
       setLoading(false);
@@ -158,256 +124,178 @@ function LoginContent() {
     reset();
   };
 
+  const inputClass =
+    "pl-10 bg-[#0a0a0f]/60 border-white/10 text-white/90 placeholder:text-white/25 focus:border-purple-500/50 focus:ring-purple-500/20 rounded-xl h-11";
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4">
-      <div className="absolute inset-0 " />
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 bg-[#0a0a0f] relative overflow-hidden">
+      {/* Orbs */}
+      <div className="pointer-events-none absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[140px]" />
+      <div className="pointer-events-none absolute bottom-[-15%] right-[-5%] w-[400px] h-[400px] bg-violet-600/8 rounded-full blur-[140px]" />
 
       <div className="relative w-full max-w-sm sm:max-w-md">
-        <Card className="bg-gray-900 !border-gray-800 border-2 shadow-2xl shadow-zinc-950">
-          <CardHeader className="text-center space-y-3 sm:space-y-4 pb-4 sm:pb-6 px-4 sm:px-6">
-            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gray-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <Film className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+        <div className="bg-[#14141c] border border-white/[0.06] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
+          {/* Header do card */}
+          <div className="px-6 pt-8 pb-6 text-center border-b border-white/[0.05]">
+            <div className="mx-auto w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-700 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/25 mb-5">
+              <Play className="w-5 h-5 text-white fill-current" />
             </div>
-            <div>
-              <CardTitle className="text-xl sm:text-2xl font-bold text-white">
-                {isLogin ? "Bem-vindo de volta!" : "Crie sua conta"}
-              </CardTitle>
-              <CardDescription className="text-slate-400 mt-2 text-sm">
-                {isLogin
-                  ? "Entre na sua conta do LMS Films"
-                  : "Junte-se à nossa comunidade de cinéfilos"}
-              </CardDescription>
-              {callbackUrl && isAllowedCallback(callbackUrl) && (
-                <p className="text-xs text-blue-400 mt-2">
-                  Você será redirecionado de volta após {isLogin ? "o login" : "o cadastro"}.
-                </p>
-              )}
-            </div>
-          </CardHeader>
+            <h1 className="text-xl font-black text-white">
+              {isLogin ? "Bem-vindo de volta!" : "Crie sua conta"}
+            </h1>
+            <p className="text-white/35 mt-1.5 text-sm">
+              {isLogin
+                ? "Entre na sua conta do LMS Filmes"
+                : "Junte-se à nossa comunidade de cinéfilos"}
+            </p>
+            {callbackUrl && isAllowedCallback(callbackUrl) && (
+              <p className="text-xs text-purple-400/70 mt-2">
+                Você será redirecionado de volta após {isLogin ? "o login" : "o cadastro"}.
+              </p>
+            )}
+          </div>
 
-          <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="space-y-3 sm:space-y-4"
-            >
+          {/* Formulário */}
+          <div className="px-6 py-6 space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {!isLogin && (
                 <>
-                  <div className="space-y-1 sm:space-y-2">
-                    <Label
-                      htmlFor="name"
-                      className="text-slate-300 text-sm font-medium"
-                    >
-                      Nome completo
-                    </Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-white/50 text-xs font-semibold uppercase tracking-wide">Nome completo</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                       <Input
-                        id="name"
-                        {...registerForm("name", {
-                          required: "Nome é obrigatório",
-                        })}
+                        {...registerForm("name", { required: "Nome é obrigatório" })}
                         type="text"
                         placeholder="Seu nome completo"
-                        className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-pink-500 focus:ring-pink-500/20 h-10 sm:h-11"
+                        className={inputClass}
                       />
                     </div>
-                    {errors.name && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {errors.name.message}
-                      </p>
-                    )}
+                    {errors.name && <p className="text-red-400 text-xs">{errors.name.message}</p>}
                   </div>
 
-                  <div className="space-y-1 sm:space-y-2">
-                    <Label
-                      htmlFor="nickname"
-                      className="text-slate-300 text-sm font-medium"
-                    >
-                      Nickname
-                    </Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-white/50 text-xs font-semibold uppercase tracking-wide">Nickname</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                       <Input
-                        id="nickname"
-                        {...registerForm("nickname", {
-                          required: "Nickname é obrigatório",
-                        })}
+                        {...registerForm("nickname", { required: "Nickname é obrigatório" })}
                         type="text"
                         placeholder="Como quer ser chamado"
-                        className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-pink-500 focus:ring-pink-500/20 h-10 sm:h-11"
+                        className={inputClass}
                       />
                     </div>
-                    {errors.nickname && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {errors.nickname.message}
-                      </p>
-                    )}
+                    {errors.nickname && <p className="text-red-400 text-xs">{errors.nickname.message}</p>}
                   </div>
                 </>
               )}
 
-              <div className="space-y-1 sm:space-y-2">
-                <Label
-                  htmlFor="email"
-                  className="text-slate-300 text-sm font-medium"
-                >
-                  Email
-                </Label>
+              <div className="space-y-1.5">
+                <Label className="text-white/50 text-xs font-semibold uppercase tracking-wide">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                   <Input
-                    id="email"
                     {...registerForm("email", {
                       required: "Email é obrigatório",
-                      pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Email inválido",
-                      },
+                      pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: "Email inválido" },
                     })}
                     type="email"
                     placeholder="seu@email.com"
-                    className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-pink-500 focus:ring-pink-500/20"
+                    className={inputClass}
                   />
                 </div>
-                {errors.email && (
-                  <p className="text-red-400 text-xs mt-1">
-                    {errors.email.message}
-                  </p>
-                )}
+                {errors.email && <p className="text-red-400 text-xs">{errors.email.message}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="password"
-                  className="text-slate-300 text-sm font-medium"
-                >
-                  Senha
-                </Label>
+              <div className="space-y-1.5">
+                <Label className="text-white/50 text-xs font-semibold uppercase tracking-wide">Senha</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                   <Input
-                    id="password"
                     {...registerForm("password", {
                       required: "Senha é obrigatória",
-                      minLength: {
-                        value: 4,
-                        message: "Senha deve ter pelo menos 4 caracteres",
-                      },
+                      minLength: { value: 4, message: "Senha deve ter pelo menos 4 caracteres" },
                     })}
                     type={showPassword ? "text" : "password"}
                     placeholder="Digite sua senha"
-                    className="pl-10 pr-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-pink-500 focus:ring-pink-500/20"
+                    className={`${inputClass} pr-10`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-red-400 text-xs mt-1">
-                    {errors.password.message}
-                  </p>
-                )}
+                {errors.password && <p className="text-red-400 text-xs">{errors.password.message}</p>}
               </div>
 
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="confirmPassword"
-                    className="text-slate-300 text-sm font-medium"
-                  >
-                    Confirmar senha
-                  </Label>
+                <div className="space-y-1.5">
+                  <Label className="text-white/50 text-xs font-semibold uppercase tracking-wide">Confirmar senha</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                     <Input
-                      id="confirmPassword"
-                      {...registerForm("confirmPassword", {
-                        required: "Confirmação de senha é obrigatória",
-                      })}
+                      {...registerForm("confirmPassword", { required: "Confirmação de senha é obrigatória" })}
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirme sua senha"
-                      className="pl-10 pr-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-pink-500 focus:ring-pink-500/20"
+                      className={`${inputClass} pr-10`}
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors"
                     >
-                      {showConfirmPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  {errors.confirmPassword && (
-                    <p className="text-red-400 text-xs mt-1">
-                      {errors.confirmPassword.message}
-                    </p>
-                  )}
+                  {errors.confirmPassword && <p className="text-red-400 text-xs">{errors.confirmPassword.message}</p>}
                 </div>
               )}
 
-              <Button
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2.5 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-purple-900/30 mt-2"
               >
                 {loading ? (
-                  <div className="flex items-center space-x-2">
+                  <span className="flex items-center justify-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Carregando...</span>
-                  </div>
-                ) : isLogin ? (
-                  "Entrar"
-                ) : (
-                  "Criar conta"
-                )}
-              </Button>
+                    Carregando...
+                  </span>
+                ) : isLogin ? "Entrar" : "Criar conta"}
+              </button>
             </form>
 
-            <div className="relative">
+            <div className="relative my-2">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-600" />
+                <span className="w-full border-t border-white/[0.06]" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-slate-800/50 px-2 text-slate-400">ou</span>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-[#14141c] px-3 text-white/25">ou</span>
               </div>
             </div>
 
-            <Button
+            <button
               type="button"
-              variant="ghost"
               onClick={toggleMode}
-              className="w-full text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200"
+              className="w-full text-white/40 hover:text-white/70 text-sm py-2 rounded-xl hover:bg-white/5 transition-all duration-200"
             >
-              {isLogin
-                ? "Não tem uma conta? Registre-se"
-                : "Já tem uma conta? Faça login"}
-            </Button>
+              {isLogin ? "Não tem uma conta? Registre-se" : "Já tem uma conta? Faça login"}
+            </button>
 
             {isLogin && (
-              <Button
+              <button
                 type="button"
-                variant="ghost"
                 onClick={() => router.push("/reset-password")}
-                className="w-full text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200"
+                className="w-full text-white/25 hover:text-white/50 text-xs py-1.5 rounded-xl transition-all duration-200"
               >
                 Esqueci minha senha
-              </Button>
+              </button>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -417,8 +305,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center p-3 sm:p-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
+        <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
         </div>
       }
     >

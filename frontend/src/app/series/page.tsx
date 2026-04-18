@@ -121,23 +121,23 @@ export default function SeriesPage() {
   };
 
   const SerieGridLoader = () => (
-    <div className="flex flex-col items-center justify-center py-32 text-center bg-slate-900/20 rounded-2xl border border-slate-800/50 mt-8">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mb-4"></div>
-      <p className="text-slate-400 font-medium">
+    <div className="flex flex-col items-center justify-center py-32 text-center bg-[#14141c]/40 rounded-2xl border border-white/[0.06] mt-8">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-500 mb-4"></div>
+      <p className="text-white/35 font-medium text-sm">
         Buscando as melhores séries...
       </p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-[#0a0a0f]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         <div className="mb-8">
-          <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center">
-            <Tv className="w-8 h-8 mr-3 text-green-500" />
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Tv className="w-6 h-6 text-violet-400" />
             Catálogo de Séries
           </h2>
-          <p className="text-slate-400 mt-2">
+          <p className="text-white/35 mt-1.5 text-sm">
             Descubra novas histórias, maratone temporadas inteiras e acompanhe
             os episódios mais recentes.
           </p>
@@ -145,11 +145,11 @@ export default function SeriesPage() {
 
         <MediaSearchSection
           title="Buscar"
-          titleIconColorClassName="text-green-400 hidden"
-          searchButtonClassName="bg-green-600 hover:bg-green-700 text-white"
+          titleIconColorClassName="text-violet-400 hidden"
+          searchButtonClassName="bg-violet-600 hover:bg-violet-500 text-white"
           searchPlaceholder="Digite o nome de uma série (ex: The Boys)..."
           resultLabel="séries encontradas"
-          cardClassName="mb-10 bg-slate-900 border-slate-800 shadow-xl"
+          cardClassName="mb-10"
           searchQuery={searchQuery}
           isSearching={isSearching}
           isSearchMode={isSearchMode}

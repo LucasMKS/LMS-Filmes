@@ -40,45 +40,42 @@ export function MediaResultsSection<T extends { id: number }>({
 
       {isSearchMode && searchResultsLength === 0 && !isSearching && (
         <div className="text-center py-12">
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-8 border border-slate-700/50">
-            <EmptyIcon className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-slate-300 text-lg font-medium mb-2">
+          <div className="bg-[#14141c]/80 backdrop-blur-sm rounded-2xl p-8 border border-white/[0.06]">
+            <EmptyIcon className="w-14 h-14 text-white/20 mx-auto mb-4" />
+            <h3 className="text-white/60 text-lg font-semibold mb-2">
               {emptyTitle}
             </h3>
-            <p className="text-slate-400 mb-4">
+            <p className="text-white/30 mb-5 text-sm">
               {emptyDescriptionPrefix} "{searchQuery}".
             </p>
-            <Button
+            <button
               onClick={onClearSearch}
-              variant="outline"
-              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              className="px-4 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 text-sm font-medium transition-all"
             >
               {emptyBackButtonLabel}
-            </Button>
+            </button>
           </div>
         </div>
       )}
 
       <div className="text-center">
-        <Button
+        <button
           onClick={onLoadMore}
           disabled={loadingMore}
-          size="lg"
-          variant="outline"
-          className="bg-slate-800/50 hover:bg-slate-700/50 border-slate-600 text-slate-300 hover:text-white disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#14141c] border border-white/[0.06] text-white/50 hover:text-white/80 hover:bg-[#1a1a26] hover:border-purple-500/20 disabled:opacity-40 text-sm font-medium transition-all duration-200"
         >
           {loadingMore ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-400 mr-2"></div>
-              <span>Carregando...</span>
+              <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white/40"></div>
+              Carregando...
             </>
           ) : (
             <>
-              <Clock className="w-4 h-4 mr-2" />
-              <span>Carregar Mais</span>
+              <Clock className="w-3.5 h-3.5" />
+              Carregar Mais
             </>
           )}
-        </Button>
+        </button>
       </div>
     </>
   );

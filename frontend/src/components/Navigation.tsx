@@ -6,12 +6,11 @@ import {
   Film,
   Tv,
   Star,
-  Home,
-  LogOut,
   Heart,
-  ArrowLeft,
+  LogOut,
   LogIn,
   ListPlus,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AuthService from "../lib/auth";
@@ -31,6 +30,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -38,26 +38,23 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
     const checkAuth = () => {
       const authenticated = AuthService.isAuthenticated();
       setIsAuthenticated(authenticated);
-
-      if (authenticated) {
-        const userData = AuthService.getUser();
-        setUser(userData);
-      } else {
-        setUser(null);
-      }
+      setUser(authenticated ? AuthService.getUser() : null);
     };
 
     checkAuth();
   }, [pathname]);
 
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleLogout = () => {
     toast.success("Até logo!", {
       description: "Logout realizado com sucesso.",
     });
-
-    setTimeout(async () => {
-      AuthService.logout();
-    }, 1000);
+    setTimeout(() => AuthService.logout(), 1000);
   };
 
   const handleLogin = () => {
@@ -69,6 +66,8 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       name: "Filmes",
       href: "/filmes",
       icon: Film,
+      color: "text-purple-400",
+      activeBg: "bg-purple-500/10 border-purple-500/20 text-purple-300",
       current: pathname === "/filmes" || pathname.startsWith("/filmes/"),
       requiresAuth: false,
     },
@@ -76,13 +75,17 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       name: "Séries",
       href: "/series",
       icon: Tv,
+      color: "text-violet-400",
+      activeBg: "bg-violet-500/10 border-violet-500/20 text-violet-300",
       current: pathname === "/series" || pathname.startsWith("/series/"),
       requiresAuth: false,
     },
     {
-      name: "Minhas Avaliações",
+      name: "Avaliações",
       href: "/avaliacoes",
       icon: Star,
+      color: "text-amber-400",
+      activeBg: "bg-amber-500/10 border-amber-500/20 text-amber-300",
       current: pathname === "/avaliacoes",
       requiresAuth: true,
     },
@@ -90,6 +93,8 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       name: "Favoritos",
       href: "/favoritos",
       icon: Heart,
+      color: "text-pink-400",
+      activeBg: "bg-pink-500/10 border-pink-500/20 text-pink-300",
       current: pathname === "/favoritos",
       requiresAuth: true,
     },
@@ -97,6 +102,8 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       name: "Watchlist",
       href: "/watchlist",
       icon: ListPlus,
+      color: "text-emerald-400",
+      activeBg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-300",
       current: pathname === "/watchlist",
       requiresAuth: true,
     },
@@ -109,134 +116,119 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
   if (!isMounted) return null;
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800 shadow-sm">
+    <header
+      className={cn(
+        "sticky top-0 z-40 w-full transition-all duration-300",
+        scrolled
+          ? "bg-[#09090b]/80 backdrop-blur-2xl border-b border-white/[0.06] shadow-[0_1px_0_rgba(168,85,247,0.08)]"
+          : "bg-transparent border-b border-transparent",
+      )}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
-          {/* Lado Esquerdo: Título + Usuário */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="flex flex-col justify-center">
-              <h1
-                className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-none mb-1 cursor-pointer"
-                onClick={() =>
-                  router.push(isAuthenticated ? "/dashboard" : "/")
-                }
-              >
-                {title}
-              </h1>
-              <div className="text-xs sm:text-sm font-medium min-h-[16px] sm:min-h-[20px] flex items-center">
-                {isAuthenticated ? (
-                  <p className="text-slate-400">
-                    {user ? (
-                      <>
-                        Bem-vindo,{" "}
-                        <span className="text-slate-300">{user.name}</span> (@
-                        {user.nickname})
-                      </>
-                    ) : (
-                      "Sessão ativa"
-                    )}
-                  </p>
-                ) : (
-                  <p className="text-slate-500 italic">Visitante</p>
-                )}
-              </div>
+        <div className="flex justify-between items-center py-3.5">
+          {/* Logo */}
+          <div
+            className="flex items-center gap-2.5 cursor-pointer select-none"
+            onClick={() => router.push(isAuthenticated ? "/filmes" : "/filmes")}
+          >
+            <div className="bg-gradient-to-br from-purple-500 to-violet-700 p-1.5 rounded-xl shadow-lg shadow-purple-500/20">
+              <Play className="w-4 h-4 text-white fill-current" />
             </div>
+            <span className="text-base font-black text-white tracking-tight">
+              LMS{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-violet-400">
+                Filmes
+              </span>
+            </span>
+            {isAuthenticated && user && (
+              <span className="hidden sm:block text-xs text-white/30 font-medium pl-1 border-l border-white/10 ml-0.5">
+                {user.nickname ? `@${user.nickname}` : user.name}
+              </span>
+            )}
           </div>
 
-          {/* Lado Direito: Navegação + Admin + Logout/Login */}
-          <div className="flex items-center space-x-3 sm:space-x-5">
-            {/* Navegação Desktop */}
-            <nav className="hidden lg:flex space-x-1.5">
+          {/* Navegação + Ações */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Nav Desktop */}
+            <nav className="hidden lg:flex items-center gap-1">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Button
+                  <button
                     key={item.name}
-                    variant={item.current ? "secondary" : "ghost"}
                     onClick={() => router.push(item.href)}
                     className={cn(
-                      "flex items-center space-x-2 text-sm rounded-lg transition-all duration-200",
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-200",
                       item.current
-                        ? "bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60",
+                        ? cn("border", item.activeBg)
+                        : "text-white/40 hover:text-white/80 hover:bg-white/5 border border-transparent",
                     )}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.name}</span>
-                  </Button>
+                    <Icon
+                      className={cn(
+                        "w-3.5 h-3.5 transition-colors",
+                        item.current ? "" : item.color,
+                      )}
+                    />
+                    {item.name}
+                  </button>
                 );
               })}
             </nav>
 
-            {/* Navegação Mobile */}
+            {/* Mobile select */}
             <div className="lg:hidden">
-              <div className="relative">
-                <select
-                  onChange={(e) => router.push(e.target.value)}
-                  value={
-                    pathname.startsWith("/filmes/")
-                      ? "/filmes"
-                      : pathname.startsWith("/series/")
-                        ? "/series"
-                        : pathname
-                  }
-                  className="appearance-none bg-slate-900 border border-slate-700 text-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all cursor-pointer"
-                >
-                  {navigationItems.map((item) => (
-                    <option
-                      key={item.href}
-                      value={item.href}
-                      className="bg-slate-900 text-slate-200"
-                    >
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                  <svg
-                    className="fill-current h-4 w-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
+              <select
+                onChange={(e) => router.push(e.target.value)}
+                value={
+                  pathname.startsWith("/filmes/")
+                    ? "/filmes"
+                    : pathname.startsWith("/series/")
+                      ? "/series"
+                      : pathname
+                }
+                className="appearance-none bg-[#14141c] border border-white/10 text-white/70 rounded-xl pl-3 pr-7 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/50 transition-all cursor-pointer"
+              >
+                {navigationItems.map((item) => (
+                  <option
+                    key={item.href}
+                    value={item.href}
+                    className="bg-[#14141c]"
                   >
-                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                  </svg>
-                </div>
-              </div>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Ações do Usuário (Logado x Visitante) */}
-            <div className="flex items-center space-x-3 border-l border-slate-800 pl-3 sm:pl-5">
-              {isAuthenticated ? (
-                <>
-                  {user?.role === "ADMIN" && (
-                    <Badge
-                      variant="outline"
-                      className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold hidden sm:flex"
-                    >
-                      Admin
-                    </Badge>
-                  )}
-                  <Button
-                    variant="destructive"
-                    onClick={handleLogout}
-                    size="sm"
-                    className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/20 transition-all rounded-lg h-8 px-3"
-                  >
-                    <LogOut className="w-4 h-4 sm:mr-2" />
-                    <span className="hidden sm:inline font-medium">Sair</span>
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  onClick={handleLogin}
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white transition-all rounded-lg h-8 px-4 font-semibold shadow-lg shadow-blue-900/20"
+            {/* Divisor */}
+            <div className="h-5 w-px bg-white/10 mx-1 hidden sm:block" />
+
+            {/* Ações */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                {user?.role === "ADMIN" && (
+                  <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold hidden sm:flex">
+                    Admin
+                  </Badge>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-200"
                 >
-                  <LogIn className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Entrar</span>
-                </Button>
-              )}
-            </div>
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sair</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleLogin}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/30 transition-all duration-200 hover:scale-[1.02]"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Entrar</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

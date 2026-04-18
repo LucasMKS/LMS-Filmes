@@ -1,117 +1,111 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Film, Tv, Star, Heart, TrendingUp, Play } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden selection:bg-blue-500/30">
-      {/* EFEITOS DE LUZ NO FUNDO (GLOW) */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[30rem] h-[30rem] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="min-h-screen bg-[#0a0a0f] flex flex-col relative overflow-hidden selection:bg-purple-500/25">
 
-      {/* HEADER MINIMALISTA */}
-      <header className="relative z-50 w-full max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
-        <div className="flex items-center gap-2 text-white font-extrabold text-xl tracking-tight">
-          <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
-            <Play className="w-5 h-5 text-white fill-current" />
+      {/* Orbs de luz decorativos */}
+      <div className="pointer-events-none absolute top-[-15%] left-[-8%] w-[500px] h-[500px] bg-purple-600/12 rounded-full blur-[140px]" />
+      <div className="pointer-events-none absolute bottom-[-10%] right-[-5%] w-[450px] h-[450px] bg-violet-600/10 rounded-full blur-[140px]" />
+      <div className="pointer-events-none absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-purple-500/6 rounded-full blur-[100px] -translate-x-1/2" />
+
+      {/* Header */}
+      <header className="relative z-50 w-full max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
+        <div className="flex items-center gap-2.5 text-white font-black text-lg tracking-tight">
+          <div className="bg-gradient-to-br from-purple-500 to-violet-700 p-1.5 rounded-xl shadow-lg shadow-purple-500/25">
+            <Play className="w-4 h-4 text-white fill-current" />
           </div>
-          LMS Filmes
+          LMS{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-violet-400">
+            Filmes
+          </span>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link href="/filmes" className="hidden sm:block">
-            <Button
-              variant="ghost"
-              className="text-slate-300 hover:text-white hover:bg-slate-800/50"
-            >
+            <button className="text-sm text-white/40 hover:text-white/80 px-3 py-1.5 rounded-xl hover:bg-white/5 transition-all duration-200 font-medium">
               Explorar Catálogo
-            </Button>
+            </button>
           </Link>
           <Link href="/login">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-900/20 rounded-xl px-6">
+            <button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm px-5 py-2 rounded-xl shadow-lg shadow-purple-900/30 transition-all duration-200 hover:scale-[1.02]">
               Entrar
-            </Button>
+            </button>
           </Link>
         </div>
       </header>
 
-      {/* MAIN CONTENT (HERO) */}
-      <main className="flex-1 flex flex-col items-center justify-center relative z-10 px-4 pt-20 pb-32 max-w-5xl mx-auto w-full text-center">
-        <Badge
-          variant="outline"
-          className="mb-8 border-blue-500/30 bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-full text-sm font-medium backdrop-blur-md"
-        >
-          <Star className="w-4 h-4 mr-2 fill-current" />
-        </Badge>{" "}
-        {/* O seu novo diário cinematográfico */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white tracking-tight mb-6 leading-tight">
-          Descubra, avalie e <br className="hidden md:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+      {/* Hero */}
+      <main className="flex-1 flex flex-col items-center justify-center relative z-10 px-4 pt-16 pb-32 max-w-5xl mx-auto w-full text-center">
+
+        {/* Badge */}
+        <div className="mb-8 inline-flex items-center gap-2 border border-purple-500/25 bg-purple-500/8 text-purple-400 px-4 py-1.5 rounded-full text-sm font-medium backdrop-blur-md">
+          <Star className="w-3.5 h-3.5 fill-current" />
+          Seu diário cinematográfico
+        </div>
+
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white tracking-tight mb-6 leading-[1.05]">
+          Descubra, avalie e{" "}
+          <br className="hidden md:block" />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-400 to-purple-300">
             guarde suas emoções.
           </span>
         </h1>
-        <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+
+        <p className="text-lg sm:text-xl text-white/40 max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
           Crie sua estante virtual perfeita. Acompanhe os filmes e séries que
-          você já assistiu, dê suas notas, escreva comentários e analise o seu
+          você já assistiu, dê suas notas, escreva comentários e analise seu
           gosto pessoal com estatísticas detalhadas.
         </p>
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
           <Link href="/filmes" className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto bg-slate-100 hover:bg-white text-slate-900 font-bold rounded-xl h-14 px-8 text-lg transition-transform hover:scale-105"
-            >
-              <Film className="w-5 h-5 mr-2" />
+            <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-white/90 text-[#0a0a0f] font-bold rounded-2xl h-13 px-8 text-base transition-all duration-200 hover:scale-[1.02] shadow-xl shadow-white/5">
+              <Film className="w-4 h-4" />
               Ver Filmes
-            </Button>
+            </button>
           </Link>
           <Link href="/series" className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto bg-slate-900/50 border-slate-700 text-white hover:bg-slate-800 rounded-xl h-14 px-8 text-lg backdrop-blur-md transition-transform hover:scale-105"
-            >
-              <Tv className="w-5 h-5 mr-2 text-green-400" />
+            <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#14141c] hover:bg-[#1a1a26] border border-white/8 text-white/80 hover:text-white font-semibold rounded-2xl h-13 px-8 text-base backdrop-blur-md transition-all duration-200 hover:scale-[1.02]">
+              <Tv className="w-4 h-4 text-purple-400" />
               Ver Séries
-            </Button>
+            </button>
           </Link>
         </div>
-        {/* ESTATÍSTICAS / SOCIAL PROOF (Mockup Visual) */}
-        <div className="mt-20 pt-10 border-t border-slate-800/60 w-full">
-          <p className="text-sm font-medium text-slate-500 uppercase tracking-widest mb-8">
+
+        {/* Feature cards */}
+        <div className="mt-24 pt-10 border-t border-white/[0.06] w-full">
+          <p className="text-xs font-semibold text-white/25 uppercase tracking-[0.2em] mb-10">
             Tudo que você precisa em um só lugar
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="flex flex-col items-center p-6 bg-slate-900/40 rounded-2xl border border-slate-800/50 backdrop-blur-sm">
-              <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center mb-4">
-                <Star className="w-6 h-6 text-yellow-400" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex flex-col items-center p-7 bg-[#14141c] rounded-2xl border border-white/[0.06] backdrop-blur-sm transition-all duration-300 hover:border-amber-500/20 hover:shadow-[0_8px_32px_rgba(245,158,11,0.08)] group">
+              <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                <Star className="w-5 h-5 text-amber-400" />
               </div>
-              <h3 className="text-white font-bold text-lg mb-2">Avaliações</h3>
-              <p className="text-slate-400 text-sm">
+              <h3 className="text-white font-bold text-base mb-2">Avaliações</h3>
+              <p className="text-white/35 text-sm leading-relaxed">
                 Dê notas precisas de 0 a 10 e registre sua opinião sobre a obra.
               </p>
             </div>
 
-            <div className="flex flex-col items-center p-6 bg-slate-900/40 rounded-2xl border border-slate-800/50 backdrop-blur-sm">
-              <div className="w-12 h-12 bg-pink-500/10 rounded-full flex items-center justify-center mb-4">
-                <Heart className="w-6 h-6 text-pink-400" />
+            <div className="flex flex-col items-center p-7 bg-[#14141c] rounded-2xl border border-white/[0.06] backdrop-blur-sm transition-all duration-300 hover:border-pink-500/20 hover:shadow-[0_8px_32px_rgba(236,72,153,0.08)] group">
+              <div className="w-12 h-12 bg-pink-500/10 rounded-2xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                <Heart className="w-5 h-5 text-pink-400" />
               </div>
-              <h3 className="text-white font-bold text-lg mb-2">Favoritos</h3>
-              <p className="text-slate-400 text-sm">
-                Monte sua coleção definitiva com os títulos que marcaram sua
-                vida.
+              <h3 className="text-white font-bold text-base mb-2">Favoritos</h3>
+              <p className="text-white/35 text-sm leading-relaxed">
+                Monte sua coleção definitiva com os títulos que marcaram sua vida.
               </p>
             </div>
 
-            <div className="flex flex-col items-center p-6 bg-slate-900/40 rounded-2xl border border-slate-800/50 backdrop-blur-sm">
-              <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mb-4">
-                <TrendingUp className="w-6 h-6 text-blue-400" />
+            <div className="flex flex-col items-center p-7 bg-[#14141c] rounded-2xl border border-white/[0.06] backdrop-blur-sm transition-all duration-300 hover:border-purple-500/20 hover:shadow-[0_8px_32px_rgba(168,85,247,0.08)] group">
+              <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                <TrendingUp className="w-5 h-5 text-purple-400" />
               </div>
-              <h3 className="text-white font-bold text-lg mb-2">
-                Estatísticas
-              </h3>
-              <p className="text-slate-400 text-sm">
+              <h3 className="text-white font-bold text-base mb-2">Estatísticas</h3>
+              <p className="text-white/35 text-sm leading-relaxed">
                 Acompanhe seu dashboard pessoal com médias e tempo assistido.
               </p>
             </div>
@@ -119,15 +113,15 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer className="relative z-10 border-t border-slate-800/60 bg-slate-950 py-8">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-slate-500 text-sm">
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-white/[0.06] bg-[#0a0a0f] py-7">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-3">
+          <p className="text-white/20 text-sm">
             © {new Date().getFullYear()} LMS Filmes.
           </p>
-          <div className="flex items-center gap-1 text-sm text-slate-500">
+          <div className="flex items-center gap-1 text-sm text-white/20">
             Feito com{" "}
-            <Heart className="w-4 h-4 text-red-500 mx-1 fill-current" />
+            <Heart className="w-3.5 h-3.5 text-red-500 mx-1 fill-current" />
           </div>
         </div>
       </footer>

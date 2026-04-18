@@ -3,66 +3,36 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
-import {
-  ratingMoviesApi,
-  ratingSeriesApi,
-  moviesApi,
-  seriesApi,
-} from "../../lib/api";
+import { ratingMoviesApi, ratingSeriesApi, moviesApi, seriesApi } from "../../lib/api";
 import { Movie, Serie, TmdbMovie, TmdbSerie } from "../../lib/types";
 import { MovieCard } from "../../components/MovieCard";
 import { SerieCard } from "../../components/SerieCard";
 import { MovieDialog } from "../../components/MovieDialog";
 import { SerieDialog } from "../../components/SerieDialog";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Star,
-  Film,
-  Tv,
-  Search,
-  Filter,
-  TrendingUp,
-  X,
-  ChevronDown,
-} from "lucide-react";
+import { Star, Film, Tv, Search, Filter, TrendingUp, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
-interface RatedMovie extends Movie {
-  tmdbData?: TmdbMovie;
-}
-
-interface RatedSerie extends Serie {
-  tmdbData?: TmdbSerie;
-}
+interface RatedMovie extends Movie { tmdbData?: TmdbMovie; }
+interface RatedSerie extends Serie { tmdbData?: TmdbSerie; }
 
 const MAX_CONCURRENT_DETAILS = 6;
 const DETAIL_RETRY_COUNT = 2;
 const DETAIL_RETRY_DELAY_MS = 500;
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const fetchWithRetry = async <T,>(
-  fetcher: () => Promise<T>,
-  retries: number,
-): Promise<T> => {
-  try {
-    return await fetcher();
-  } catch (error) {
+const fetchWithRetry = async <T,>(fetcher: () => Promise<T>, retries: number): Promise<T> => {
+  try { return await fetcher(); }
+  catch (error) {
     if (retries <= 0) throw error;
     await sleep(DETAIL_RETRY_DELAY_MS);
     return fetchWithRetry(fetcher, retries - 1);
   }
 };
 
-const mapWithConcurrency = async <T, R>(
-  items: T[],
-  limit: number,
-  mapper: (item: T) => Promise<R>,
-): Promise<R[]> => {
+const mapWithConcurrency = async <T, R>(items: T[], limit: number, mapper: (item: T) => Promise<R>): Promise<R[]> => {
   const results: R[] = new Array(items.length);
   let index = 0;
   const runWorker = async () => {
@@ -71,11 +41,7 @@ const mapWithConcurrency = async <T, R>(
       results[currentIndex] = await mapper(items[currentIndex]);
     }
   };
-  const workers = Array.from(
-    { length: Math.min(limit, items.length) },
-    runWorker,
-  );
-  await Promise.all(workers);
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runWorker));
   return results;
 };
 
@@ -104,13 +70,9 @@ export default function RatingsPage() {
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [isMovieDialogOpen, setIsMovieDialogOpen] = useState(false);
   const [isSerieDialogOpen, setIsSerieDialogOpen] = useState(false);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRating, setFilterRating] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">(
-    "all",
-  );
-
+  const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">("all");
   const isAuth = AuthService.isAuthenticated();
 
   const getRatingRange = () => {
@@ -121,110 +83,52 @@ export default function RatingsPage() {
     return { min: undefined, max: undefined };
   };
 
-  const {
-    data: moviesData,
-    fetchNextPage: fetchNextMovies,
-    hasNextPage: hasNextMovies,
-    isFetchingNextPage: isFetchingNextMovies,
-    isLoading: isLoadingMovies,
-  } = useInfiniteQuery({
+  const { data: moviesData, fetchNextPage: fetchNextMovies, hasNextPage: hasNextMovies, isFetchingNextPage: isFetchingNextMovies, isLoading: isLoadingMovies } = useInfiniteQuery({
     queryKey: ["ratings", "movies", filterRating],
     queryFn: async ({ pageParam = 0 }) => {
       const { min, max } = getRatingRange();
-
-      const response = await ratingMoviesApi.getRatedMoviesPaged(
-        pageParam,
-        20,
-        min,
-        max,
-      );
-      const enriched = await mapWithConcurrency(
-        response.content || [],
-        MAX_CONCURRENT_DETAILS,
-        async (m: Movie) => {
-          if (!m.movieId) return { ...m, tmdbData: buildFallbackMovie(m) };
-          try {
-            const tmdbData = await fetchWithRetry(
-              () => moviesApi.getMovieDetails(m.movieId),
-              DETAIL_RETRY_COUNT,
-            );
-            return { ...m, tmdbData };
-          } catch {
-            return { ...m, tmdbData: buildFallbackMovie(m) };
-          }
-        },
-      );
+      const response = await ratingMoviesApi.getRatedMoviesPaged(pageParam, 20, min, max);
+      const enriched = await mapWithConcurrency(response.content || [], MAX_CONCURRENT_DETAILS, async (m: Movie) => {
+        if (!m.movieId) return { ...m, tmdbData: buildFallbackMovie(m) };
+        try { return { ...m, tmdbData: await fetchWithRetry(() => moviesApi.getMovieDetails(m.movieId), DETAIL_RETRY_COUNT) }; }
+        catch { return { ...m, tmdbData: buildFallbackMovie(m) }; }
+      });
       return { content: enriched, last: response.last, page: pageParam };
     },
     initialPageParam: 0,
-    getNextPageParam: (lastPage) =>
-      lastPage.last ? undefined : lastPage.page + 1,
+    getNextPageParam: (lastPage) => lastPage.last ? undefined : lastPage.page + 1,
     enabled: isAuth,
   });
 
-  const {
-    data: seriesData,
-    fetchNextPage: fetchNextSeries,
-    hasNextPage: hasNextSeries,
-    isFetchingNextPage: isFetchingNextSeries,
-    isLoading: isLoadingSeries,
-  } = useInfiniteQuery({
+  const { data: seriesData, fetchNextPage: fetchNextSeries, hasNextPage: hasNextSeries, isFetchingNextPage: isFetchingNextSeries, isLoading: isLoadingSeries } = useInfiniteQuery({
     queryKey: ["ratings", "series", filterRating],
     queryFn: async ({ pageParam = 0 }) => {
       const { min, max } = getRatingRange();
-
-      const response = await ratingSeriesApi.getRatedSeriesPaged(
-        pageParam,
-        20,
-        min,
-        max,
-      );
-      const enriched = await mapWithConcurrency(
-        response.content || [],
-        MAX_CONCURRENT_DETAILS,
-        async (s: Serie) => {
-          if (!s.serieId) return { ...s, tmdbData: buildFallbackSerie(s) };
-          try {
-            const tmdbData = await fetchWithRetry(
-              () => seriesApi.getSerieDetails(s.serieId),
-              DETAIL_RETRY_COUNT,
-            );
-            return { ...s, tmdbData };
-          } catch {
-            return { ...s, tmdbData: buildFallbackSerie(s) };
-          }
-        },
-      );
+      const response = await ratingSeriesApi.getRatedSeriesPaged(pageParam, 20, min, max);
+      const enriched = await mapWithConcurrency(response.content || [], MAX_CONCURRENT_DETAILS, async (s: Serie) => {
+        if (!s.serieId) return { ...s, tmdbData: buildFallbackSerie(s) };
+        try { return { ...s, tmdbData: await fetchWithRetry(() => seriesApi.getSerieDetails(s.serieId), DETAIL_RETRY_COUNT) }; }
+        catch { return { ...s, tmdbData: buildFallbackSerie(s) }; }
+      });
       return { content: enriched, last: response.last, page: pageParam };
     },
     initialPageParam: 0,
-    getNextPageParam: (lastPage) =>
-      lastPage.last ? undefined : lastPage.page + 1,
+    getNextPageParam: (lastPage) => lastPage.last ? undefined : lastPage.page + 1,
     enabled: isAuth,
   });
 
-  const ratedMovies = moviesData?.pages.flatMap((page) => page.content) || [];
-  const ratedSeries = seriesData?.pages.flatMap((page) => page.content) || [];
+  const ratedMovies = moviesData?.pages.flatMap((p) => p.content) || [];
+  const ratedSeries = seriesData?.pages.flatMap((p) => p.content) || [];
   const isLoading = isLoadingMovies || isLoadingSeries;
   const isFetchingMore = isFetchingNextMovies || isFetchingNextSeries;
   const hasMore = hasNextMovies || hasNextSeries;
 
-  const handleLoadMore = () => {
-    if (hasNextMovies) fetchNextMovies();
-    if (hasNextSeries) fetchNextSeries();
-  };
+  const handleLoadMore = () => { if (hasNextMovies) fetchNextMovies(); if (hasNextSeries) fetchNextSeries(); };
 
   const handleMovieClick = async (movie: RatedMovie) => {
     if (movie.tmdbData) {
       setSelectedMovie(movie.tmdbData);
-      try {
-        const details = await moviesApi.getMovieDetails(
-          String(movie.tmdbData.id),
-        );
-        setMovieDetails(details);
-      } catch {
-        setMovieDetails(null);
-      }
+      try { setMovieDetails(await moviesApi.getMovieDetails(String(movie.tmdbData.id))); } catch { setMovieDetails(null); }
       setIsMovieDialogOpen(true);
     }
   };
@@ -232,54 +136,23 @@ export default function RatingsPage() {
   const handleSerieClick = async (serie: RatedSerie) => {
     if (serie.tmdbData) {
       setSelectedSerie(serie.tmdbData);
-      try {
-        const details = await seriesApi.getSerieDetails(
-          String(serie.tmdbData.id),
-        );
-        setSerieDetails(details);
-      } catch {
-        setSerieDetails(null);
-      }
+      try { setSerieDetails(await seriesApi.getSerieDetails(String(serie.tmdbData.id))); } catch { setSerieDetails(null); }
       setIsSerieDialogOpen(true);
     }
   };
 
-  const clearSearch = () => {
-    setSearchQuery("");
-    setFilterRating("all");
-    setTypeFilter("all");
-  };
+  const clearSearch = () => { setSearchQuery(""); setFilterRating("all"); setTypeFilter("all"); };
 
-  // Como o Backend já filtrou as notas, no frontend a gente só filtra Texto e Tipo
-  const filterItemsLocally = (
-    items: any[],
-    searchTerm: string,
-    itemType: "movie" | "serie",
-  ) => {
-    return items.filter((item) => {
-      const matchesSearch =
-        !searchTerm ||
-        item.tmdbData?.title
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        item.tmdbData?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesType = typeFilter === "all" || typeFilter === itemType;
-
-      return matchesSearch && matchesType;
+  const filterItemsLocally = (items: any[], searchTerm: string, itemType: "movie" | "serie") =>
+    items.filter((item) => {
+      const matchesSearch = !searchTerm || item.tmdbData?.title?.toLowerCase().includes(searchTerm.toLowerCase()) || item.tmdbData?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch && (typeFilter === "all" || typeFilter === itemType);
     });
-  };
 
   const getAverageRating = (items: (RatedMovie | RatedSerie)[]) => {
-    const validItems = items.filter(
-      (item) =>
-        item.rating !== undefined &&
-        item.rating !== null &&
-        !isNaN(Number(item.rating)),
-    );
-    if (validItems.length === 0) return "0.0";
-    const sum = validItems.reduce((acc, item) => acc + Number(item.rating), 0);
-    return (sum / validItems.length).toFixed(1);
+    const valid = items.filter((i) => i.rating !== undefined && i.rating !== null && !isNaN(Number(i.rating)));
+    if (valid.length === 0) return "0.0";
+    return (valid.reduce((acc, i) => acc + Number(i.rating), 0) / valid.length).toFixed(1);
   };
 
   const stats = {
@@ -294,264 +167,139 @@ export default function RatingsPage() {
   const filteredMovies = filterItemsLocally(ratedMovies, searchQuery, "movie");
   const filteredSeries = filterItemsLocally(ratedSeries, searchQuery, "serie");
 
-  const ContentGridLoader = () => (
-    <div className="flex flex-col items-center justify-center py-32 text-center bg-slate-900/20 rounded-2xl border border-slate-800/50 mt-8">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mb-4"></div>
-      <p className="text-slate-400 font-medium">
-        Buscando o seu histórico de avaliações...
-      </p>
-    </div>
-  );
+  const tabBtn = (active: boolean, color: string, activeColor: string) =>
+    cn("flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 border",
+      active ? `${activeColor} border-current/20` : "text-white/35 hover:text-white/60 hover:bg-white/5 border-transparent");
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-[#0a0a0f]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+
         <div className="mb-8">
-          <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center">
-            <Star className="w-8 h-8 mr-3 text-yellow-500 fill-current/20" />
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Star className="w-6 h-6 text-amber-400 fill-current/30" />
             Minhas Avaliações
           </h2>
-          <p className="text-slate-400 mt-2">
-            Todo o seu histórico de opiniões e notas sobre o que você já
-            assistiu.
-          </p>
+          <p className="text-white/35 mt-1.5 text-sm">Todo o seu histórico de opiniões e notas sobre o que você já assistiu.</p>
         </div>
 
-        <Card className="mb-10 bg-slate-900 border-slate-800 shadow-xl">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-slate-500" />
-                </div>
-                <Input
-                  placeholder="Buscar pelo nome do filme ou série..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-slate-950 border-slate-800 text-slate-200 placeholder:text-slate-500 pl-10 pr-10 h-11 rounded-xl focus-visible:ring-yellow-500/30 focus-visible:border-yellow-500"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={clearSearch}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-                <div className="relative w-full sm:w-auto min-w-[180px]">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Star className="h-4 w-4 text-yellow-500 fill-current/20" />
-                  </div>
-                  <select
-                    value={filterRating}
-                    onChange={(e) => setFilterRating(e.target.value)}
-                    className="w-full h-11 pl-9 pr-8 bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500 appearance-none cursor-pointer outline-none transition-all"
-                  >
-                    <option value="all">Todas as Notas</option>
-                    <option value="9-10">Obras-primas (9 - 10)</option>
-                    <option value="7-8">Muito Bons (7 - 8.9)</option>
-                    <option value="5-6">Medianos (5 - 6.9)</option>
-                    <option value="0-4">Não Gostei (0 - 4.9)</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <ChevronDown className="h-4 w-4 text-slate-500" />
-                  </div>
-                </div>
-
-                <div className="flex gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 overflow-x-auto w-full sm:w-auto hide-scrollbar">
-                  <Button
-                    variant={typeFilter === "all" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setTypeFilter("all")}
-                    className={cn(
-                      "rounded-lg px-4 font-medium transition-all",
-                      typeFilter === "all"
-                        ? "bg-slate-800 text-white"
-                        : "text-slate-400 hover:text-slate-200",
-                    )}
-                  >
-                    Todos
-                  </Button>
-                  <Button
-                    variant={typeFilter === "movie" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setTypeFilter("movie")}
-                    className={cn(
-                      "rounded-lg px-4 font-medium transition-all flex items-center",
-                      typeFilter === "movie"
-                        ? "bg-blue-600/20 text-blue-400 border border-blue-500/20"
-                        : "text-slate-400 hover:text-slate-200",
-                    )}
-                  >
-                    <Film className="w-4 h-4 mr-2" /> Filmes
-                  </Button>
-                  <Button
-                    variant={typeFilter === "serie" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setTypeFilter("serie")}
-                    className={cn(
-                      "rounded-lg px-4 font-medium transition-all flex items-center",
-                      typeFilter === "serie"
-                        ? "bg-green-600/20 text-green-400 border border-green-500/20"
-                        : "text-slate-400 hover:text-slate-200",
-                    )}
-                  >
-                    <Tv className="w-4 h-4 mr-2" /> Séries
-                  </Button>
-                </div>
-              </div>
+        {/* Filtros */}
+        <div className="mb-8 bg-[#14141c] border border-white/[0.06] rounded-2xl p-4 sm:p-5 shadow-xl">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/25" />
+              <Input
+                placeholder="Buscar pelo nome do filme ou série..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-[#0a0a0f]/60 border-white/10 text-white/80 placeholder:text-white/25 pl-10 pr-10 h-11 rounded-xl focus-visible:ring-amber-500/30 focus-visible:border-amber-500/40"
+              />
+              {searchQuery && (
+                <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
-            {(searchQuery ||
-              filterRating !== "all" ||
-              typeFilter !== "all") && (
-              <div className="mt-4 flex items-center justify-between pt-4 border-t border-slate-800/60">
-                <div className="flex items-center space-x-3">
-                  <Badge
-                    variant="secondary"
-                    className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                  >
-                    <Filter className="w-3 h-3 mr-1.5" /> Filtrado
-                  </Badge>
-                  <span className="text-slate-400 text-sm font-medium">
-                    {filteredMovies.length + filteredSeries.length} resultados
-                    encontrados na página atual
-                  </span>
-                </div>
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+              <div className="relative w-full sm:w-auto min-w-[180px]">
+                <Star className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500/60" />
+                <select
+                  value={filterRating}
+                  onChange={(e) => setFilterRating(e.target.value)}
+                  className="w-full h-11 pl-9 pr-8 bg-[#0a0a0f]/60 border border-white/10 text-white/70 text-sm rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/40 appearance-none cursor-pointer outline-none transition-all"
+                >
+                  <option value="all" className="bg-[#14141c]">Todas as Notas</option>
+                  <option value="9-10" className="bg-[#14141c]">Obras-primas (9 - 10)</option>
+                  <option value="7-8" className="bg-[#14141c]">Muito Bons (7 - 8.9)</option>
+                  <option value="5-6" className="bg-[#14141c]">Medianos (5 - 6.9)</option>
+                  <option value="0-4" className="bg-[#14141c]">Não Gostei (0 - 4.9)</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/25 pointer-events-none" />
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              <div className="flex gap-1.5 bg-[#0a0a0f]/60 p-1.5 rounded-xl border border-white/[0.06] overflow-x-auto shrink-0">
+                <button onClick={() => setTypeFilter("all")} className={tabBtn(typeFilter === "all", "", "bg-white/10 text-white/80")}>Todos</button>
+                <button onClick={() => setTypeFilter("movie")} className={tabBtn(typeFilter === "movie", "text-purple-400", "bg-purple-500/15 text-purple-300 border-purple-500/20")}>
+                  <Film className="w-3.5 h-3.5" /> Filmes
+                </button>
+                <button onClick={() => setTypeFilter("serie")} className={tabBtn(typeFilter === "serie", "text-violet-400", "bg-violet-500/15 text-violet-300 border-violet-500/20")}>
+                  <Tv className="w-3.5 h-3.5" /> Séries
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {(searchQuery || filterRating !== "all" || typeFilter !== "all") && (
+            <div className="mt-4 flex items-center gap-3 pt-4 border-t border-white/[0.05]">
+              <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl">
+                <Filter className="w-3 h-3 mr-1.5" /> Filtrado
+              </Badge>
+              <span className="text-white/30 text-sm">{filteredMovies.length + filteredSeries.length} resultados encontrados</span>
+              <button onClick={clearSearch} className="ml-auto flex items-center gap-1 text-xs text-white/25 hover:text-white/50 transition-colors">
+                <X className="w-3 h-3" /> Limpar
+              </button>
+            </div>
+          )}
+        </div>
 
         {isLoading ? (
-          <ContentGridLoader />
+          <div className="flex flex-col items-center justify-center py-32 text-center bg-[#14141c]/40 rounded-2xl border border-white/[0.06]">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500 mb-4"></div>
+            <p className="text-white/35 text-sm">Buscando o seu histórico de avaliações...</p>
+          </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <Card className="bg-slate-900 border-slate-800 shadow-md">
-                <CardContent className="p-4">
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+              {[
+                { label: "Exibindo", value: stats.totalItems, icon: Star, color: "text-white/30" },
+                { label: "Média da Busca", value: stats.avgOverall, icon: TrendingUp, color: "text-amber-400", valueClass: "text-amber-400" },
+                { label: "Filmes", value: `${stats.totalMovies}`, icon: Film, color: "text-purple-400", sub: `Média: ${stats.avgMovieRating}` },
+                { label: "Séries", value: `${stats.totalSeries}`, icon: Tv, color: "text-violet-400", sub: `Média: ${stats.avgSerieRating}` },
+              ].map(({ label, value, icon: Icon, color, valueClass, sub }) => (
+                <div key={label} className="bg-[#14141c] border border-white/[0.06] rounded-2xl p-4 shadow-md">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-slate-400">
-                      Exibindo
-                    </p>
-                    <Star className="w-4 h-4 text-slate-500" />
+                    <p className="text-xs font-medium text-white/30">{label}</p>
+                    <Icon className={`w-4 h-4 ${color}`} />
                   </div>
-                  <p className="text-2xl font-bold text-white">
-                    {stats.totalItems}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-slate-900 border-slate-800 shadow-md">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-slate-400">
-                      Média da Busca
-                    </p>
-                    <TrendingUp className="w-4 h-4 text-yellow-500" />
-                  </div>
-                  <p className="text-2xl font-bold text-yellow-400">
-                    {stats.avgOverall}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-slate-900 border-slate-800 shadow-md">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-slate-400">Filmes</p>
-                    <Film className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div className="flex items-baseline space-x-2">
-                    <p className="text-2xl font-bold text-white">
-                      {stats.totalMovies}
-                    </p>
-                    <span className="text-xs text-slate-500">
-                      Média: {stats.avgMovieRating}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-slate-900 border-slate-800 shadow-md">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-slate-400">Séries</p>
-                    <Tv className="w-4 h-4 text-green-500" />
-                  </div>
-                  <div className="flex items-baseline space-x-2">
-                    <p className="text-2xl font-bold text-white">
-                      {stats.totalSeries}
-                    </p>
-                    <span className="text-xs text-slate-500">
-                      Média: {stats.avgSerieRating}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                  <p className={cn("text-2xl font-bold text-white", valueClass)}>{value}</p>
+                  {sub && <p className="text-xs text-white/25 mt-0.5">{sub}</p>}
+                </div>
+              ))}
             </div>
 
             {filteredMovies.length === 0 && filteredSeries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 bg-slate-900/20 rounded-2xl border border-slate-800 border-dashed">
-                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                  <Star className="w-8 h-8 text-slate-500" />
+              <div className="flex flex-col items-center justify-center py-20 bg-[#14141c]/40 rounded-2xl border border-white/[0.06] border-dashed">
+                <div className="w-14 h-14 bg-white/[0.04] rounded-2xl flex items-center justify-center mb-4">
+                  <Star className="w-7 h-7 text-white/15" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-300 mb-2">
-                  {searchQuery || filterRating !== "all" || typeFilter !== "all"
-                    ? "Nenhum resultado para o filtro no momento"
-                    : "Você ainda não avaliou nada"}
+                <h3 className="text-lg font-bold text-white/50 mb-2">
+                  {searchQuery || filterRating !== "all" || typeFilter !== "all" ? "Nenhum resultado para o filtro" : "Você ainda não avaliou nada"}
                 </h3>
-                <p className="text-slate-500 text-center max-w-md">
+                <p className="text-white/25 text-center max-w-md text-sm">
                   {searchQuery || filterRating !== "all" || typeFilter !== "all"
-                    ? "Tente limpar a sua busca ou trocar de categoria para ver outras avaliações."
-                    : "Sua prateleira está vazia. Vá até a aba de Filmes ou Séries e comece a dar notas!"}
+                    ? "Tente limpar a sua busca ou trocar de categoria."
+                    : "Vá até a aba de Filmes ou Séries e comece a dar notas!"}
                 </p>
-                {(searchQuery ||
-                  filterRating !== "all" ||
-                  typeFilter !== "all") && (
-                  <Button
-                    onClick={clearSearch}
-                    variant="outline"
-                    className="mt-6 border-slate-700 text-slate-300"
-                  >
+                {(searchQuery || filterRating !== "all" || typeFilter !== "all") && (
+                  <button onClick={clearSearch} className="mt-5 px-4 py-2 rounded-xl border border-white/10 text-white/40 hover:text-white/70 hover:bg-white/5 text-sm transition-all">
                     Limpar Filtros
-                  </Button>
+                  </button>
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 mb-10">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 mb-10">
                 {[
-                  ...filteredMovies.map((movie) => ({
-                    type: "movie" as const,
-                    item: movie,
-                    key: `movie-${movie.id}`,
-                  })),
-                  ...filteredSeries.map((serie) => ({
-                    type: "serie" as const,
-                    item: serie,
-                    key: `serie-${serie.id}`,
-                  })),
+                  ...filteredMovies.map((m) => ({ type: "movie" as const, item: m, key: `movie-${m.id}` })),
+                  ...filteredSeries.map((s) => ({ type: "serie" as const, item: s, key: `serie-${s.id}` })),
                 ].map(({ type, item, key }) => (
                   <div key={key}>
                     {type === "movie" && item.tmdbData && (
-                      <MovieCard
-                        movie={item.tmdbData}
-                        onClick={() => handleMovieClick(item)}
-                        userRating={{
-                          rating: String(item.rating),
-                          comment: item.comment,
-                        }}
-                      />
+                      <MovieCard movie={item.tmdbData} onClick={() => handleMovieClick(item)} userRating={{ rating: String(item.rating), comment: item.comment }} />
                     )}
                     {type === "serie" && item.tmdbData && (
-                      <SerieCard
-                        serie={item.tmdbData}
-                        onClick={() => handleSerieClick(item)}
-                        userRating={{
-                          rating: String(item.rating),
-                          comment: item.comment,
-                        }}
-                      />
+                      <SerieCard serie={item.tmdbData} onClick={() => handleSerieClick(item)} userRating={{ rating: String(item.rating), comment: item.comment }} />
                     )}
                   </div>
                 ))}
@@ -560,44 +308,25 @@ export default function RatingsPage() {
 
             {hasMore && !isLoading && (
               <div className="flex justify-center pb-12">
-                <Button
+                <button
                   onClick={handleLoadMore}
                   disabled={isFetchingMore}
-                  variant="outline"
-                  size="lg"
-                  className="bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white rounded-full px-8 h-12 shadow-lg"
+                  className="inline-flex items-center gap-2 px-7 py-2.5 rounded-2xl bg-[#14141c] border border-white/[0.06] text-white/40 hover:text-white/70 hover:bg-[#1a1a26] hover:border-amber-500/20 disabled:opacity-40 text-sm font-medium transition-all duration-200"
                 >
                   {isFetchingMore ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-300 mr-3"></div>
-                      Carregando mais dados...
-                    </>
-                  ) : (
-                    "Carregar Mais Histórico"
-                  )}
-                </Button>
+                    <><div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white/40"></div>Carregando...</>
+                  ) : "Carregar Mais Histórico"}
+                </button>
               </div>
             )}
           </>
         )}
 
         {selectedMovie && (
-          <MovieDialog
-            movie={selectedMovie}
-            movieDetails={movieDetails}
-            isOpen={isMovieDialogOpen}
-            onClose={() => setIsMovieDialogOpen(false)}
-            isLoggedIn={true}
-          />
+          <MovieDialog movie={selectedMovie} movieDetails={movieDetails} isOpen={isMovieDialogOpen} onClose={() => setIsMovieDialogOpen(false)} isLoggedIn={true} />
         )}
         {selectedSerie && (
-          <SerieDialog
-            isOpen={isSerieDialogOpen}
-            onClose={() => setIsSerieDialogOpen(false)}
-            serie={selectedSerie}
-            serieDetails={serieDetails}
-            isLoggedIn={true}
-          />
+          <SerieDialog isOpen={isSerieDialogOpen} onClose={() => setIsSerieDialogOpen(false)} serie={selectedSerie} serieDetails={serieDetails} isLoggedIn={true} />
         )}
       </main>
     </div>

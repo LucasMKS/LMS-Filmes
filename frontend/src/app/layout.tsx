@@ -33,7 +33,7 @@ export default function RootLayout({
       >
         <Providers>
           <AppLayout>
-            <div className="bg-gradient-to-br from-slate-900 to-zinc-950">
+            <div className="bg-[#0a0a0f]">
               {children}
             </div>
           </AppLayout>
