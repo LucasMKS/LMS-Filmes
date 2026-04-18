@@ -63,12 +63,12 @@ function SerieCardComponent({
       onFavoriteToggle={onFavoriteToggle}
       badgeLabel="Série"
       badgeIcon={Tv}
-      badgeClassName="bg-green-600/90"
+      badgeClassName="bg-violet-600/90"
       overlayRating={serie.vote_average}
       overlayIcon={UserStar}
       overlayIconClassName="text-yellow-500"
       userRatingIconClassName="text-yellow-300"
-      cardClassName="hover:shadow-zinc-950 bg-slate-900 border-2 border-slate-800"
+      cardClassName=""
     />
   );
 }

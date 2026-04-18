@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,7 @@ export function RatingDialog({
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const starRowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && currentRating) {
@@ -94,6 +95,21 @@ export function RatingDialog({
     return "";
   };
 
+  // Touch drag handler — maps finger position across star row to a rating
+  const handleTouchOnStars = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const container = starRowRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, x / rect.width));
+    const raw = percentage * 10;
+    const rating = Math.max(0.5, Math.round(raw * 2) / 2);
+    setSelectedRating(rating);
+    setHoverRating(0);
+  };
+
   const displayRating = hoverRating || selectedRating;
 
   return (
@@ -108,32 +124,37 @@ export function RatingDialog({
           </p>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Estrelas */}
           <div className="space-y-4">
             <div
-              className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5"
+              ref={starRowRef}
+              className="flex items-center justify-center gap-0.5 sm:gap-1 touch-none"
               onMouseLeave={() => setHoverRating(0)}
+              onTouchStart={handleTouchOnStars}
+              onTouchMove={handleTouchOnStars}
             >
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => {
                 const isFilled = displayRating >= star;
                 const isHalfFilled = displayRating >= star - 0.5 && displayRating < star;
                 return (
-                  <div key={star} className="relative cursor-pointer select-none touch-manipulation">
-                    <Star className="w-7 h-7 sm:w-8 sm:h-8 text-white/10 transition-all duration-200" />
+                  <div key={star} className="relative select-none touch-manipulation">
+                    <Star className="w-7 h-7 sm:w-8 sm:h-8 text-white/10 transition-all duration-150" />
                     {(isFilled || isHalfFilled) && (
                       <Star
-                        className="absolute top-0 left-0 w-7 h-7 sm:w-8 sm:h-8 text-yellow-400 fill-current transition-all duration-200 pointer-events-none drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]"
+                        className="absolute top-0 left-0 w-7 h-7 sm:w-8 sm:h-8 text-yellow-400 fill-current transition-all duration-150 pointer-events-none drop-shadow-[0_0_6px_rgba(250,204,21,0.5)]"
                         style={isHalfFilled ? { clipPath: "inset(0 50% 0 0)" } : {}}
                       />
                     )}
+                    {/* Metade esquerda — meia estrela */}
                     <div
-                      className="absolute top-0 left-0 w-[50%] h-full cursor-pointer z-10"
+                      className="absolute top-0 left-0 w-[50%] h-full z-10"
                       onMouseEnter={() => setHoverRating(star - 0.5)}
                       onClick={() => setSelectedRating(star - 0.5)}
                     />
+                    {/* Metade direita — estrela inteira */}
                     <div
-                      className="absolute top-0 right-0 w-[50%] h-full cursor-pointer z-10"
+                      className="absolute top-0 right-0 w-[50%] h-full z-10"
                       onMouseEnter={() => setHoverRating(star)}
                       onClick={() => setSelectedRating(star)}
                     />
@@ -142,12 +163,38 @@ export function RatingDialog({
               })}
             </div>
 
+            {/* Placar */}
             <div className="text-center bg-[#0a0a0f]/60 py-3 rounded-xl border border-white/[0.06]">
               <div className="text-3xl font-extrabold text-yellow-400 leading-none mb-1">
                 {displayRating > 0 ? displayRating.toFixed(1) : "0.0"}
               </div>
               <div className="text-sm font-medium h-5 text-white/50">
                 {displayRating > 0 ? getRatingDescription(displayRating) : "Selecione uma nota"}
+              </div>
+            </div>
+
+            {/* Slider — principal no mobile, auxiliar no desktop */}
+            <div className="px-1">
+              <input
+                type="range"
+                min="0"
+                max="10"
+                step="0.5"
+                value={selectedRating}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  setSelectedRating(v);
+                  setHoverRating(0);
+                }}
+                className="w-full h-2 rounded-full"
+                style={{
+                  background: `linear-gradient(to right, rgb(168 85 247) ${selectedRating * 10}%, rgba(255,255,255,0.08) ${selectedRating * 10}%)`,
+                }}
+              />
+              <div className="flex justify-between text-[10px] text-white/25 mt-1 px-0.5">
+                <span>0</span>
+                <span>5</span>
+                <span>10</span>
               </div>
             </div>
           </div>
@@ -167,18 +214,18 @@ export function RatingDialog({
           </div>
 
           {/* Botões */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-1">
             <button
               onClick={handleClose}
               disabled={isSubmitting}
-              className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 text-sm font-medium transition-all disabled:opacity-50"
+              className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 text-sm font-medium transition-all disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || selectedRating <= 0}
-              className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-all shadow-lg shadow-purple-900/30 text-sm"
+              className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-purple-900/30 text-sm"
             >
               {isSubmitting
                 ? "Enviando..."

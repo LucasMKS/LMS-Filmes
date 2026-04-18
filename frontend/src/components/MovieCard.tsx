@@ -56,12 +56,12 @@ function MovieCardComponent({
       onFavoriteToggle={onFavoriteToggle}
       badgeLabel="Filme"
       badgeIcon={Film}
-      badgeClassName="bg-blue-600/90"
+      badgeClassName="bg-purple-600/90"
       overlayRating={movie.vote_average}
       overlayIcon={UserStar}
       overlayIconClassName="text-yellow-500"
       userRatingIconClassName="text-yellow-300"
-      cardClassName="hover:shadow-zinc-950 bg-slate-900 border-2 border-slate-800"
+      cardClassName=""
     />
   );
 }
