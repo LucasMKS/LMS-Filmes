@@ -5,6 +5,10 @@ spring:
   application:
     name: lms-email
 
+  threads:
+    virtual:
+      enabled: true
+
   rabbitmq:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT}

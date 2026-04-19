@@ -5,6 +5,10 @@ spring:
   application:
     name: lms-filmes
 
+  threads:
+    virtual:
+      enabled: true
+
   cache:
     type: redis
 

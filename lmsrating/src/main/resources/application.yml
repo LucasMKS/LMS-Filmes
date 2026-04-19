@@ -5,6 +5,10 @@ spring:
   application:
     name: lms-rating
 
+  threads:
+    virtual:
+      enabled: true
+
   cache:
     type: redis
 

@@ -5,6 +5,10 @@ spring:
   application:
     name: lms-favorite
 
+  threads:
+    virtual:
+      enabled: true
+
   cache:
     type: redis
 

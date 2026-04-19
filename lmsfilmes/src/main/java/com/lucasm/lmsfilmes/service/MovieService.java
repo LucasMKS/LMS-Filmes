@@ -9,173 +9,111 @@ import com.lucasm.lmsfilmes.exceptions.TmdbApiException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
+import reactor.core.publisher.Mono;
+
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
-/**
- * Serviço responsável por consultar dados de filmes na API do TMDB.
- */
 @Service
 public class MovieService {
 
     private static final Logger logger = LoggerFactory.getLogger(MovieService.class);
 
-    private final HttpClient httpClient;
+    private final WebClient webClient;
     private final ObjectMapper objectMapper;
-    private final String tmdbApiUrl;
-    private final String apiKey;
 
-    /**
-     * Inicializa uma nova instância de MovieService.
-     *
-      * @param objectMapper serializador usado para converter respostas JSON do TMDB.
-      * @param tmdbApiUrl URL base da API do TMDB.
-      * @param apiKey token Bearer usado na autenticação das requisições.
-     */
-    public MovieService(ObjectMapper objectMapper, @Value("${tmdb.api.url}") String tmdbApiUrl, @Value("${tmdb.api.key}") String apiKey) {
-        this.httpClient = HttpClient.newHttpClient();
+    public MovieService(WebClient tmdbWebClient, ObjectMapper objectMapper) {
+        this.webClient = tmdbWebClient;
         this.objectMapper = objectMapper;
-        this.tmdbApiUrl = tmdbApiUrl;
-        this.apiKey = apiKey;
     }
 
-    private HttpRequest buildRequest(String path) throws URISyntaxException {
-        URI uri = new URI(tmdbApiUrl + path + (path.contains("?") ? "&" : "?") + "language=pt-BR");
-        
-        return HttpRequest.newBuilder()
-                .uri(uri)
-                .header("Authorization", "Bearer " + apiKey)
-                .header("Accept", "application/json")
-                .GET()
-                .build();
+    private String withLanguage(String path) {
+        return path + (path.contains("?") ? "&" : "?") + "language=pt-BR";
     }
 
-    private TmdbPageDTO<TmdbDTO> fetchPaginatedData(String path, String cacheKey) {
+    private TmdbPageDTO<TmdbDTO> fetchPaginatedData(String path) {
         try {
-            HttpRequest request = buildRequest(path);
-            
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            String body = webClient.get()
+                    .uri(withLanguage(path))
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, response ->
+                            response.bodyToMono(String.class)
+                                    .map(err -> new TmdbApiException(
+                                            "Erro ao buscar dados do TMDB: status " + response.statusCode().value())))
+                    .bodyToMono(String.class)
+                    .block();
 
-            if (response.statusCode() == 200) {
-                return objectMapper.readValue(response.body(), new TypeReference<TmdbPageDTO<TmdbDTO>>() {});
-            } else {
-                logger.error("Erro ao buscar dados do TMDB ({}): status {}", path, response.statusCode());
-                throw new TmdbApiException("Erro ao buscar dados do TMDB: status " + response.statusCode());
-            }
-
-        } catch (IOException | InterruptedException | URISyntaxException e) {
-            logger.error("Erro de sistema ao buscar dados do TMDB ({}): {}", path, e.getMessage(), e);
+            return objectMapper.readValue(body, new TypeReference<TmdbPageDTO<TmdbDTO>>() {});
+        } catch (TmdbApiException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Erro ao buscar dados do TMDB ({}): {}", path, e.getMessage(), e);
             throw new TmdbApiException("Erro ao buscar dados do TMDB: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * Busca filmes por texto na API do TMDB.
-     *
-     * @param query termo de pesquisa informado pelo usuário.
-     * @param page número da página de resultados.
-     * @return página de filmes correspondente à busca.
-     */
     @Cacheable(value = "searchMovies", key = "#query + '_' + #page")
     public TmdbPageDTO<TmdbDTO> searchMovies(String query, int page) {
-        try {
-            String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8.toString());
-            String path = "/search/movie?query=" + encodedQuery + "&include_adult=false&page=" + page;
-            return fetchPaginatedData(path, "searchMovies::" + query + "::" + page);
-        } catch (java.io.UnsupportedEncodingException e) {
-             logger.error("Erro ao encodar query: {}", query, e);
-             throw new TmdbApiException("Query de busca inválida.", e);
-        }
+        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
+        String path = "/search/movie?query=" + encodedQuery + "&include_adult=false&page=" + page;
+        return fetchPaginatedData(path);
     }
 
-    /**
-     * Obtém os detalhes completos de um filme pelo identificador.
-     *
-     * @param movieId identificador do filme no TMDB.
-     * @return dados detalhados do filme.
-     */
     @Cacheable(value = "movieDetails", key = "#movieId + '_' + #includeRecommendations")
     public TmdbDTO getMovieDetails(String movieId, boolean includeRecommendations) {
         try {
             String appendTo = includeRecommendations
-                ? "credits,videos,watch/providers,recommendations"
-                : "credits,videos,watch/providers";
-            String path = "/movie/" + movieId + "?append_to_response=" + appendTo;
-            HttpRequest request = buildRequest(path);
+                    ? "credits,videos,watch/providers,recommendations"
+                    : "credits,videos,watch/providers";
+            String path = withLanguage("/movie/" + movieId + "?append_to_response=" + appendTo);
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            String body = webClient.get()
+                    .uri(path)
+                    .retrieve()
+                    .onStatus(status -> status.value() == 404, response ->
+                            Mono.error(new ResourceNotFoundException("Filme não encontrado: " + movieId)))
+                    .onStatus(HttpStatusCode::isError, response ->
+                            response.bodyToMono(String.class)
+                                    .map(err -> new TmdbApiException(
+                                            "Erro ao buscar detalhes do filme: status " + response.statusCode().value())))
+                    .bodyToMono(String.class)
+                    .block();
 
-            if (response.statusCode() == 200) {
-                return objectMapper.readValue(response.body(), TmdbDTO.class);
-            } else if (response.statusCode() == 404) {
-                logger.warn("Filme com ID {} não encontrado", movieId);
-                throw new ResourceNotFoundException("Filme não encontrado: " + movieId);
-            } else {
-                logger.error("Erro ao buscar detalhes do filme {}: status {}", movieId, response.statusCode());
-                throw new TmdbApiException("Erro ao buscar detalhes do filme: status " + response.statusCode());
-            }
-        } catch (IOException | InterruptedException | URISyntaxException e) {
+            return objectMapper.readValue(body, TmdbDTO.class);
+        } catch (ResourceNotFoundException | TmdbApiException e) {
+            throw e;
+        } catch (WebClientResponseException e) {
+            logger.error("Erro HTTP ao buscar detalhes do filme {}: {}", movieId, e.getMessage());
+            throw new TmdbApiException("Erro ao buscar detalhes do filme: " + e.getMessage(), e);
+        } catch (Exception e) {
             logger.error("Erro ao buscar detalhes do filme {}: {}", movieId, e.getMessage(), e);
             throw new TmdbApiException("Erro ao buscar detalhes do filme: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * Lista filmes populares para a região configurada.
-     *
-     * @param page número da página de resultados.
-     * @return página de filmes populares.
-     */
     @Cacheable(value = "moviePopular", key = "#page")
     public TmdbPageDTO<TmdbDTO> getPopularMovies(int page) {
-        String path = "/movie/popular?page=" + page + "&region=BR";
-        return fetchPaginatedData(path, "moviePopular::" + page);
+        return fetchPaginatedData("/movie/popular?page=" + page + "&region=BR");
     }
 
-    /**
-     * Lista filmes atualmente em cartaz.
-     *
-     * @param page número da página de resultados.
-     * @return página de filmes em cartaz.
-     */
     @Cacheable(value = "moviesNowPlaying", key = "#page")
     public TmdbPageDTO<TmdbDTO> getNowPlayingMovies(int page) {
-        String path = "/movie/now_playing?page=" + page + "&region=BR";
-        return fetchPaginatedData(path, "moviesNowPlaying::" + page);
+        return fetchPaginatedData("/movie/now_playing?page=" + page + "&region=BR");
     }
 
-    /**
-     * Lista filmes mais bem avaliados no TMDB.
-     *
-     * @param page número da página de resultados.
-     * @return página de filmes com melhor avaliação.
-     */
     @Cacheable(value = "moviesTopRated", key = "#page")
     public TmdbPageDTO<TmdbDTO> getTopRatedMovies(int page) {
-        String path = "/movie/top_rated?page=" + page;
-        return fetchPaginatedData(path, "moviesTopRated::" + page);
+        return fetchPaginatedData("/movie/top_rated?page=" + page);
     }
 
-    /**
-     * Lista próximos lançamentos de filmes.
-     *
-     * @param page número da página de resultados.
-     * @return página de filmes em lançamento.
-     */
     @Cacheable(value = "moviesUpcoming", key = "#page")
     public TmdbPageDTO<TmdbDTO> getUpcomingMovies(int page) {
-        String path = "/movie/upcoming?page=" + page + "&region=BR";
-        return fetchPaginatedData(path, "moviesUpcoming::" + page);
+        return fetchPaginatedData("/movie/upcoming?page=" + page + "&region=BR");
     }
-
 }
