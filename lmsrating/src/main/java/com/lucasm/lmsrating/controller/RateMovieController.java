@@ -1,6 +1,7 @@
 package com.lucasm.lmsrating.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.lucasm.lmsrating.dto.RatingRequestDTO;
+import com.lucasm.lmsrating.dto.RatingStatusDTO;
 import com.lucasm.lmsrating.model.RatingMovie;
 import com.lucasm.lmsrating.service.RateMovieService;
 
@@ -88,6 +90,23 @@ public class RateMovieController {
         }
         
         return ResponseEntity.ok(rateService.searchRatedMoviesPaged(email, pageable));
+    }
+
+    /**
+     * Retorna as avaliações de um lote de filmes para o usuário autenticado.
+     * Filmes sem avaliação são omitidos do resultado.
+     *
+     * @param movieIds lista de identificadores de filmes.
+     * @param authentication contexto de autenticação do usuário.
+     * @return mapa de movieId → status de avaliação.
+     */
+    @GetMapping("/status/batch")
+    public ResponseEntity<Map<String, RatingStatusDTO>> getRatingStatusBatch(
+            @RequestParam List<String> movieIds,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        return ResponseEntity.ok(rateService.getRatingStatusBatch(movieIds, email));
     }
 
     /**

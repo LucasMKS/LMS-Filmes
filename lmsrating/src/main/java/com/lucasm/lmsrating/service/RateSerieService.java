@@ -1,7 +1,9 @@
 package com.lucasm.lmsrating.service;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.lucasm.lmsrating.dto.CatalogSyncDTO;
+import com.lucasm.lmsrating.dto.RatingStatusDTO;
 import com.lucasm.lmsrating.dto.SerieRatingRequestDTO;
 import com.lucasm.lmsrating.exceptions.MovieServiceException;
 import com.lucasm.lmsrating.exceptions.ResourceNotFoundException;
@@ -116,5 +119,15 @@ public class RateSerieService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Avaliação não encontrada para a série " + serieId
             ));
+    }
+
+    public Map<String, RatingStatusDTO> getRatingStatusBatch(List<String> serieIds, String email) {
+        Long userId = userLookupService.getUserIdByEmail(email);
+        List<RatingSerie> ratings = serieRepository.findByUserIdAndSerieIdIn(userId, serieIds);
+        Map<String, RatingStatusDTO> result = new HashMap<>();
+        for (RatingSerie r : ratings) {
+            result.put(r.getSerieId(), new RatingStatusDTO(String.valueOf(r.getRating()), r.getComment()));
+        }
+        return result;
     }
 }

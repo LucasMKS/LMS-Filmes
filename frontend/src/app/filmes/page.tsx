@@ -8,7 +8,7 @@ import { MediaResultsSection } from "../../components/MediaResultsSection";
 import { MovieCard } from "../../components/MovieCard";
 import { MovieDialog } from "../../components/MovieDialog";
 import { TmdbMovie } from "../../lib/types";
-import { moviesApi, favoriteMoviesApi } from "../../lib/api";
+import { moviesApi, favoriteMoviesApi, ratingMoviesApi } from "../../lib/api";
 import { useMediaListing } from "../../lib/useMediaListing";
 import {
   Film,
@@ -74,6 +74,7 @@ export default function MoviesPage() {
     loading,
     loadingMore,
     favoriteStatus,
+    ratingStatus,
     searchQuery,
     setSearchQuery,
     isSearching,
@@ -86,6 +87,7 @@ export default function MoviesPage() {
     clearSearch,
     handleCategoryChange,
     handleToggleFavorite,
+    updateRatingStatus,
   } = useMediaListing<TmdbMovie, MovieCategory>({
     mediaType: "movie",
     initialCategory: "popular",
@@ -94,33 +96,32 @@ export default function MoviesPage() {
     getFavoriteStatus: favoriteMoviesApi.getFavoriteStatus,
     getFavoriteStatuses: favoriteMoviesApi.getFavoriteStatuses,
     toggleFavorite: favoriteMoviesApi.toggleFavorite,
+    getRatingStatuses: ratingMoviesApi.getRatingStatuses,
     messages: listingMessages,
   });
 
   useEffect(() => {
     const authenticated = AuthService.isAuthenticated();
     setIsLoggedIn(authenticated);
-
     initialize();
   }, [initialize]);
-
-  const loadMoreMovies = () => {
-    loadMoreItems();
-  };
 
   const handleMovieClick = async (movie: TmdbMovie) => {
     setSelectedMovie(movie);
     setDialogOpen(true);
 
     try {
-      const movieDetails = await moviesApi.getMovieDetails(String(movie.id));
-      setMovieDetails(movieDetails);
-    } catch (error: any) {
-      console.error("Erro ao carregar detalhes do filme:", error);
+      const details = await moviesApi.getMovieDetails(String(movie.id));
+      setMovieDetails(details);
+    } catch {
       toast.error("Erro ao carregar detalhes", {
         description: "Não foi possível carregar os detalhes do filme",
       });
     }
+  };
+
+  const handleRateSuccess = (movieId: number, rating: string, comment?: string) => {
+    updateRatingStatus(movieId, { rating, comment });
   };
 
   const handleCloseDialog = () => {
@@ -181,7 +182,7 @@ export default function MoviesPage() {
             isSearching={isSearching}
             searchQuery={searchQuery}
             loadingMore={loadingMore}
-            onLoadMore={loadMoreMovies}
+            onLoadMore={loadMoreItems}
             onClearSearch={clearSearch}
             emptyTitle="Nenhum filme na fita"
             emptyDescriptionPrefix="Não encontramos nenhum resultado para"
@@ -195,13 +196,13 @@ export default function MoviesPage() {
                 showFavoriteButton={isLoggedIn}
                 isFavorite={favoriteStatus[movie.id] || false}
                 onFavoriteToggle={() => handleToggleFavorite(movie.id)}
+                userRating={ratingStatus[movie.id] ?? null}
               />
             )}
           />
         )}
       </main>
 
-      {/* Dialog de detalhes do filme (Quick View) */}
       {selectedMovie && (
         <MovieDialog
           movie={selectedMovie}
@@ -209,6 +210,9 @@ export default function MoviesPage() {
           isOpen={dialogOpen}
           onClose={handleCloseDialog}
           isLoggedIn={isLoggedIn}
+          onRateSuccess={(rating, comment) =>
+            handleRateSuccess(selectedMovie.id, rating, comment)
+          }
         />
       )}
     </div>

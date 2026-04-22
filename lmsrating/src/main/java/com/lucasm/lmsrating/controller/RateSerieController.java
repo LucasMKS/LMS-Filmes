@@ -2,6 +2,7 @@ package com.lucasm.lmsrating.controller;
 
 import org.springframework.web.bind.annotation.RestController;
 
+import com.lucasm.lmsrating.dto.RatingStatusDTO;
 import com.lucasm.lmsrating.dto.SerieRatingRequestDTO;
 import com.lucasm.lmsrating.model.RatingSerie;
 import com.lucasm.lmsrating.service.RateSerieService;
@@ -9,6 +10,7 @@ import com.lucasm.lmsrating.service.RateSerieService;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -104,6 +106,23 @@ public class RateSerieController {
         }
         
         return ResponseEntity.ok(rateService.searchRatedSeriesPaged(email, pageable));
+    }
+
+    /**
+     * Retorna as avaliações de um lote de séries para o usuário autenticado.
+     * Séries sem avaliação são omitidas do resultado.
+     *
+     * @param serieIds lista de identificadores de séries.
+     * @param authentication contexto de autenticação do usuário.
+     * @return mapa de serieId → status de avaliação.
+     */
+    @GetMapping("/status/batch")
+    public ResponseEntity<Map<String, RatingStatusDTO>> getRatingStatusBatch(
+            @RequestParam List<String> serieIds,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        return ResponseEntity.ok(rateService.getRatingStatusBatch(serieIds, email));
     }
 
     /**

@@ -30,6 +30,7 @@ interface MovieDialogProps {
   isOpen: boolean;
   onClose: () => void;
   isLoggedIn?: boolean;
+  onRateSuccess?: (rating: string, comment?: string) => void;
 }
 
 export function MovieDialog({
@@ -38,6 +39,7 @@ export function MovieDialog({
   isOpen,
   onClose,
   isLoggedIn = false,
+  onRateSuccess,
 }: MovieDialogProps) {
   const queryClient = useQueryClient();
   const [isRatingOpen, setIsRatingOpen] = useState(false);
@@ -143,6 +145,7 @@ export function MovieDialog({
         comment,
       );
       setUserRating(updatedRating);
+      onRateSuccess?.(ratingString, comment);
     } catch (error) {
       console.error("Erro capturado no Dialog ao submeter avaliação:", error);
       throw error;

@@ -23,6 +23,8 @@ public interface SerieRepository extends JpaRepository<RatingSerie, Long>  {
 
     Optional<RatingSerie> findBySerieIdAndUserId(String serieId, Long userId);
 
+    List<RatingSerie> findByUserIdAndSerieIdIn(Long userId, List<String> serieIds);
+
     List<RatingSerie> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 
     // Consulta JPQL para buscar por faixa de notas

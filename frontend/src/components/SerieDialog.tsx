@@ -30,6 +30,7 @@ interface SerieDialogProps {
   serie: TmdbSerie | null;
   serieDetails?: TmdbSerie | null;
   isLoggedIn?: boolean;
+  onRateSuccess?: (rating: string, comment?: string) => void;
 }
 
 export function SerieDialog({
@@ -38,6 +39,7 @@ export function SerieDialog({
   serie,
   serieDetails,
   isLoggedIn = false,
+  onRateSuccess,
 }: SerieDialogProps) {
   const queryClient = useQueryClient();
 
@@ -129,6 +131,7 @@ export function SerieDialog({
         comment,
       );
       setUserRating(updatedRating);
+      onRateSuccess?.(ratingString, comment);
     } catch (error) {
       console.error("Erro capturado no Dialog ao submeter avaliação:", error);
       throw error;

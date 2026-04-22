@@ -200,9 +200,17 @@ interface RateSeriePayload {
   comment?: string;
 }
 
+export type RatingStatus = { rating: string; comment?: string };
+
 export const ratingMoviesApi = {
   rateMovie: (payload: RateMoviePayload): Promise<Movie> => {
     return apiLmsRating.post("/rate/movies", payload).then((res) => res.data);
+  },
+
+  getRatingStatuses: (movieIds: string[]): Promise<Record<string, RatingStatus>> => {
+    if (movieIds.length === 0) return Promise.resolve({});
+    const query = buildBatchQuery("movieIds", movieIds);
+    return apiLmsRating.get(`/rate/movies/status/batch?${query}`).then((res) => res.data);
   },
 
   getRatedMovies: (): Promise<Movie[]> =>
@@ -236,6 +244,12 @@ export const ratingMoviesApi = {
 export const ratingSeriesApi = {
   rateSerie: (payload: RateSeriePayload): Promise<Serie> => {
     return apiLmsRating.post("/rate/series", payload).then((res) => res.data);
+  },
+
+  getRatingStatuses: (serieIds: string[]): Promise<Record<string, RatingStatus>> => {
+    if (serieIds.length === 0) return Promise.resolve({});
+    const query = buildBatchQuery("serieIds", serieIds);
+    return apiLmsRating.get(`/rate/series/status/batch?${query}`).then((res) => res.data);
   },
 
   getRatedSeries: (): Promise<Serie[]> =>

@@ -23,6 +23,8 @@ public interface MovieRepository extends JpaRepository<RatingMovie, Long> {
 
     Optional<RatingMovie> findByMovieIdAndUserId(String movieId, Long userId);
 
+    List<RatingMovie> findByUserIdAndMovieIdIn(Long userId, List<String> movieIds);
+
     List<RatingMovie> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 
     // Consulta JPQL para buscar por faixa de notas

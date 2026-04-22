@@ -8,7 +8,7 @@ import { MediaResultsSection } from "../../components/MediaResultsSection";
 import { SerieCard } from "../../components/SerieCard";
 import { SerieDialog } from "../../components/SerieDialog";
 import { TmdbSerie } from "../../lib/types";
-import { seriesApi, favoriteSeriesApi } from "../../lib/api";
+import { seriesApi, favoriteSeriesApi, ratingSeriesApi } from "../../lib/api";
 import { useMediaListing } from "../../lib/useMediaListing";
 import { Tv, TrendingUp, Clock, Star, Radio, LucideIcon } from "lucide-react";
 
@@ -67,6 +67,7 @@ export default function SeriesPage() {
     loading,
     loadingMore,
     favoriteStatus,
+    ratingStatus,
     searchQuery,
     setSearchQuery,
     isSearching,
@@ -79,6 +80,7 @@ export default function SeriesPage() {
     clearSearch,
     handleCategoryChange,
     handleToggleFavorite,
+    updateRatingStatus,
   } = useMediaListing<TmdbSerie, SerieCategory>({
     mediaType: "serie",
     initialCategory: "popular",
@@ -87,6 +89,7 @@ export default function SeriesPage() {
     getFavoriteStatus: favoriteSeriesApi.getFavoriteStatus,
     getFavoriteStatuses: favoriteSeriesApi.getFavoriteStatuses,
     toggleFavorite: favoriteSeriesApi.toggleFavorite,
+    getRatingStatuses: ratingSeriesApi.getRatingStatuses,
     messages: listingMessages,
   });
 
@@ -95,23 +98,22 @@ export default function SeriesPage() {
     initialize();
   }, [initialize]);
 
-  const loadMoreSeries = () => {
-    loadMoreItems();
-  };
-
   const handleSerieClick = async (serie: TmdbSerie) => {
     setSelectedSerie(serie);
     setDialogOpen(true);
 
     try {
-      const serieDetails = await seriesApi.getSerieDetails(String(serie.id));
-      setSerieDetails(serieDetails);
-    } catch (error: any) {
-      console.error("Erro ao carregar detalhes da série:", error);
+      const details = await seriesApi.getSerieDetails(String(serie.id));
+      setSerieDetails(details);
+    } catch {
       toast.error("Erro ao carregar detalhes", {
         description: "Não foi possível carregar os detalhes da série",
       });
     }
+  };
+
+  const handleRateSuccess = (serieId: number, rating: string, comment?: string) => {
+    updateRatingStatus(serieId, { rating, comment });
   };
 
   const handleCloseDialog = () => {
@@ -186,6 +188,7 @@ export default function SeriesPage() {
                 showFavoriteButton={isLoggedIn}
                 isFavorite={favoriteStatus[serie.id] || false}
                 onFavoriteToggle={() => handleToggleFavorite(serie.id)}
+                userRating={ratingStatus[serie.id] ?? null}
               />
             )}
           />
@@ -199,8 +202,15 @@ export default function SeriesPage() {
           isOpen={dialogOpen}
           onClose={handleCloseDialog}
           isLoggedIn={isLoggedIn}
+          onRateSuccess={(rating, comment) =>
+            handleRateSuccess(selectedSerie.id, rating, comment)
+          }
         />
       )}
     </div>
   );
+
+  function loadMoreSeries() {
+    loadMoreItems();
+  }
 }
