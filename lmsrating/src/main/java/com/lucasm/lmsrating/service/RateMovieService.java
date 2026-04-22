@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.lucasm.lmsrating.dto.CatalogSyncDTO;
+import com.lucasm.lmsrating.dto.RatingMovieResponseDTO;
 import com.lucasm.lmsrating.dto.RatingRequestDTO;
 import com.lucasm.lmsrating.dto.RatingStatusDTO;
 import com.lucasm.lmsrating.exceptions.MovieServiceException;
@@ -87,21 +88,57 @@ public class RateMovieService {
         }
     }
 
-    public Page<RatingMovie> searchRatedMoviesPaged(String email, String title, Double minRating, Double maxRating, Pageable pageable) {
+    public Page<RatingMovieResponseDTO> searchRatedMoviesPaged(String email, String title, Double minRating, Double maxRating, Pageable pageable) {
         Long userId = userLookupService.getUserIdByEmail(email);
         boolean hasTitle = title != null && !title.isBlank();
         boolean hasRange = minRating != null && maxRating != null;
 
+        Page<RatingMovie> ratings;
         if (hasTitle && hasRange) {
-            return movieRepository.findByUserIdAndTitleAndRatingRange(userId, title, minRating, maxRating, pageable);
+            ratings = movieRepository.findByUserIdAndTitleAndRatingRange(userId, title, minRating, maxRating, pageable);
         } else if (hasTitle) {
-            return movieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
+            ratings = movieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
         } else if (hasRange) {
-            return movieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
+            ratings = movieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
         } else {
-            return movieRepository.findAllByUserId(userId, pageable);
+            ratings = movieRepository.findAllByUserIdOrderByCreatedAtDesc(userId, pageable);
         }
+
+        if (ratings.isEmpty()) return ratings.map(r -> null);
+
+        List<String> movieIds = ratings.getContent().stream().map(RatingMovie::getMovieId).toList();
+        Map<String, CatalogEntry> catalog = loadCatalogBatch(movieIds);
+
+        return ratings.map(r -> {
+            CatalogEntry c = catalog.get(r.getMovieId());
+            return new RatingMovieResponseDTO(
+                r.getId(),
+                r.getMovieId(),
+                c != null ? c.title : null,
+                c != null ? c.posterPath : null,
+                r.getRating(),
+                r.getComment(),
+                r.getCreatedAt(),
+                r.getModifiedAt()
+            );
+        });
     }
+
+    private Map<String, CatalogEntry> loadCatalogBatch(List<String> movieIds) {
+        if (movieIds.isEmpty()) return Map.of();
+        String placeholders = String.join(",", Collections.nCopies(movieIds.size(), "?"));
+        String sql = "SELECT movie_id, title, poster_path FROM movies WHERE movie_id IN (" + placeholders + ")";
+        Map<String, CatalogEntry> result = new HashMap<>();
+        jdbcTemplate.query(sql, movieIds.toArray(), rs -> {
+            result.put(rs.getString("movie_id"), new CatalogEntry(
+                rs.getString("title"),
+                rs.getString("poster_path")
+            ));
+        });
+        return result;
+    }
+
+    private record CatalogEntry(String title, String posterPath) {}
 
     public RatingMovie getMovieRating(String movieId, String email) {
         Long userId = userLookupService.getUserIdByEmail(email);

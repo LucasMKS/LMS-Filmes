@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.lucasm.lmsrating.dto.CatalogSyncDTO;
+import com.lucasm.lmsrating.dto.RatingSerieResponseDTO;
 import com.lucasm.lmsrating.dto.RatingStatusDTO;
 import com.lucasm.lmsrating.dto.SerieRatingRequestDTO;
 import com.lucasm.lmsrating.exceptions.MovieServiceException;
@@ -88,21 +89,57 @@ public class RateSerieService {
         }
     }
 
-    public Page<RatingSerie> searchRatedSeriesPaged(String email, String title, Double minRating, Double maxRating, Pageable pageable) {
+    public Page<RatingSerieResponseDTO> searchRatedSeriesPaged(String email, String title, Double minRating, Double maxRating, Pageable pageable) {
         Long userId = userLookupService.getUserIdByEmail(email);
         boolean hasTitle = title != null && !title.isBlank();
         boolean hasRange = minRating != null && maxRating != null;
 
+        Page<RatingSerie> ratings;
         if (hasTitle && hasRange) {
-            return serieRepository.findByUserIdAndTitleAndRatingRange(userId, title, minRating, maxRating, pageable);
+            ratings = serieRepository.findByUserIdAndTitleAndRatingRange(userId, title, minRating, maxRating, pageable);
         } else if (hasTitle) {
-            return serieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
+            ratings = serieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
         } else if (hasRange) {
-            return serieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
+            ratings = serieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
         } else {
-            return serieRepository.findAllByUserId(userId, pageable);
+            ratings = serieRepository.findAllByUserIdOrderByCreatedAtDesc(userId, pageable);
         }
+
+        if (ratings.isEmpty()) return ratings.map(r -> null);
+
+        List<String> serieIds = ratings.getContent().stream().map(RatingSerie::getSerieId).toList();
+        Map<String, CatalogEntry> catalog = loadCatalogBatch(serieIds);
+
+        return ratings.map(r -> {
+            CatalogEntry c = catalog.get(r.getSerieId());
+            return new RatingSerieResponseDTO(
+                r.getId(),
+                r.getSerieId(),
+                c != null ? c.title : null,
+                c != null ? c.posterPath : null,
+                r.getRating(),
+                r.getComment(),
+                r.getCreatedAt(),
+                r.getModifiedAt()
+            );
+        });
     }
+
+    private Map<String, CatalogEntry> loadCatalogBatch(List<String> serieIds) {
+        if (serieIds.isEmpty()) return Map.of();
+        String placeholders = String.join(",", Collections.nCopies(serieIds.size(), "?"));
+        String sql = "SELECT serie_id, title, poster_path FROM series WHERE serie_id IN (" + placeholders + ")";
+        Map<String, CatalogEntry> result = new HashMap<>();
+        jdbcTemplate.query(sql, serieIds.toArray(), rs -> {
+            result.put(rs.getString("serie_id"), new CatalogEntry(
+                rs.getString("title"),
+                rs.getString("poster_path")
+            ));
+        });
+        return result;
+    }
+
+    private record CatalogEntry(String title, String posterPath) {}
 
     public RatingSerie getSerieRating(String serieId, String email) {
         Long userId = userLookupService.getUserIdByEmail(email);

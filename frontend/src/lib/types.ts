@@ -41,6 +41,29 @@ export interface Serie {
   modifiedAt?: string;
 }
 
+// Tipos retornados pelo endpoint /paged já enriquecidos com title/posterPath do catálogo
+export interface RatedMovieResponse {
+  id: number;
+  movieId: string;
+  title: string | null;
+  posterPath: string | null;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  modifiedAt?: string;
+}
+
+export interface RatedSerieResponse {
+  id: number;
+  serieId: string;
+  title: string | null;
+  posterPath: string | null;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  modifiedAt?: string;
+}
+
 export interface FavoriteMovie {
   id: string;
   movieId: string;

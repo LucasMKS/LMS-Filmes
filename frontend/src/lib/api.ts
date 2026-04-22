@@ -13,7 +13,19 @@ import {
   SimpleApiResponse,
   WatchlistMovie,
   WatchlistSerie,
+  RatedMovieResponse,
+  RatedSerieResponse,
 } from "./types";
+
+export interface PagedResponse<T> {
+  content: T[];
+  last: boolean;
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  empty: boolean;
+}
 
 const resolveApiGatewayUrl = (): string => {
   const envUrl =
@@ -223,7 +235,7 @@ export const ratingMoviesApi = {
     minRating?: number,
     maxRating?: number,
     title?: string,
-  ): Promise<any> => {
+  ): Promise<PagedResponse<RatedMovieResponse>> => {
     const params = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),
@@ -262,7 +274,7 @@ export const ratingSeriesApi = {
     minRating?: number,
     maxRating?: number,
     title?: string,
-  ): Promise<any> => {
+  ): Promise<PagedResponse<RatedSerieResponse>> => {
     const params = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),

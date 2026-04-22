@@ -2,6 +2,7 @@ package com.lucasm.lmsrating.controller;
 
 import org.springframework.web.bind.annotation.RestController;
 
+import com.lucasm.lmsrating.dto.RatingSerieResponseDTO;
 import com.lucasm.lmsrating.dto.RatingStatusDTO;
 import com.lucasm.lmsrating.dto.SerieRatingRequestDTO;
 import com.lucasm.lmsrating.model.RatingSerie;
@@ -15,7 +16,6 @@ import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -91,7 +91,7 @@ public class RateSerieController {
      * @return página de avaliações de filmes.
      */
     @GetMapping("/paged")
-    public ResponseEntity<Page<RatingSerie>> getUserRatingsPaged(
+    public ResponseEntity<Page<RatingSerieResponseDTO>> getUserRatingsPaged(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Double minRating,
@@ -100,7 +100,7 @@ public class RateSerieController {
             Authentication authentication) {
 
         String email = authentication.getName();
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(rateService.searchRatedSeriesPaged(email, title, minRating, maxRating, pageable));
     }
 

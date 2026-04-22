@@ -15,25 +15,24 @@ import com.lucasm.lmsrating.model.RatingMovie;
 @Repository
 public interface MovieRepository extends JpaRepository<RatingMovie, Long> {
 
-    Page<RatingMovie> findAllByUserId(Long userId, Pageable pageable);
+    Page<RatingMovie> findAllByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-    @Query(value = "SELECT r.* FROM ratings_movies r JOIN movies m ON r.movie_id = m.movie_id WHERE r.user_id = :userId AND LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%'))",
-           countQuery = "SELECT COUNT(r.id) FROM ratings_movies r JOIN movies m ON r.movie_id = m.movie_id WHERE r.user_id = :userId AND LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%'))",
-           nativeQuery = true)
-    Page<RatingMovie> findByUserIdAndTitleContainingIgnoreCase(@Param("userId") Long userId, @Param("title") String title, Pageable pageable);
-
-    @Query(value = "SELECT r.* FROM ratings_movies r JOIN movies m ON r.movie_id = m.movie_id WHERE r.user_id = :userId AND LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%')) AND r.rating BETWEEN :minRating AND :maxRating",
-           countQuery = "SELECT COUNT(r.id) FROM ratings_movies r JOIN movies m ON r.movie_id = m.movie_id WHERE r.user_id = :userId AND LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%')) AND r.rating BETWEEN :minRating AND :maxRating",
-           nativeQuery = true)
-    Page<RatingMovie> findByUserIdAndTitleAndRatingRange(@Param("userId") Long userId, @Param("title") String title, @Param("minRating") double minRating, @Param("maxRating") double maxRating, Pageable pageable);
+    List<RatingMovie> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 
     Optional<RatingMovie> findByMovieIdAndUserId(String movieId, Long userId);
 
     List<RatingMovie> findByUserIdAndMovieIdIn(Long userId, List<String> movieIds);
 
-    List<RatingMovie> findAllByUserIdOrderByCreatedAtDesc(Long userId);
-
-    // Consulta JPQL para buscar por faixa de notas
-    @Query("SELECT r FROM RatingMovie r WHERE r.userId = :userId AND r.rating BETWEEN :minRating AND :maxRating")
+    @Query("SELECT r FROM RatingMovie r WHERE r.userId = :userId AND r.rating BETWEEN :minRating AND :maxRating ORDER BY r.createdAt DESC")
     Page<RatingMovie> findByUserIdAndRatingRange(@Param("userId") Long userId, @Param("minRating") double minRating, @Param("maxRating") double maxRating, Pageable pageable);
+
+    @Query(value = "SELECT r.* FROM ratings_movies r JOIN movies m ON r.movie_id = m.movie_id WHERE r.user_id = :userId AND LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%')) ORDER BY r.created_at DESC",
+           countQuery = "SELECT COUNT(r.id) FROM ratings_movies r JOIN movies m ON r.movie_id = m.movie_id WHERE r.user_id = :userId AND LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%'))",
+           nativeQuery = true)
+    Page<RatingMovie> findByUserIdAndTitleContainingIgnoreCase(@Param("userId") Long userId, @Param("title") String title, Pageable pageable);
+
+    @Query(value = "SELECT r.* FROM ratings_movies r JOIN movies m ON r.movie_id = m.movie_id WHERE r.user_id = :userId AND LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%')) AND r.rating BETWEEN :minRating AND :maxRating ORDER BY r.created_at DESC",
+           countQuery = "SELECT COUNT(r.id) FROM ratings_movies r JOIN movies m ON r.movie_id = m.movie_id WHERE r.user_id = :userId AND LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%')) AND r.rating BETWEEN :minRating AND :maxRating",
+           nativeQuery = true)
+    Page<RatingMovie> findByUserIdAndTitleAndRatingRange(@Param("userId") Long userId, @Param("title") String title, @Param("minRating") double minRating, @Param("maxRating") double maxRating, Pageable pageable);
 }

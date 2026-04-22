@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.lucasm.lmsrating.dto.RatingMovieResponseDTO;
 import com.lucasm.lmsrating.dto.RatingRequestDTO;
 import com.lucasm.lmsrating.dto.RatingStatusDTO;
 import com.lucasm.lmsrating.model.RatingMovie;
@@ -75,7 +75,7 @@ public class RateMovieController {
      * @return página de avaliações de filmes.
      */
     @GetMapping("/paged")
-    public ResponseEntity<Page<RatingMovie>> getUserRatingsPaged(
+    public ResponseEntity<Page<RatingMovieResponseDTO>> getUserRatingsPaged(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Double minRating,
@@ -84,7 +84,7 @@ public class RateMovieController {
             Authentication authentication) {
 
         String email = authentication.getName();
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(rateService.searchRatedMoviesPaged(email, title, minRating, maxRating, pageable));
     }
 
