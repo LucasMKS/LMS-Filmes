@@ -80,16 +80,12 @@ public class RateMovieController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Double minRating,
             @RequestParam(required = false) Double maxRating,
+            @RequestParam(required = false) String title,
             Authentication authentication) {
-        
+
         String email = authentication.getName();
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        
-        if (minRating != null && maxRating != null) {
-            return ResponseEntity.ok(rateService.searchRatedMoviesByRatingRange(email, minRating, maxRating, pageable));
-        }
-        
-        return ResponseEntity.ok(rateService.searchRatedMoviesPaged(email, pageable));
+        return ResponseEntity.ok(rateService.searchRatedMoviesPaged(email, title, minRating, maxRating, pageable));
     }
 
     /**

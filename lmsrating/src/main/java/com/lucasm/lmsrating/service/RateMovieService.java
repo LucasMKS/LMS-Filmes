@@ -87,19 +87,20 @@ public class RateMovieService {
         }
     }
 
-    public Page<RatingMovie> searchRatedMoviesPaged(String email, Pageable pageable) {
+    public Page<RatingMovie> searchRatedMoviesPaged(String email, String title, Double minRating, Double maxRating, Pageable pageable) {
         Long userId = userLookupService.getUserIdByEmail(email);
-        return movieRepository.findAllByUserId(userId, pageable);
-    }
+        boolean hasTitle = title != null && !title.isBlank();
+        boolean hasRange = minRating != null && maxRating != null;
 
-    public Page<RatingMovie> searchRatedMoviesByRatingRange(String email, double minRating, double maxRating, Pageable pageable) {
-        Long userId = userLookupService.getUserIdByEmail(email);
-        return movieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
-    }
-
-    public Page<RatingMovie> searchRatedMoviesByTitle(String email, String title, Pageable pageable) {
-        Long userId = userLookupService.getUserIdByEmail(email);
-        return movieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
+        if (hasTitle && hasRange) {
+            return movieRepository.findByUserIdAndTitleAndRatingRange(userId, title, minRating, maxRating, pageable);
+        } else if (hasTitle) {
+            return movieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
+        } else if (hasRange) {
+            return movieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
+        } else {
+            return movieRepository.findAllByUserId(userId, pageable);
+        }
     }
 
     public RatingMovie getMovieRating(String movieId, String email) {

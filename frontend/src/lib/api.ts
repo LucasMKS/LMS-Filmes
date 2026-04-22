@@ -222,15 +222,15 @@ export const ratingMoviesApi = {
     size: number = 20,
     minRating?: number,
     maxRating?: number,
+    title?: string,
   ): Promise<any> => {
     const params = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),
     });
-    if (minRating !== undefined)
-      params.append("minRating", minRating.toString());
-    if (maxRating !== undefined)
-      params.append("maxRating", maxRating.toString());
+    if (minRating !== undefined) params.append("minRating", minRating.toString());
+    if (maxRating !== undefined) params.append("maxRating", maxRating.toString());
+    if (title?.trim()) params.append("title", title.trim());
 
     return apiLmsRating
       .get(`/rate/movies/paged?${params.toString()}`)
@@ -261,15 +261,15 @@ export const ratingSeriesApi = {
     size: number = 20,
     minRating?: number,
     maxRating?: number,
+    title?: string,
   ): Promise<any> => {
     const params = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),
     });
-    if (minRating !== undefined)
-      params.append("minRating", minRating.toString());
-    if (maxRating !== undefined)
-      params.append("maxRating", maxRating.toString());
+    if (minRating !== undefined) params.append("minRating", minRating.toString());
+    if (maxRating !== undefined) params.append("maxRating", maxRating.toString());
+    if (title?.trim()) params.append("title", title.trim());
 
     return apiLmsRating
       .get(`/rate/series/paged?${params.toString()}`)

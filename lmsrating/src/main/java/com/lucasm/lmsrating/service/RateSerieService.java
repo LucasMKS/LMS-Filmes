@@ -88,28 +88,19 @@ public class RateSerieService {
         }
     }
 
-    public Page<RatingSerie> searchRatedSeriesPaged(String email, Pageable pageable) {
-        try {
-            Long userId = userLookupService.getUserIdByEmail(email);
-            return serieRepository.findAllByUserId(userId, pageable);
-        } catch (Exception e) {
-            logger.error("Erro ao buscar séries paginadas para o usuário {}: {}", email, e.getMessage());
-            throw new MovieServiceException("Erro ao buscar séries avaliadas", e);
-        }
-    }
-
-    public Page<RatingSerie> searchRatedSeriesByRatingRange(String email, double minRating, double maxRating, Pageable pageable) {
+    public Page<RatingSerie> searchRatedSeriesPaged(String email, String title, Double minRating, Double maxRating, Pageable pageable) {
         Long userId = userLookupService.getUserIdByEmail(email);
-        return serieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
-    }
+        boolean hasTitle = title != null && !title.isBlank();
+        boolean hasRange = minRating != null && maxRating != null;
 
-    public Page<RatingSerie> searchRatedSeriesByTitle(String email, String title, Pageable pageable) {
-        try {
-            Long userId = userLookupService.getUserIdByEmail(email);
+        if (hasTitle && hasRange) {
+            return serieRepository.findByUserIdAndTitleAndRatingRange(userId, title, minRating, maxRating, pageable);
+        } else if (hasTitle) {
             return serieRepository.findByUserIdAndTitleContainingIgnoreCase(userId, title, pageable);
-        } catch (Exception e) {
-            logger.error("Erro na busca por título para o usuário {}: {}", email, e.getMessage());
-            throw new MovieServiceException("Erro ao buscar séries por título", e);
+        } else if (hasRange) {
+            return serieRepository.findByUserIdAndRatingRange(userId, minRating, maxRating, pageable);
+        } else {
+            return serieRepository.findAllByUserId(userId, pageable);
         }
     }
 

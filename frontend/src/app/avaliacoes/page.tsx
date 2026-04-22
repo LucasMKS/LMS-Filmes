@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import { ratingMoviesApi, ratingSeriesApi, moviesApi, seriesApi } from "../../lib/api";
@@ -9,7 +9,6 @@ import { MovieCard } from "../../components/MovieCard";
 import { SerieCard } from "../../components/SerieCard";
 import { MovieDialog } from "../../components/MovieDialog";
 import { SerieDialog } from "../../components/SerieDialog";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Star, Film, Tv, Search, Filter, TrendingUp, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,13 +31,17 @@ const fetchWithRetry = async <T,>(fetcher: () => Promise<T>, retries: number): P
   }
 };
 
-const mapWithConcurrency = async <T, R>(items: T[], limit: number, mapper: (item: T) => Promise<R>): Promise<R[]> => {
+const mapWithConcurrency = async <T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> => {
   const results: R[] = new Array(items.length);
   let index = 0;
   const runWorker = async () => {
     while (index < items.length) {
-      const currentIndex = index++;
-      results[currentIndex] = await mapper(items[currentIndex]);
+      const i = index++;
+      results[i] = await mapper(items[i]);
     }
   };
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runWorker));
@@ -50,16 +53,14 @@ const buildFallbackMovie = (movie: Movie): TmdbMovie => ({
   title: movie.title || "Filme desconhecido",
   original_title: movie.title || "Filme desconhecido",
   poster_path: movie.poster_path || undefined,
-  release_date: undefined,
   vote_average: Number(movie.rating) || undefined,
 });
 
 const buildFallbackSerie = (serie: Serie): TmdbSerie => ({
   id: Number.isFinite(Number(serie.serieId)) ? Number(serie.serieId) : 0,
-  name: serie.title || "Serie desconhecida",
-  original_name: serie.title || "Serie desconhecida",
+  name: serie.title || "Série desconhecida",
+  original_name: serie.title || "Série desconhecida",
   poster_path: serie.poster_path || undefined,
-  first_air_date: undefined,
   vote_average: Number(serie.rating) || undefined,
 });
 
@@ -70,10 +71,19 @@ export default function RatingsPage() {
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [isMovieDialogOpen, setIsMovieDialogOpen] = useState(false);
   const [isSerieDialogOpen, setIsSerieDialogOpen] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterRating, setFilterRating] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">("all");
+
   const isAuth = AuthService.isAuthenticated();
+
+  // Debounce: só dispara a query 400ms após parar de digitar
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const getRatingRange = () => {
     if (filterRating === "9-10") return { min: 9.0, max: 10.0 };
@@ -83,93 +93,122 @@ export default function RatingsPage() {
     return { min: undefined, max: undefined };
   };
 
-  const { data: moviesData, fetchNextPage: fetchNextMovies, hasNextPage: hasNextMovies, isFetchingNextPage: isFetchingNextMovies, isLoading: isLoadingMovies } = useInfiniteQuery({
-    queryKey: ["ratings", "movies", filterRating],
+  const {
+    data: moviesData,
+    fetchNextPage: fetchNextMovies,
+    hasNextPage: hasNextMovies,
+    isFetchingNextPage: isFetchingNextMovies,
+    isLoading: isLoadingMovies,
+  } = useInfiniteQuery({
+    queryKey: ["ratings", "movies", filterRating, debouncedSearch],
     queryFn: async ({ pageParam = 0 }) => {
       const { min, max } = getRatingRange();
-      const response = await ratingMoviesApi.getRatedMoviesPaged(pageParam, 20, min, max);
-      const enriched = await mapWithConcurrency(response.content || [], MAX_CONCURRENT_DETAILS, async (m: Movie) => {
-        if (!m.movieId) return { ...m, tmdbData: buildFallbackMovie(m) };
-        try { return { ...m, tmdbData: await fetchWithRetry(() => moviesApi.getMovieDetails(m.movieId), DETAIL_RETRY_COUNT) }; }
-        catch { return { ...m, tmdbData: buildFallbackMovie(m) }; }
-      });
+      const response = await ratingMoviesApi.getRatedMoviesPaged(
+        pageParam, 20, min, max, debouncedSearch || undefined,
+      );
+      const enriched = await mapWithConcurrency(
+        response.content || [],
+        MAX_CONCURRENT_DETAILS,
+        async (m: Movie) => {
+          if (!m.movieId) return { ...m, tmdbData: buildFallbackMovie(m) };
+          try {
+            return { ...m, tmdbData: await fetchWithRetry(() => moviesApi.getMovieDetails(m.movieId), DETAIL_RETRY_COUNT) };
+          } catch {
+            return { ...m, tmdbData: buildFallbackMovie(m) };
+          }
+        },
+      );
       return { content: enriched, last: response.last, page: pageParam };
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.last ? undefined : lastPage.page + 1,
-    enabled: isAuth,
+    enabled: isAuth && typeFilter !== "serie",
   });
 
-  const { data: seriesData, fetchNextPage: fetchNextSeries, hasNextPage: hasNextSeries, isFetchingNextPage: isFetchingNextSeries, isLoading: isLoadingSeries } = useInfiniteQuery({
-    queryKey: ["ratings", "series", filterRating],
+  const {
+    data: seriesData,
+    fetchNextPage: fetchNextSeries,
+    hasNextPage: hasNextSeries,
+    isFetchingNextPage: isFetchingNextSeries,
+    isLoading: isLoadingSeries,
+  } = useInfiniteQuery({
+    queryKey: ["ratings", "series", filterRating, debouncedSearch],
     queryFn: async ({ pageParam = 0 }) => {
       const { min, max } = getRatingRange();
-      const response = await ratingSeriesApi.getRatedSeriesPaged(pageParam, 20, min, max);
-      const enriched = await mapWithConcurrency(response.content || [], MAX_CONCURRENT_DETAILS, async (s: Serie) => {
-        if (!s.serieId) return { ...s, tmdbData: buildFallbackSerie(s) };
-        try { return { ...s, tmdbData: await fetchWithRetry(() => seriesApi.getSerieDetails(s.serieId), DETAIL_RETRY_COUNT) }; }
-        catch { return { ...s, tmdbData: buildFallbackSerie(s) }; }
-      });
+      const response = await ratingSeriesApi.getRatedSeriesPaged(
+        pageParam, 20, min, max, debouncedSearch || undefined,
+      );
+      const enriched = await mapWithConcurrency(
+        response.content || [],
+        MAX_CONCURRENT_DETAILS,
+        async (s: Serie) => {
+          if (!s.serieId) return { ...s, tmdbData: buildFallbackSerie(s) };
+          try {
+            return { ...s, tmdbData: await fetchWithRetry(() => seriesApi.getSerieDetails(s.serieId), DETAIL_RETRY_COUNT) };
+          } catch {
+            return { ...s, tmdbData: buildFallbackSerie(s) };
+          }
+        },
+      );
       return { content: enriched, last: response.last, page: pageParam };
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.last ? undefined : lastPage.page + 1,
-    enabled: isAuth,
+    enabled: isAuth && typeFilter !== "movie",
   });
 
   const ratedMovies = moviesData?.pages.flatMap((p) => p.content) || [];
   const ratedSeries = seriesData?.pages.flatMap((p) => p.content) || [];
+
+  // typeFilter é UI-only: apenas esconde a aba que não é relevante
+  const visibleMovies = typeFilter === "serie" ? [] : ratedMovies;
+  const visibleSeries = typeFilter === "movie" ? [] : ratedSeries;
+
   const isLoading = isLoadingMovies || isLoadingSeries;
   const isFetchingMore = isFetchingNextMovies || isFetchingNextSeries;
   const hasMore = hasNextMovies || hasNextSeries;
+  const isSearchActive = debouncedSearch.length > 0 || filterRating !== "all" || typeFilter !== "all";
 
-  const handleLoadMore = () => { if (hasNextMovies) fetchNextMovies(); if (hasNextSeries) fetchNextSeries(); };
+  const handleLoadMore = () => {
+    if (hasNextMovies) fetchNextMovies();
+    if (hasNextSeries) fetchNextSeries();
+  };
 
   const handleMovieClick = async (movie: RatedMovie) => {
-    if (movie.tmdbData) {
-      setSelectedMovie(movie.tmdbData);
-      try { setMovieDetails(await moviesApi.getMovieDetails(String(movie.tmdbData.id))); } catch { setMovieDetails(null); }
-      setIsMovieDialogOpen(true);
-    }
+    if (!movie.tmdbData) return;
+    setSelectedMovie(movie.tmdbData);
+    setIsMovieDialogOpen(true);
+    try { setMovieDetails(await moviesApi.getMovieDetails(String(movie.tmdbData.id))); }
+    catch { setMovieDetails(null); }
   };
 
   const handleSerieClick = async (serie: RatedSerie) => {
-    if (serie.tmdbData) {
-      setSelectedSerie(serie.tmdbData);
-      try { setSerieDetails(await seriesApi.getSerieDetails(String(serie.tmdbData.id))); } catch { setSerieDetails(null); }
-      setIsSerieDialogOpen(true);
-    }
+    if (!serie.tmdbData) return;
+    setSelectedSerie(serie.tmdbData);
+    setIsSerieDialogOpen(true);
+    try { setSerieDetails(await seriesApi.getSerieDetails(String(serie.tmdbData.id))); }
+    catch { setSerieDetails(null); }
   };
 
-  const clearSearch = () => { setSearchQuery(""); setFilterRating("all"); setTypeFilter("all"); };
-
-  const filterItemsLocally = (items: any[], searchTerm: string, itemType: "movie" | "serie") =>
-    items.filter((item) => {
-      const matchesSearch = !searchTerm || item.tmdbData?.title?.toLowerCase().includes(searchTerm.toLowerCase()) || item.tmdbData?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch && (typeFilter === "all" || typeFilter === itemType);
-    });
+  const clearSearch = () => {
+    setSearchQuery("");
+    setFilterRating("all");
+    setTypeFilter("all");
+  };
 
   const getAverageRating = (items: (RatedMovie | RatedSerie)[]) => {
-    const valid = items.filter((i) => i.rating !== undefined && i.rating !== null && !isNaN(Number(i.rating)));
+    const valid = items.filter((i) => i.rating != null && !isNaN(Number(i.rating)));
     if (valid.length === 0) return "0.0";
     return (valid.reduce((acc, i) => acc + Number(i.rating), 0) / valid.length).toFixed(1);
   };
 
-  const stats = {
-    totalMovies: ratedMovies.length,
-    totalSeries: ratedSeries.length,
-    totalItems: ratedMovies.length + ratedSeries.length,
-    avgMovieRating: getAverageRating(ratedMovies),
-    avgSerieRating: getAverageRating(ratedSeries),
-    avgOverall: getAverageRating([...ratedMovies, ...ratedSeries]),
-  };
+  const totalShown = visibleMovies.length + visibleSeries.length;
 
-  const filteredMovies = filterItemsLocally(ratedMovies, searchQuery, "movie");
-  const filteredSeries = filterItemsLocally(ratedSeries, searchQuery, "serie");
-
-  const tabBtn = (active: boolean, color: string, activeColor: string) =>
-    cn("flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 border",
-      active ? `${activeColor} border-current/20` : "text-white/35 hover:text-white/60 hover:bg-white/5 border-transparent");
+  const tabBtn = (active: boolean, activeColor: string) =>
+    cn(
+      "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 border",
+      active ? `${activeColor} border-current/20` : "text-white/35 hover:text-white/60 hover:bg-white/5 border-transparent",
+    );
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
@@ -180,7 +219,9 @@ export default function RatingsPage() {
             <Star className="w-6 h-6 text-amber-400 fill-current/30" />
             Minhas Avaliações
           </h2>
-          <p className="text-white/35 mt-1.5 text-sm">Todo o seu histórico de opiniões e notas sobre o que você já assistiu.</p>
+          <p className="text-white/35 mt-1.5 text-sm">
+            Todo o seu histórico de opiniões e notas sobre o que você já assistiu.
+          </p>
         </div>
 
         {/* Filtros */}
@@ -195,7 +236,10 @@ export default function RatingsPage() {
                 className="bg-[#0a0a0f]/60 border-white/10 text-white/80 placeholder:text-white/25 pl-10 pr-10 h-11 rounded-xl focus-visible:ring-amber-500/30 focus-visible:border-amber-500/40"
               />
               {searchQuery && (
-                <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors">
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors"
+                >
                   <X className="w-4 h-4" />
                 </button>
               )}
@@ -219,23 +263,25 @@ export default function RatingsPage() {
               </div>
 
               <div className="flex gap-1.5 bg-[#0a0a0f]/60 p-1.5 rounded-xl border border-white/[0.06] overflow-x-auto shrink-0">
-                <button onClick={() => setTypeFilter("all")} className={tabBtn(typeFilter === "all", "", "bg-white/10 text-white/80")}>Todos</button>
-                <button onClick={() => setTypeFilter("movie")} className={tabBtn(typeFilter === "movie", "text-purple-400", "bg-purple-500/15 text-purple-300 border-purple-500/20")}>
+                <button onClick={() => setTypeFilter("all")} className={tabBtn(typeFilter === "all", "bg-white/10 text-white/80")}>
+                  Todos
+                </button>
+                <button onClick={() => setTypeFilter("movie")} className={tabBtn(typeFilter === "movie", "bg-purple-500/15 text-purple-300 border-purple-500/20")}>
                   <Film className="w-3.5 h-3.5" /> Filmes
                 </button>
-                <button onClick={() => setTypeFilter("serie")} className={tabBtn(typeFilter === "serie", "text-violet-400", "bg-violet-500/15 text-violet-300 border-violet-500/20")}>
+                <button onClick={() => setTypeFilter("serie")} className={tabBtn(typeFilter === "serie", "bg-violet-500/15 text-violet-300 border-violet-500/20")}>
                   <Tv className="w-3.5 h-3.5" /> Séries
                 </button>
               </div>
             </div>
           </div>
 
-          {(searchQuery || filterRating !== "all" || typeFilter !== "all") && (
+          {isSearchActive && (
             <div className="mt-4 flex items-center gap-3 pt-4 border-t border-white/[0.05]">
-              <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl">
-                <Filter className="w-3 h-3 mr-1.5" /> Filtrado
-              </Badge>
-              <span className="text-white/30 text-sm">{filteredMovies.length + filteredSeries.length} resultados encontrados</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 text-xs font-medium border border-amber-500/20">
+                <Filter className="w-3 h-3" /> Filtrado
+              </span>
+              <span className="text-white/30 text-sm">{totalShown} resultado{totalShown !== 1 ? "s" : ""} encontrado{totalShown !== 1 ? "s" : ""}</span>
               <button onClick={clearSearch} className="ml-auto flex items-center gap-1 text-xs text-white/25 hover:text-white/50 transition-colors">
                 <X className="w-3 h-3" /> Limpar
               </button>
@@ -253,10 +299,10 @@ export default function RatingsPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
               {[
-                { label: "Exibindo", value: stats.totalItems, icon: Star, color: "text-white/30" },
-                { label: "Média da Busca", value: stats.avgOverall, icon: TrendingUp, color: "text-amber-400", valueClass: "text-amber-400" },
-                { label: "Filmes", value: `${stats.totalMovies}`, icon: Film, color: "text-purple-400", sub: `Média: ${stats.avgMovieRating}` },
-                { label: "Séries", value: `${stats.totalSeries}`, icon: Tv, color: "text-violet-400", sub: `Média: ${stats.avgSerieRating}` },
+                { label: "Exibindo", value: totalShown, icon: Star, color: "text-white/30" },
+                { label: "Média da Busca", value: getAverageRating([...visibleMovies, ...visibleSeries]), icon: TrendingUp, color: "text-amber-400", valueClass: "text-amber-400" },
+                { label: "Filmes", value: visibleMovies.length, icon: Film, color: "text-purple-400", sub: `Média: ${getAverageRating(visibleMovies)}` },
+                { label: "Séries", value: visibleSeries.length, icon: Tv, color: "text-violet-400", sub: `Média: ${getAverageRating(visibleSeries)}` },
               ].map(({ label, value, icon: Icon, color, valueClass, sub }) => (
                 <div key={label} className="bg-[#14141c] border border-white/[0.06] rounded-2xl p-4 shadow-md">
                   <div className="flex items-center justify-between mb-2">
@@ -269,21 +315,24 @@ export default function RatingsPage() {
               ))}
             </div>
 
-            {filteredMovies.length === 0 && filteredSeries.length === 0 ? (
+            {totalShown === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 bg-[#14141c]/40 rounded-2xl border border-white/[0.06] border-dashed">
                 <div className="w-14 h-14 bg-white/[0.04] rounded-2xl flex items-center justify-center mb-4">
                   <Star className="w-7 h-7 text-white/15" />
                 </div>
                 <h3 className="text-lg font-bold text-white/50 mb-2">
-                  {searchQuery || filterRating !== "all" || typeFilter !== "all" ? "Nenhum resultado para o filtro" : "Você ainda não avaliou nada"}
+                  {isSearchActive ? "Nenhum resultado para o filtro" : "Você ainda não avaliou nada"}
                 </h3>
                 <p className="text-white/25 text-center max-w-md text-sm">
-                  {searchQuery || filterRating !== "all" || typeFilter !== "all"
+                  {isSearchActive
                     ? "Tente limpar a sua busca ou trocar de categoria."
                     : "Vá até a aba de Filmes ou Séries e comece a dar notas!"}
                 </p>
-                {(searchQuery || filterRating !== "all" || typeFilter !== "all") && (
-                  <button onClick={clearSearch} className="mt-5 px-4 py-2 rounded-xl border border-white/10 text-white/40 hover:text-white/70 hover:bg-white/5 text-sm transition-all">
+                {isSearchActive && (
+                  <button
+                    onClick={clearSearch}
+                    className="mt-5 px-4 py-2 rounded-xl border border-white/10 text-white/40 hover:text-white/70 hover:bg-white/5 text-sm transition-all"
+                  >
                     Limpar Filtros
                   </button>
                 )}
@@ -291,22 +340,30 @@ export default function RatingsPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 mb-10">
                 {[
-                  ...filteredMovies.map((m) => ({ type: "movie" as const, item: m, key: `movie-${m.id}` })),
-                  ...filteredSeries.map((s) => ({ type: "serie" as const, item: s, key: `serie-${s.id}` })),
+                  ...visibleMovies.map((m) => ({ type: "movie" as const, item: m, key: `movie-${m.id}` })),
+                  ...visibleSeries.map((s) => ({ type: "serie" as const, item: s, key: `serie-${s.id}` })),
                 ].map(({ type, item, key }) => (
                   <div key={key}>
                     {type === "movie" && item.tmdbData && (
-                      <MovieCard movie={item.tmdbData} onClick={() => handleMovieClick(item)} userRating={{ rating: String(item.rating), comment: item.comment }} />
+                      <MovieCard
+                        movie={item.tmdbData}
+                        onClick={() => handleMovieClick(item)}
+                        userRating={{ rating: String(item.rating), comment: item.comment }}
+                      />
                     )}
                     {type === "serie" && item.tmdbData && (
-                      <SerieCard serie={item.tmdbData} onClick={() => handleSerieClick(item)} userRating={{ rating: String(item.rating), comment: item.comment }} />
+                      <SerieCard
+                        serie={item.tmdbData}
+                        onClick={() => handleSerieClick(item)}
+                        userRating={{ rating: String(item.rating), comment: item.comment }}
+                      />
                     )}
                   </div>
                 ))}
               </div>
             )}
 
-            {hasMore && !isLoading && (
+            {hasMore && (
               <div className="flex justify-center pb-12">
                 <button
                   onClick={handleLoadMore}
@@ -314,7 +371,10 @@ export default function RatingsPage() {
                   className="inline-flex items-center gap-2 px-7 py-2.5 rounded-2xl bg-[#14141c] border border-white/[0.06] text-white/40 hover:text-white/70 hover:bg-[#1a1a26] hover:border-amber-500/20 disabled:opacity-40 text-sm font-medium transition-all duration-200"
                 >
                   {isFetchingMore ? (
-                    <><div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white/40"></div>Carregando...</>
+                    <>
+                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white/40" />
+                      Carregando...
+                    </>
                   ) : "Carregar Mais Histórico"}
                 </button>
               </div>
@@ -323,10 +383,22 @@ export default function RatingsPage() {
         )}
 
         {selectedMovie && (
-          <MovieDialog movie={selectedMovie} movieDetails={movieDetails} isOpen={isMovieDialogOpen} onClose={() => setIsMovieDialogOpen(false)} isLoggedIn={true} />
+          <MovieDialog
+            movie={selectedMovie}
+            movieDetails={movieDetails}
+            isOpen={isMovieDialogOpen}
+            onClose={() => setIsMovieDialogOpen(false)}
+            isLoggedIn
+          />
         )}
         {selectedSerie && (
-          <SerieDialog isOpen={isSerieDialogOpen} onClose={() => setIsSerieDialogOpen(false)} serie={selectedSerie} serieDetails={serieDetails} isLoggedIn={true} />
+          <SerieDialog
+            isOpen={isSerieDialogOpen}
+            onClose={() => setIsSerieDialogOpen(false)}
+            serie={selectedSerie}
+            serieDetails={serieDetails}
+            isLoggedIn
+          />
         )}
       </main>
     </div>

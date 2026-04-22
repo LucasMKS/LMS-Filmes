@@ -17,9 +17,15 @@ public interface SerieRepository extends JpaRepository<RatingSerie, Long>  {
 
     Page<RatingSerie> findAllByUserId(Long userId, Pageable pageable);
 
-    // SOLUÇÃO: Busca o título fazendo um JOIN direto no banco de dados
-    @Query(value = "SELECT r.* FROM ratings_series r JOIN series s ON r.serie_id = s.serie_id WHERE r.user_id = :userId AND LOWER(s.title) LIKE LOWER(CONCAT('%', :title, '%'))", nativeQuery = true)
+    @Query(value = "SELECT r.* FROM ratings_series r JOIN series s ON r.serie_id = s.serie_id WHERE r.user_id = :userId AND LOWER(s.title) LIKE LOWER(CONCAT('%', :title, '%'))",
+           countQuery = "SELECT COUNT(r.id) FROM ratings_series r JOIN series s ON r.serie_id = s.serie_id WHERE r.user_id = :userId AND LOWER(s.title) LIKE LOWER(CONCAT('%', :title, '%'))",
+           nativeQuery = true)
     Page<RatingSerie> findByUserIdAndTitleContainingIgnoreCase(@Param("userId") Long userId, @Param("title") String title, Pageable pageable);
+
+    @Query(value = "SELECT r.* FROM ratings_series r JOIN series s ON r.serie_id = s.serie_id WHERE r.user_id = :userId AND LOWER(s.title) LIKE LOWER(CONCAT('%', :title, '%')) AND r.rating BETWEEN :minRating AND :maxRating",
+           countQuery = "SELECT COUNT(r.id) FROM ratings_series r JOIN series s ON r.serie_id = s.serie_id WHERE r.user_id = :userId AND LOWER(s.title) LIKE LOWER(CONCAT('%', :title, '%')) AND r.rating BETWEEN :minRating AND :maxRating",
+           nativeQuery = true)
+    Page<RatingSerie> findByUserIdAndTitleAndRatingRange(@Param("userId") Long userId, @Param("title") String title, @Param("minRating") double minRating, @Param("maxRating") double maxRating, Pageable pageable);
 
     Optional<RatingSerie> findBySerieIdAndUserId(String serieId, Long userId);
 
