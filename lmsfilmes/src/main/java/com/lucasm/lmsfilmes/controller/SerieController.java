@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Map;
+
 import com.lucasm.lmsfilmes.dto.SeriesDTO;
 import com.lucasm.lmsfilmes.dto.TmdbPageDTO;
 import com.lucasm.lmsfilmes.service.SerieService;
@@ -42,6 +45,18 @@ public class SerieController {
             @RequestParam(defaultValue = "1") int page) { 
         TmdbPageDTO<SeriesDTO> serie = serieService.searchSeries(query, page);
         return ResponseEntity.ok(serie);
+    }
+
+    /**
+     * Retorna detalhes de múltiplas séries em paralelo, usando o cache individual
+     * do TMDB. Mapeado antes de {@code /{serieId}} para evitar conflito de rota.
+     *
+     * @param ids lista de IDs do TMDB (parâmetro repetido ou CSV).
+     * @return mapa {@code id -> SeriesDTO} apenas com séries encontradas.
+     */
+    @GetMapping("/batch")
+    public ResponseEntity<Map<String, SeriesDTO>> getSeriesBatch(@RequestParam("ids") List<String> ids) {
+        return ResponseEntity.ok(serieService.getSeriesBatch(ids));
     }
 
     /**

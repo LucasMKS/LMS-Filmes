@@ -78,16 +78,12 @@ export default function RatingsPage() {
         range.max,
         debouncedSearch || undefined,
       );
-      const enriched: EnrichedMovie[] = await Promise.all(
-        page.content.map(async (m) => {
-          try {
-            const tmdb = await moviesApi.getMovieDetails(m.movieId);
-            return { ...m, tmdb };
-          } catch {
-            return { ...m, tmdb: null };
-          }
-        }),
-      );
+      const ids = page.content.map((m) => m.movieId);
+      const tmdbMap = await moviesApi.getMoviesBatch(ids).catch(() => ({} as Record<string, TmdbMovie>));
+      const enriched: EnrichedMovie[] = page.content.map((m) => ({
+        ...m,
+        tmdb: tmdbMap[m.movieId] ?? null,
+      }));
       return { ...page, content: enriched };
     },
     initialPageParam: 0,
@@ -107,16 +103,12 @@ export default function RatingsPage() {
         range.max,
         debouncedSearch || undefined,
       );
-      const enriched: EnrichedSerie[] = await Promise.all(
-        page.content.map(async (s) => {
-          try {
-            const tmdb = await seriesApi.getSerieDetails(s.serieId);
-            return { ...s, tmdb };
-          } catch {
-            return { ...s, tmdb: null };
-          }
-        }),
-      );
+      const ids = page.content.map((s) => s.serieId);
+      const tmdbMap = await seriesApi.getSeriesBatch(ids).catch(() => ({} as Record<string, TmdbSerie>));
+      const enriched: EnrichedSerie[] = page.content.map((s) => ({
+        ...s,
+        tmdb: tmdbMap[s.serieId] ?? null,
+      }));
       return { ...page, content: enriched };
     },
     initialPageParam: 0,

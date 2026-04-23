@@ -165,6 +165,12 @@ export const moviesApi = {
     apiLmsFilmes
       .get(`/movies/${movieId}${includeRecommendations ? "?includeRecommendations=true" : ""}`)
       .then((res) => res.data),
+
+  getMoviesBatch: (ids: string[]): Promise<Record<string, TmdbMovie>> => {
+    if (ids.length === 0) return Promise.resolve({});
+    const query = buildBatchQuery("ids", ids);
+    return apiLmsFilmes.get(`/movies/batch?${query}`).then((res) => res.data);
+  },
 };
 
 export const seriesApi = {
@@ -194,6 +200,12 @@ export const seriesApi = {
     apiLmsFilmes
       .get(`/series/${serieId}${includeRecommendations ? "?includeRecommendations=true" : ""}`)
       .then((res) => res.data),
+
+  getSeriesBatch: (ids: string[]): Promise<Record<string, TmdbSerie>> => {
+    if (ids.length === 0) return Promise.resolve({});
+    const query = buildBatchQuery("ids", ids);
+    return apiLmsFilmes.get(`/series/batch?${query}`).then((res) => res.data);
+  },
 };
 
 interface RateMoviePayload {

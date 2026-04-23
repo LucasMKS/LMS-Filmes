@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Map;
+
 import com.lucasm.lmsfilmes.dto.TmdbDTO;
 import com.lucasm.lmsfilmes.dto.TmdbPageDTO;
 import com.lucasm.lmsfilmes.service.MovieService;
@@ -40,6 +43,18 @@ public class MovieController {
     public ResponseEntity<TmdbPageDTO<TmdbDTO>> searchMovies(@RequestParam String query, @RequestParam(defaultValue = "1") int page) {
         TmdbPageDTO<TmdbDTO> movies = movieService.searchMovies(query, page);
         return ResponseEntity.ok(movies);
+    }
+
+    /**
+     * Retorna detalhes de múltiplos filmes em paralelo, usando o cache individual
+     * do TMDB. Mapeado antes de {@code /{movieId}} para evitar conflito de rota.
+     *
+     * @param ids lista de IDs do TMDB (parâmetro repetido ou CSV).
+     * @return mapa {@code id -> TmdbDTO} apenas com filmes encontrados.
+     */
+    @GetMapping("/batch")
+    public ResponseEntity<Map<String, TmdbDTO>> getMoviesBatch(@RequestParam("ids") List<String> ids) {
+        return ResponseEntity.ok(movieService.getMoviesBatch(ids));
     }
 
     /**
