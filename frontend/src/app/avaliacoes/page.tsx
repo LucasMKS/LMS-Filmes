@@ -16,20 +16,21 @@ import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 400;
 
-const toTmdbMovie = (m: RatedMovieResponse): TmdbMovie => ({
+type EnrichedMovie = RatedMovieResponse & { tmdb: TmdbMovie | null };
+type EnrichedSerie = RatedSerieResponse & { tmdb: TmdbSerie | null };
+
+const toTmdbMovieFallback = (m: RatedMovieResponse): TmdbMovie => ({
   id: Number.isFinite(Number(m.movieId)) ? Number(m.movieId) : 0,
   title: m.title || "Filme desconhecido",
   original_title: m.title || "Filme desconhecido",
   poster_path: m.posterPath || undefined,
-  vote_average: undefined,
 });
 
-const toTmdbSerie = (s: RatedSerieResponse): TmdbSerie => ({
+const toTmdbSerieFallback = (s: RatedSerieResponse): TmdbSerie => ({
   id: Number.isFinite(Number(s.serieId)) ? Number(s.serieId) : 0,
   name: s.title || "Série desconhecida",
   original_name: s.title || "Série desconhecida",
   poster_path: s.posterPath || undefined,
-  vote_average: undefined,
 });
 
 const ratingRange = (filter: string) => {
@@ -69,14 +70,26 @@ export default function RatingsPage() {
 
   const moviesQuery = useInfiniteQuery({
     queryKey: ["ratings", "movies", filterRating, debouncedSearch],
-    queryFn: ({ pageParam = 0 }) =>
-      ratingMoviesApi.getRatedMoviesPaged(
+    queryFn: async ({ pageParam = 0 }) => {
+      const page = await ratingMoviesApi.getRatedMoviesPaged(
         pageParam as number,
         PAGE_SIZE,
         range.min,
         range.max,
         debouncedSearch || undefined,
-      ),
+      );
+      const enriched: EnrichedMovie[] = await Promise.all(
+        page.content.map(async (m) => {
+          try {
+            const tmdb = await moviesApi.getMovieDetails(m.movieId);
+            return { ...m, tmdb };
+          } catch {
+            return { ...m, tmdb: null };
+          }
+        }),
+      );
+      return { ...page, content: enriched };
+    },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
     enabled: isAuth && typeFilter !== "serie",
@@ -86,14 +99,26 @@ export default function RatingsPage() {
 
   const seriesQuery = useInfiniteQuery({
     queryKey: ["ratings", "series", filterRating, debouncedSearch],
-    queryFn: ({ pageParam = 0 }) =>
-      ratingSeriesApi.getRatedSeriesPaged(
+    queryFn: async ({ pageParam = 0 }) => {
+      const page = await ratingSeriesApi.getRatedSeriesPaged(
         pageParam as number,
         PAGE_SIZE,
         range.min,
         range.max,
         debouncedSearch || undefined,
-      ),
+      );
+      const enriched: EnrichedSerie[] = await Promise.all(
+        page.content.map(async (s) => {
+          try {
+            const tmdb = await seriesApi.getSerieDetails(s.serieId);
+            return { ...s, tmdb };
+          } catch {
+            return { ...s, tmdb: null };
+          }
+        }),
+      );
+      return { ...page, content: enriched };
+    },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
     enabled: isAuth && typeFilter !== "movie",
@@ -108,7 +133,6 @@ export default function RatingsPage() {
   const visibleSeries = typeFilter === "movie" ? [] : ratedSeries;
   const totalShown = visibleMovies.length + visibleSeries.length;
 
-  // Loader fullscreen só na primeira carga; depois a UI fica estável durante re-fetches
   const isInitialLoading =
     (moviesQuery.isLoading && typeFilter !== "serie") ||
     (seriesQuery.isLoading && typeFilter !== "movie");
@@ -127,9 +151,9 @@ export default function RatingsPage() {
     if (seriesQuery.hasNextPage && typeFilter !== "movie") seriesQuery.fetchNextPage();
   };
 
-  const handleMovieClick = async (item: RatedMovieResponse) => {
-    const fallback = toTmdbMovie(item);
-    setSelectedMovie(fallback);
+  const handleMovieClick = async (item: EnrichedMovie) => {
+    const movieForDialog = item.tmdb ?? toTmdbMovieFallback(item);
+    setSelectedMovie(movieForDialog);
     setIsMovieDialogOpen(true);
     try {
       setMovieDetails(await moviesApi.getMovieDetails(item.movieId));
@@ -138,9 +162,9 @@ export default function RatingsPage() {
     }
   };
 
-  const handleSerieClick = async (item: RatedSerieResponse) => {
-    const fallback = toTmdbSerie(item);
-    setSelectedSerie(fallback);
+  const handleSerieClick = async (item: EnrichedSerie) => {
+    const serieForDialog = item.tmdb ?? toTmdbSerieFallback(item);
+    setSelectedSerie(serieForDialog);
     setIsSerieDialogOpen(true);
     try {
       setSerieDetails(await seriesApi.getSerieDetails(item.serieId));
@@ -197,7 +221,6 @@ export default function RatingsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-[#0a0a0f]/60 border-white/10 text-white/80 placeholder:text-white/25 pl-10 pr-10 h-11 rounded-xl focus-visible:ring-amber-500/30 focus-visible:border-amber-500/40"
               />
-              {/* Spinner inline durante o fetch (não substitui o botão de limpar) */}
               {(isRefetching || isFetchingMore) && (
                 <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-400/70 animate-spin pointer-events-none" />
               )}
@@ -327,7 +350,7 @@ export default function RatingsPage() {
                 {visibleMovies.map((m) => (
                   <MovieCard
                     key={`movie-${m.id}`}
-                    movie={toTmdbMovie(m)}
+                    movie={m.tmdb ?? toTmdbMovieFallback(m)}
                     onClick={() => handleMovieClick(m)}
                     userRating={{ rating: String(m.rating), comment: m.comment }}
                   />
@@ -335,7 +358,7 @@ export default function RatingsPage() {
                 {visibleSeries.map((s) => (
                   <SerieCard
                     key={`serie-${s.id}`}
-                    serie={toTmdbSerie(s)}
+                    serie={s.tmdb ?? toTmdbSerieFallback(s)}
                     onClick={() => handleSerieClick(s)}
                     userRating={{ rating: String(s.rating), comment: s.comment }}
                   />

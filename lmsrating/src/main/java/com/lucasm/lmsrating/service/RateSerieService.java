@@ -58,7 +58,10 @@ public class RateSerieService {
             serie.setComment(request.getComment());
 
             jdbcTemplate.update(
-                "INSERT INTO series (serie_id, title, poster_path) VALUES (?, ?, ?) ON CONFLICT (serie_id) DO NOTHING",
+                "INSERT INTO series (serie_id, title, poster_path) VALUES (?, ?, ?) " +
+                "ON CONFLICT (serie_id) DO UPDATE SET " +
+                "title = COALESCE(EXCLUDED.title, series.title), " +
+                "poster_path = COALESCE(EXCLUDED.poster_path, series.poster_path)",
                 request.getSerieId(), request.getTitle(), request.getPoster_path()
             );
 

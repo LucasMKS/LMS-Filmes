@@ -58,7 +58,10 @@ public class RateMovieService {
             movie.setComment(request.getComment());
 
             jdbcTemplate.update(
-                "INSERT INTO movies (movie_id, title, poster_path) VALUES (?, ?, ?) ON CONFLICT (movie_id) DO NOTHING",
+                "INSERT INTO movies (movie_id, title, poster_path) VALUES (?, ?, ?) " +
+                "ON CONFLICT (movie_id) DO UPDATE SET " +
+                "title = COALESCE(EXCLUDED.title, movies.title), " +
+                "poster_path = COALESCE(EXCLUDED.poster_path, movies.poster_path)",
                 request.getMovieId(), request.getTitle(), request.getPoster_path()
             );
 
