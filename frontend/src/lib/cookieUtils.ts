@@ -1,7 +1,7 @@
 import Cookies from "js-cookie";
 
 const COOKIE_OPTIONS = {
-  expires: 1,
+  expires: 7,
   path: "/",
   domain: ".lucasmks.com.br",
   secure: process.env.NODE_ENV === "production",
