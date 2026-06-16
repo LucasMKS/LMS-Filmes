@@ -101,16 +101,20 @@ export class ErrorHandler {
   }
 
   static logError(error: any, p0: string): void {
+    // Silencing verbose logs as requested. 
+    // Only log critical errors that are not 404s (which are expected in some workflows)
+    const status = error.response?.status;
+    if (status === 404) return;
+
     if (error.response) {
-      console.error("API Error [Response]:", {
+      /* console.error("API Error [Response]:", {
         status: error.response.status,
         data: error.response.data,
-        headers: error.response.headers,
-      });
+      }); */
     } else if (error.request) {
-      console.error("API Error [Request]:", error.request);
+      // console.error("API Error [Request]:", error.request);
     } else {
-      console.error("API Error [General]:", error.message);
+      // console.error("API Error [General]:", error.message);
     }
   }
 }

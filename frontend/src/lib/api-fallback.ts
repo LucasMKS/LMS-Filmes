@@ -9,10 +9,6 @@ const showToast = (
   title: string,
   description?: string
 ) => {
-  console.log(
-    `${type.toUpperCase()}: ${title}${description ? " - " + description : ""}`
-  );
-
   if (type === "error") {
     if (title.includes("Sessão") || title.includes("Acesso")) {
       alert(`${title}: ${description || ""}`);

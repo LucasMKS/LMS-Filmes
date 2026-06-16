@@ -97,11 +97,6 @@ class MovieService {
         comment,
       };
 
-      console.log(
-        "Enviando payload para /rate/series:",
-        JSON.stringify(payload, null, 2)
-      );
-
       const response = await ratingSeriesApi.rateSerie(payload);
 
       return response;

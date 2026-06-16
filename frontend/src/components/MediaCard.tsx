@@ -60,7 +60,7 @@ export function MediaCard({
     setImgSrc(imageUrl);
   }, [imageUrl]);
 
-  const hasRating = !!userRating;
+  const hasRating = !!userRating && !!userRating.rating && userRating.rating !== "0";
 
   return (
     <div
@@ -74,9 +74,9 @@ export function MediaCard({
       {/* Glow decorativo no topo ao hover */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-      {/* Clique principal (Navegação) */}
+      {/* Clique principal (Navegação) - Agora com z-0 para ficar atrás dos botões */}
       <div
-        className="absolute inset-0 z-10 cursor-pointer"
+        className="absolute inset-0 z-0 cursor-pointer"
         onClick={onClick}
         role="button"
         tabIndex={0}
@@ -89,7 +89,7 @@ export function MediaCard({
         aria-label={`Ver detalhes de ${title}`}
       />
 
-      <div className="relative z-0">
+      <div className="relative z-10 pointer-events-none">
         {/* Imagem */}
         <div className="relative overflow-hidden aspect-[2/3]">
           <img
@@ -104,7 +104,7 @@ export function MediaCard({
 
           {/* Botão Quick View / Info - Mais visível em mobile */}
           {onQuickView && (
-            <div className="absolute left-3 bottom-3 z-20 flex sm:hidden">
+            <div className="absolute left-3 bottom-3 z-30 flex sm:hidden pointer-events-auto">
               <Button
                 variant="secondary"
                 size="icon"
@@ -121,7 +121,7 @@ export function MediaCard({
 
           {/* Botão Quick View Desktop - Center hover */}
           {onQuickView && (
-            <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-all duration-300 hidden sm:flex group-hover:opacity-100 group-hover:scale-100 scale-90">
+            <div className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-all duration-300 hidden sm:flex group-hover:opacity-100 group-hover:scale-100 scale-90 pointer-events-auto">
               <Button
                 variant="secondary"
                 size="icon"
@@ -182,51 +182,49 @@ export function MediaCard({
         </div>
       )}
 
-      {/* Botão de Ação (Wishlist ou Favorito) */}
+      {/* Botões de Ação (Wishlist e Favorito) */}
       {showActionButtons && (
         <div className={cn(
-          "absolute z-20 transition-all duration-300",
+          "absolute z-30 transition-all duration-300 pointer-events-auto flex flex-col gap-2",
           userRating ? "right-3 top-[2.75rem]" : "right-3 top-3"
         )}>
-          {hasRating ? (
-            /* Botão de Favorito (Se já avaliou) */
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-9 w-9 rounded-full border transition-all duration-300 hover:scale-110",
-                isFavorite
-                  ? "border-pink-500/50 bg-pink-600/90 text-white shadow-[0_4px_12px_rgba(219,39,119,0.35)] backdrop-blur-sm hover:bg-pink-500"
-                  : "border-white/10 bg-[#0a0a0f]/50 text-white/60 backdrop-blur-sm hover:bg-[#0a0a0f]/80 hover:text-white hover:border-white/20",
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-                onFavoriteToggle?.();
-              }}
-              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-            >
-              <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
-            </Button>
-          ) : (
-            /* Botão de Wishlist (Se NÃO avaliou) */
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-9 w-9 rounded-full border transition-all duration-300 hover:scale-110",
-                isInWatchlist
-                  ? "border-emerald-500/50 bg-emerald-600/90 text-white shadow-[0_4px_12px_rgba(16,185,129,0.35)] backdrop-blur-sm hover:bg-emerald-500"
-                  : "border-white/10 bg-[#0a0a0f]/50 text-white/60 backdrop-blur-sm hover:bg-[#0a0a0f]/80 hover:text-white hover:border-white/20",
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-                onWatchlistToggle?.();
-              }}
-              aria-label={isInWatchlist ? "Remover da Watchlist" : "Adicionar à Watchlist"}
-            >
-              <Bookmark className={cn("h-4 w-4", isInWatchlist && "fill-current")} />
-            </Button>
-          )}
+          {/* Botão de Favorito */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-9 w-9 rounded-full border transition-all duration-300 hover:scale-110",
+              isFavorite
+                ? "border-pink-500/50 bg-pink-600/90 text-white shadow-[0_4px_12px_rgba(219,39,119,0.35)] backdrop-blur-sm hover:bg-pink-500"
+                : "border-white/10 bg-[#0a0a0f]/50 text-white/60 backdrop-blur-sm hover:bg-[#0a0a0f]/80 hover:text-white hover:border-white/20",
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFavoriteToggle?.();
+            }}
+            aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
+          </Button>
+
+          {/* Botão de Wishlist */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-9 w-9 rounded-full border transition-all duration-300 hover:scale-110",
+              isInWatchlist
+                ? "border-emerald-500/50 bg-emerald-600/90 text-white shadow-[0_4px_12px_rgba(16,185,129,0.35)] backdrop-blur-sm hover:bg-emerald-500"
+                : "border-white/10 bg-[#0a0a0f]/50 text-white/60 backdrop-blur-sm hover:bg-[#0a0a0f]/80 hover:text-white hover:border-white/20",
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onWatchlistToggle?.();
+            }}
+            aria-label={isInWatchlist ? "Remover da Watchlist" : "Adicionar à Watchlist"}
+          >
+            <Bookmark className={cn("h-4 w-4", isInWatchlist && "fill-current")} />
+          </Button>
         </div>
       )}
 
