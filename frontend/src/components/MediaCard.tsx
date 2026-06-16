@@ -182,49 +182,51 @@ export function MediaCard({
         </div>
       )}
 
-      {/* Botões de Ação (Wishlist e Favorito) */}
+      {/* Botão de Ação (Wishlist ou Favorito) */}
       {showActionButtons && (
         <div className={cn(
-          "absolute z-30 transition-all duration-300 pointer-events-auto flex flex-col gap-2",
+          "absolute z-30 transition-all duration-300 pointer-events-auto",
           userRating ? "right-3 top-[2.75rem]" : "right-3 top-3"
         )}>
-          {/* Botão de Favorito */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-9 w-9 rounded-full border transition-all duration-300 hover:scale-110",
-              isFavorite
-                ? "border-pink-500/50 bg-pink-600/90 text-white shadow-[0_4px_12px_rgba(219,39,119,0.35)] backdrop-blur-sm hover:bg-pink-500"
-                : "border-white/10 bg-[#0a0a0f]/50 text-white/60 backdrop-blur-sm hover:bg-[#0a0a0f]/80 hover:text-white hover:border-white/20",
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              onFavoriteToggle?.();
-            }}
-            aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-          >
-            <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
-          </Button>
-
-          {/* Botão de Wishlist */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-9 w-9 rounded-full border transition-all duration-300 hover:scale-110",
-              isInWatchlist
-                ? "border-emerald-500/50 bg-emerald-600/90 text-white shadow-[0_4px_12px_rgba(16,185,129,0.35)] backdrop-blur-sm hover:bg-emerald-500"
-                : "border-white/10 bg-[#0a0a0f]/50 text-white/60 backdrop-blur-sm hover:bg-[#0a0a0f]/80 hover:text-white hover:border-white/20",
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              onWatchlistToggle?.();
-            }}
-            aria-label={isInWatchlist ? "Remover da Watchlist" : "Adicionar à Watchlist"}
-          >
-            <Bookmark className={cn("h-4 w-4", isInWatchlist && "fill-current")} />
-          </Button>
+          {hasRating ? (
+            /* Botão de Favorito (Se já avaliou) */
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-9 w-9 rounded-full border transition-all duration-300 hover:scale-110",
+                isFavorite
+                  ? "border-pink-500/50 bg-pink-600/90 text-white shadow-[0_4px_12px_rgba(219,39,119,0.35)] backdrop-blur-sm hover:bg-pink-500"
+                  : "border-white/10 bg-[#0a0a0f]/50 text-white/60 backdrop-blur-sm hover:bg-[#0a0a0f]/80 hover:text-white hover:border-white/20",
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onFavoriteToggle?.();
+              }}
+              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+            >
+              <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
+            </Button>
+          ) : (
+            /* Botão de Wishlist (Se NÃO avaliou) */
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-9 w-9 rounded-full border transition-all duration-300 hover:scale-110",
+                isInWatchlist
+                  ? "border-emerald-500/50 bg-emerald-600/90 text-white shadow-[0_4px_12px_rgba(16,185,129,0.35)] backdrop-blur-sm hover:bg-emerald-500"
+                  : "border-white/10 bg-[#0a0a0f]/50 text-white/60 backdrop-blur-sm hover:bg-[#0a0a0f]/80 hover:text-white hover:border-white/20",
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onWatchlistToggle?.();
+              }}
+              aria-label={isInWatchlist ? "Remover da Watchlist" : "Adicionar à Watchlist"}
+            >
+              <Bookmark className={cn("h-4 w-4", isInWatchlist && "fill-current")} />
+            </Button>
+          )}
         </div>
       )}
 
