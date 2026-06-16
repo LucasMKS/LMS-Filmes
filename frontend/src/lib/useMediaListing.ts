@@ -30,6 +30,8 @@ interface UseMediaListingParams<T extends { id: number }, C extends string> {
   getFavoriteStatus: (id: string) => Promise<boolean>;
   getFavoriteStatuses?: (ids: string[]) => Promise<Record<string, boolean>>;
   toggleFavorite: (id: string) => Promise<{ isFavorite: boolean }>;
+  getWatchlistStatuses?: (ids: string[]) => Promise<Record<string, boolean>>;
+  toggleWatchlist: (id: string) => Promise<{ inWatchlist: boolean }>;
   getRatingStatuses?: (ids: string[]) => Promise<Record<string, RatingStatus>>;
   messages: ListingMessages;
 }
@@ -50,6 +52,8 @@ export function useMediaListing<T extends { id: number }, C extends string>({
   getFavoriteStatus,
   getFavoriteStatuses,
   toggleFavorite,
+  getWatchlistStatuses,
+  toggleWatchlist,
   getRatingStatuses,
   messages,
 }: UseMediaListingParams<T, C>) {
@@ -63,6 +67,10 @@ export function useMediaListing<T extends { id: number }, C extends string>({
   const [favoriteStatus, setFavoriteStatus] = useState<Record<number, boolean>>({});
   const favoriteStatusRef = useRef<Record<number, boolean>>({});
   const favoriteInFlightRef = useRef<Set<number>>(new Set());
+
+  const [watchlistStatus, setWatchlistStatus] = useState<Record<number, boolean>>({});
+  const watchlistStatusRef = useRef<Record<number, boolean>>({});
+  const watchlistInFlightRef = useRef<Set<number>>(new Set());
 
   const [ratingStatus, setRatingStatus] = useState<Record<number, RatingStatus | null>>({});
   const ratingStatusRef = useRef<Record<number, RatingStatus | null>>({});
@@ -192,6 +200,48 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     Array.from({ length: workers }).forEach(runWorker);
   }, [fetchedItems, getFavoriteStatus]);
 
+  // Carrega status de watchlist em batch para itens novos
+  useEffect(() => {
+    if (fetchedItems.length === 0 || !AuthService.isAuthenticated() || !getWatchlistStatuses) return;
+
+    const pending = fetchedItems.filter(
+      (media) =>
+        watchlistStatusRef.current[media.id] === undefined &&
+        !watchlistInFlightRef.current.has(media.id),
+    );
+
+    if (pending.length === 0) return;
+
+    pending.forEach((m) => watchlistInFlightRef.current.add(m.id));
+
+    const chunks = chunkArray(
+      pending.map((m) => m.id.toString()),
+      BATCH_SIZE,
+    );
+
+    (async () => {
+      try {
+        for (const chunk of chunks) {
+          const statuses = await getWatchlistStatuses(chunk);
+          setWatchlistStatus((prev) => {
+            const next = { ...prev };
+            chunk.forEach((id) => {
+              const numId = Number(id);
+              const val = Boolean(statuses[id]);
+              next[numId] = val;
+              watchlistStatusRef.current[numId] = val;
+            });
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error("Erro ao carregar status da watchlist:", err);
+      } finally {
+        pending.forEach((m) => watchlistInFlightRef.current.delete(m.id));
+      }
+    })();
+  }, [fetchedItems, getWatchlistStatuses]);
+
   // Carrega avaliações do usuário em batch para itens novos
   useEffect(() => {
     if (fetchedItems.length === 0 || !AuthService.isAuthenticated()) return;
@@ -254,6 +304,22 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     },
   });
 
+  const toggleWatchlistMutation = useMutation({
+    mutationFn: (mediaId: string) => toggleWatchlist(mediaId),
+    onSuccess: (response, mediaIdStr) => {
+      const mediaId = Number(mediaIdStr);
+      setWatchlistStatus((prev) => ({ ...prev, [mediaId]: response.inWatchlist }));
+      watchlistStatusRef.current[mediaId] = response.inWatchlist;
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      toast.success(
+        response.inWatchlist ? "Adicionado à sua Watchlist!" : "Removido da Watchlist!",
+      );
+    },
+    onError: () => {
+      toast.error("Erro ao atualizar a Watchlist.");
+    },
+  });
+
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
     setIsSearchMode(true);
@@ -287,6 +353,13 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     [toggleFavoriteMutation],
   );
 
+  const handleToggleWatchlist = useCallback(
+    (mediaId: number) => {
+      toggleWatchlistMutation.mutate(mediaId.toString());
+    },
+    [toggleWatchlistMutation],
+  );
+
   const loadMoreItems = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -296,9 +369,12 @@ export function useMediaListing<T extends { id: number }, C extends string>({
   const initialize = useCallback(async () => {
     favoriteStatusRef.current = {};
     favoriteInFlightRef.current.clear();
+    watchlistStatusRef.current = {};
+    watchlistInFlightRef.current.clear();
     ratingStatusRef.current = {};
     ratingInFlightRef.current.clear();
     setFavoriteStatus({});
+    setWatchlistStatus({});
     setRatingStatus({});
     await refetch();
   }, [refetch]);
@@ -314,6 +390,7 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     loading: isLoading,
     loadingMore: isFetchingNextPage,
     favoriteStatus,
+    watchlistStatus,
     ratingStatus,
     searchQuery,
     setSearchQuery,
@@ -327,6 +404,7 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     clearSearch,
     handleCategoryChange,
     handleToggleFavorite,
+    handleToggleWatchlist,
     updateRatingStatus,
   };
 }

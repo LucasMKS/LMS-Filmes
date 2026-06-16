@@ -66,6 +66,15 @@ public class WatchlistService {
         return result;
     }
 
+    public Map<String, Boolean> getMovieWatchlistStatusBatch(List<String> movieIds, String email) {
+        Long userId = userLookupService.getUserIdByEmail(email);
+        Map<String, Boolean> results = new HashMap<>();
+        for (String movieId : movieIds) {
+            results.put(movieId, movieRepo.existsByUserIdAndMovieId(userId, movieId));
+        }
+        return results;
+    }
+
     @Cacheable(value = "userWatchlistSeries", key = "#email")
     public List<WatchlistSerie> getUserWatchlistSeries(String email) {
         Long userId = userLookupService.getUserIdByEmail(email);
@@ -102,5 +111,14 @@ public class WatchlistService {
         Map<String, Boolean> result = new HashMap<>();
         result.put("inWatchlist", exists);
         return result;
+    }
+
+    public Map<String, Boolean> getSerieWatchlistStatusBatch(List<String> serieIds, String email) {
+        Long userId = userLookupService.getUserIdByEmail(email);
+        Map<String, Boolean> results = new HashMap<>();
+        for (String serieId : serieIds) {
+            results.put(serieId, serieRepo.existsByUserIdAndSerieId(userId, serieId));
+        }
+        return results;
     }
 }

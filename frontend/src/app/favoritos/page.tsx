@@ -317,22 +317,24 @@ export default function FavoritesPage() {
                       <MovieCard
                         movie={item.tmdbData}
                         onClick={() => handleMovieClick(item)}
-                        showFavoriteButton={true}
+                        showActionButtons={true}
                         isFavorite={true}
                         onFavoriteToggle={() =>
                           toggleFavoriteMutation.mutate({ type: "movie", id: item.movieId })
                         }
+                        userRating={{ rating: "10" }} // Placeholder para forçar o ícone de coração nos favoritos
                       />
                     )}
                     {type === "serie" && item.tmdbData && (
                       <SerieCard
                         serie={item.tmdbData}
                         onClick={() => handleSerieClick(item)}
-                        showFavoriteButton={true}
+                        showActionButtons={true}
                         isFavorite={true}
                         onFavoriteToggle={() =>
                           toggleFavoriteMutation.mutate({ type: "serie", id: item.serieId })
                         }
+                        userRating={{ rating: "10" }} // Placeholder para forçar o ícone de coração nos favoritos
                       />
                     )}
                   </div>

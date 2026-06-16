@@ -13,18 +13,22 @@ interface MovieCardProps {
     rating: string;
     comment?: string;
   } | null;
-  showFavoriteButton?: boolean;
+  showActionButtons?: boolean;
   isFavorite?: boolean;
   onFavoriteToggle?: () => void;
+  isInWatchlist?: boolean;
+  onWatchlistToggle?: () => void;
 }
 
 function MovieCardComponent({
   movie,
   onClick,
   userRating,
-  showFavoriteButton = false,
+  showActionButtons = false,
   isFavorite = false,
   onFavoriteToggle,
+  isInWatchlist = false,
+  onWatchlistToggle,
 }: MovieCardProps) {
   const router = useRouter();
 
@@ -51,9 +55,11 @@ function MovieCardComponent({
       onClick={handleNavigateToDetails}
       onQuickView={onClick}
       userRating={userRating}
-      showFavoriteButton={showFavoriteButton}
+      showActionButtons={showActionButtons}
       isFavorite={isFavorite}
       onFavoriteToggle={onFavoriteToggle}
+      isInWatchlist={isInWatchlist}
+      onWatchlistToggle={onWatchlistToggle}
       badgeLabel="Filme"
       badgeIcon={Film}
       badgeClassName="bg-purple-600/90"
@@ -70,6 +76,7 @@ export const MovieCard = memo(MovieCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.movie.id === nextProps.movie.id &&
     prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.isInWatchlist === nextProps.isInWatchlist &&
     prevProps.userRating?.rating === nextProps.userRating?.rating &&
     prevProps.userRating?.comment === nextProps.userRating?.comment
   );

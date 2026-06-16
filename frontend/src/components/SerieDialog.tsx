@@ -1,3 +1,4 @@
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ export function SerieDialog({
   isLoggedIn = false,
   onRateSuccess,
 }: SerieDialogProps) {
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const [isRatingOpen, setIsRatingOpen] = useState(false);
@@ -101,6 +103,11 @@ export function SerieDialog({
     } finally {
       setLoadingWatchlist(false);
     }
+  };
+
+  const handleNavigateToDetails = () => {
+    onClose();
+    router.push(`/series/${serieData.id}`);
   };
 
   const imageUrl = serieData.poster_path
@@ -202,6 +209,14 @@ export function SerieDialog({
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-5 w-full">
+                  <button
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold transition-all text-sm"
+                    onClick={handleNavigateToDetails}
+                  >
+                    <Info className="w-4 h-4" />
+                    Mais Detalhes
+                  </button>
+
                   {isLoggedIn ? (
                     <>
                       <button

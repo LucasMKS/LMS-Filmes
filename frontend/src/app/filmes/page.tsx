@@ -8,7 +8,7 @@ import { MediaResultsSection } from "../../components/MediaResultsSection";
 import { MovieCard } from "../../components/MovieCard";
 import { MovieDialog } from "../../components/MovieDialog";
 import { TmdbMovie } from "../../lib/types";
-import { moviesApi, favoriteMoviesApi, ratingMoviesApi } from "../../lib/api";
+import { moviesApi, favoriteMoviesApi, ratingMoviesApi, watchlistMoviesApi } from "../../lib/api";
 import { useMediaListing } from "../../lib/useMediaListing";
 import {
   Film,
@@ -74,6 +74,7 @@ export default function MoviesPage() {
     loading,
     loadingMore,
     favoriteStatus,
+    watchlistStatus,
     ratingStatus,
     searchQuery,
     setSearchQuery,
@@ -87,6 +88,7 @@ export default function MoviesPage() {
     clearSearch,
     handleCategoryChange,
     handleToggleFavorite,
+    handleToggleWatchlist,
     updateRatingStatus,
   } = useMediaListing<TmdbMovie, MovieCategory>({
     mediaType: "movie",
@@ -96,6 +98,8 @@ export default function MoviesPage() {
     getFavoriteStatus: favoriteMoviesApi.getFavoriteStatus,
     getFavoriteStatuses: favoriteMoviesApi.getFavoriteStatuses,
     toggleFavorite: favoriteMoviesApi.toggleFavorite,
+    getWatchlistStatuses: watchlistMoviesApi.getWatchlistStatuses,
+    toggleWatchlist: watchlistMoviesApi.toggleWatchlist,
     getRatingStatuses: ratingMoviesApi.getRatingStatuses,
     messages: listingMessages,
   });
@@ -193,9 +197,11 @@ export default function MoviesPage() {
                 key={`movie-${movie.id}`}
                 movie={movie}
                 onClick={() => handleMovieClick(movie)}
-                showFavoriteButton={isLoggedIn}
+                showActionButtons={isLoggedIn}
                 isFavorite={favoriteStatus[movie.id] || false}
                 onFavoriteToggle={() => handleToggleFavorite(movie.id)}
+                isInWatchlist={watchlistStatus[movie.id] || false}
+                onWatchlistToggle={() => handleToggleWatchlist(movie.id)}
                 userRating={ratingStatus[movie.id] ?? null}
               />
             )}

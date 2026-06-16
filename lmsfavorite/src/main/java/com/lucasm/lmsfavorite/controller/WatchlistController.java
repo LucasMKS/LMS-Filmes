@@ -65,6 +65,17 @@ public class WatchlistController {
     }
 
     /**
+     * Consulta, em lote, o status de watchlist de filmes do usuário autenticado.
+     *
+     * @param movieIds lista de identificadores de filmes.
+     * @return mapa `movieId -> inWatchlist`.
+     */
+    @GetMapping("/movies/status/batch")
+    public ResponseEntity<Map<String, Boolean>> getMovieStatusBatch(@RequestParam List<String> movieIds) {
+        return ResponseEntity.ok(watchlistService.getMovieWatchlistStatusBatch(movieIds, getCurrentUserEmail()));
+    }
+
+    /**
      * Lista as séries presentes na watchlist do usuário autenticado.
      *
      * @return lista de séries da watchlist.
@@ -94,5 +105,16 @@ public class WatchlistController {
     @GetMapping("/series/status")
     public ResponseEntity<Map<String, Boolean>> getSerieStatus(@RequestParam String serieId) {
         return ResponseEntity.ok(watchlistService.checkSerieStatus(serieId, getCurrentUserEmail()));
+    }
+
+    /**
+     * Consulta, em lote, o status de watchlist de séries do usuário autenticado.
+     *
+     * @param serieIds lista de identificadores de séries.
+     * @return mapa `serieId -> inWatchlist`.
+     */
+    @GetMapping("/series/status/batch")
+    public ResponseEntity<Map<String, Boolean>> getSerieStatusBatch(@RequestParam List<String> serieIds) {
+        return ResponseEntity.ok(watchlistService.getSerieWatchlistStatusBatch(serieIds, getCurrentUserEmail()));
     }
 }

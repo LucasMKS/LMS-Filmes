@@ -8,7 +8,7 @@ import { MediaResultsSection } from "../../components/MediaResultsSection";
 import { SerieCard } from "../../components/SerieCard";
 import { SerieDialog } from "../../components/SerieDialog";
 import { TmdbSerie } from "../../lib/types";
-import { seriesApi, favoriteSeriesApi, ratingSeriesApi } from "../../lib/api";
+import { seriesApi, favoriteSeriesApi, ratingSeriesApi, watchlistSeriesApi } from "../../lib/api";
 import { useMediaListing } from "../../lib/useMediaListing";
 import { Tv, TrendingUp, Clock, Star, Radio, LucideIcon } from "lucide-react";
 
@@ -67,6 +67,7 @@ export default function SeriesPage() {
     loading,
     loadingMore,
     favoriteStatus,
+    watchlistStatus,
     ratingStatus,
     searchQuery,
     setSearchQuery,
@@ -80,6 +81,7 @@ export default function SeriesPage() {
     clearSearch,
     handleCategoryChange,
     handleToggleFavorite,
+    handleToggleWatchlist,
     updateRatingStatus,
   } = useMediaListing<TmdbSerie, SerieCategory>({
     mediaType: "serie",
@@ -89,6 +91,8 @@ export default function SeriesPage() {
     getFavoriteStatus: favoriteSeriesApi.getFavoriteStatus,
     getFavoriteStatuses: favoriteSeriesApi.getFavoriteStatuses,
     toggleFavorite: favoriteSeriesApi.toggleFavorite,
+    getWatchlistStatuses: watchlistSeriesApi.getWatchlistStatuses,
+    toggleWatchlist: watchlistSeriesApi.toggleWatchlist,
     getRatingStatuses: ratingSeriesApi.getRatingStatuses,
     messages: listingMessages,
   });
@@ -185,9 +189,11 @@ export default function SeriesPage() {
                 key={`serie-${serie.id}`}
                 serie={serie}
                 onClick={() => handleSerieClick(serie)}
-                showFavoriteButton={isLoggedIn}
+                showActionButtons={isLoggedIn}
                 isFavorite={favoriteStatus[serie.id] || false}
                 onFavoriteToggle={() => handleToggleFavorite(serie.id)}
+                isInWatchlist={watchlistStatus[serie.id] || false}
+                onWatchlistToggle={() => handleToggleWatchlist(serie.id)}
                 userRating={ratingStatus[serie.id] ?? null}
               />
             )}

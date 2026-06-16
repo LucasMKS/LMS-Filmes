@@ -363,6 +363,11 @@ export const watchlistMoviesApi = {
     apiLmsFavorite
       .get("/watchlist/movies/status", { params: { movieId } })
       .then((res) => res.data),
+  getWatchlistStatuses: (movieIds: string[]): Promise<Record<string, boolean>> => {
+    if (movieIds.length === 0) return Promise.resolve({});
+    const query = buildBatchQuery("movieIds", movieIds);
+    return apiLmsFavorite.get(`/watchlist/movies/status/batch?${query}`).then((res) => res.data);
+  },
   getWatchlistMovies: (): Promise<WatchlistMovie[]> =>
     apiLmsFavorite.get("/watchlist/movies").then((res) => res.data),
 };
@@ -376,6 +381,11 @@ export const watchlistSeriesApi = {
     apiLmsFavorite
       .get("/watchlist/series/status", { params: { serieId } })
       .then((res) => res.data),
+  getWatchlistStatuses: (serieIds: string[]): Promise<Record<string, boolean>> => {
+    if (serieIds.length === 0) return Promise.resolve({});
+    const query = buildBatchQuery("serieIds", serieIds);
+    return apiLmsFavorite.get(`/watchlist/series/status/batch?${query}`).then((res) => res.data);
+  },
   getWatchlistSeries: (): Promise<WatchlistSerie[]> =>
     apiLmsFavorite.get("/watchlist/series").then((res) => res.data),
 };

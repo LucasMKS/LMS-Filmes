@@ -11,18 +11,22 @@ interface SerieCardProps {
     rating: string;
     comment?: string;
   } | null;
-  showFavoriteButton?: boolean;
+  showActionButtons?: boolean;
   isFavorite?: boolean;
   onFavoriteToggle?: () => void;
+  isInWatchlist?: boolean;
+  onWatchlistToggle?: () => void;
 }
 
 function SerieCardComponent({
   serie,
   onClick,
   userRating,
-  showFavoriteButton = false,
+  showActionButtons = false,
   isFavorite = false,
   onFavoriteToggle,
+  isInWatchlist = false,
+  onWatchlistToggle,
 }: SerieCardProps) {
   const router = useRouter();
 
@@ -58,9 +62,11 @@ function SerieCardComponent({
       onClick={handleNavigateToDetails}
       onQuickView={onClick}
       userRating={userRating}
-      showFavoriteButton={showFavoriteButton}
+      showActionButtons={showActionButtons}
       isFavorite={isFavorite}
       onFavoriteToggle={onFavoriteToggle}
+      isInWatchlist={isInWatchlist}
+      onWatchlistToggle={onWatchlistToggle}
       badgeLabel="Série"
       badgeIcon={Tv}
       badgeClassName="bg-violet-600/90"
@@ -77,6 +83,7 @@ export const SerieCard = memo(SerieCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.serie.id === nextProps.serie.id &&
     prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.isInWatchlist === nextProps.isInWatchlist &&
     prevProps.userRating?.rating === nextProps.userRating?.rating &&
     prevProps.userRating?.comment === nextProps.userRating?.comment
   );
