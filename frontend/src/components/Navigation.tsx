@@ -11,6 +11,8 @@ import {
   LogIn,
   ListPlus,
   Play,
+  Menu,
+  User as UserIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AuthService from "../lib/auth";
@@ -18,6 +20,14 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { User } from "../lib/types";
 import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 
 interface NavigationProps {
   title: string;
@@ -31,6 +41,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -59,6 +70,11 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
 
   const handleLogin = () => {
     router.push(isAuthenticated ? "/filmes" : "/login");
+  };
+
+  const navigateTo = (href: string) => {
+    router.push(href);
+    setIsMobileMenuOpen(false);
   };
 
   const allNavigationItems = [
@@ -176,58 +192,134 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
               })}
             </nav>
 
-            {/* Mobile select */}
+            {/* Mobile Menu (Sheet) */}
             <div className="lg:hidden">
-              <select
-                onChange={(e) => router.push(e.target.value)}
-                value={
-                  pathname.startsWith("/filmes/")
-                    ? "/filmes"
-                    : pathname.startsWith("/series/")
-                      ? "/series"
-                      : pathname
-                }
-                className="appearance-none bg-[#14141c] border border-white/10 text-white/70 rounded-xl pl-3 pr-7 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/50 transition-all cursor-pointer"
-              >
-                {navigationItems.map((item) => (
-                  <option
-                    key={item.href}
-                    value={item.href}
-                    className="bg-[#14141c]"
-                  >
-                    {item.name}
-                  </option>
-                ))}
-              </select>
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/5 rounded-xl">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[280px] sm:w-[350px] bg-[#0a0a0f] border-white/10 p-0">
+                  <SheetHeader className="p-6 text-left border-b border-white/5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="bg-gradient-to-br from-purple-500 to-violet-700 p-1.5 rounded-xl shadow-lg shadow-purple-500/20">
+                        <Play className="w-4 h-4 text-white fill-current" />
+                      </div>
+                      <SheetTitle className="text-base font-black text-white tracking-tight">
+                        LMS <span className="text-purple-400">Filmes</span>
+                      </SheetTitle>
+                    </div>
+                  </SheetHeader>
+                  
+                  <div className="flex flex-col h-[calc(100%-80px)] justify-between">
+                    <nav className="flex flex-col gap-1 p-4">
+                      {navigationItems.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.name}
+                            onClick={() => navigateTo(item.href)}
+                            className={cn(
+                              "flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 w-full text-left",
+                              item.current
+                                ? cn("bg-white/5 border border-white/10 text-white", item.activeBg)
+                                : "text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent",
+                            )}
+                          >
+                            <Icon
+                              className={cn(
+                                "w-4.5 h-4.5 transition-colors",
+                                item.current ? "" : item.color,
+                              )}
+                            />
+                            {item.name}
+                          </button>
+                        );
+                      })}
+                    </nav>
+
+                    <div className="p-4 mt-auto border-t border-white/5 bg-[#14141c]/30">
+                      {isAuthenticated && user ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3 px-2">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-600 to-violet-600 flex items-center justify-center text-white font-bold border border-white/10 shadow-lg">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-white leading-none">
+                                {user.name}
+                              </span>
+                              <span className="text-xs text-white/40 font-medium mt-1">
+                                {user.nickname ? `@${user.nickname}` : user.email}
+                              </span>
+                            </div>
+                          </div>
+                          <Separator className="bg-white/5" />
+                          <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-400/80 hover:text-red-400 hover:bg-red-500/10 w-full transition-colors"
+                          >
+                            <LogOut className="w-4.5 h-4.5" />
+                            Sair da conta
+                          </button>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={handleLogin}
+                          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl h-12 shadow-lg shadow-purple-900/20"
+                        >
+                          <LogIn className="w-4.5 h-4.5 mr-2" />
+                          Fazer Login
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
 
             {/* Divisor */}
             <div className="h-5 w-px bg-white/10 mx-1 hidden sm:block" />
 
-            {/* Ações */}
-            {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                {user?.role === "ADMIN" && (
-                  <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold hidden sm:flex">
-                    Admin
-                  </Badge>
-                )}
+            {/* Ações Desktop */}
+            <div className="hidden sm:flex items-center gap-2">
+              {isAuthenticated ? (
+                <>
+                  {user?.role === "ADMIN" && (
+                    <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                      Admin
+                    </Badge>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-200"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sair</span>
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-200"
+                  onClick={handleLogin}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/30 transition-all duration-200 hover:scale-[1.02]"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sair</span>
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Entrar</span>
                 </button>
-              </div>
-            ) : (
-              <button
+              )}
+            </div>
+
+            {/* Mobile User Icon (if not in menu) - Optional but good for UX */}
+            {!isAuthenticated && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
                 onClick={handleLogin}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/30 transition-all duration-200 hover:scale-[1.02]"
+                className="sm:hidden text-white/70 hover:text-white hover:bg-white/5 rounded-xl"
               >
-                <LogIn className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Entrar</span>
-              </button>
+                <LogIn className="h-5 w-5" />
+              </Button>
             )}
           </div>
         </div>

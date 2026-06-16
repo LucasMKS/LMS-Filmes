@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -55,9 +56,11 @@ export function MediaCard({
   userRatingIconClassName,
 }: MediaCardProps) {
   const [imgSrc, setImgSrc] = useState(imageUrl);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setImgSrc(imageUrl);
+    setIsLoading(true);
   }, [imageUrl]);
 
   const hasRating = !!userRating && !!userRating.rating && userRating.rating !== "0";
@@ -91,12 +94,22 @@ export function MediaCard({
 
       <div className="relative z-10 pointer-events-none">
         {/* Imagem */}
-        <div className="relative overflow-hidden aspect-[2/3]">
-          <img
+        <div className="relative overflow-hidden aspect-[2/3] bg-white/5">
+          <Image
             src={imgSrc}
             alt={altText}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-            onError={() => setImgSrc("/placeholder-movie.jpg")}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+            className={cn(
+              "object-cover transition-all duration-700 group-hover:scale-105",
+              isLoading ? "scale-110 blur-xl grayscale" : "scale-100 blur-0 grayscale-0"
+            )}
+            onLoad={() => setIsLoading(false)}
+            onError={() => {
+              setImgSrc("/placeholder-movie.jpg");
+              setIsLoading(false);
+            }}
+            priority={false}
           />
 
           {/* Overlay gradiente */}

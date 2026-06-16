@@ -1,4 +1,5 @@
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -153,10 +154,11 @@ export function SerieDialog({
           <div className="relative w-full h-48 sm:h-64 md:h-80 bg-[#14141c] shrink-0">
             {backdropUrl && (
               <>
-                <img
+                <Image
                   src={backdropUrl}
                   alt={serieData.name}
-                  className="w-full h-full object-cover opacity-40 md:opacity-50"
+                  fill
+                  className="object-cover opacity-40 md:opacity-50"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/60 to-transparent" />
               </>
@@ -166,12 +168,14 @@ export function SerieDialog({
           <div className="relative z-10 px-4 sm:px-6 md:px-10 pb-8 -mt-20 sm:-mt-28 md:-mt-32">
             <div className="flex flex-col md:flex-row gap-5 sm:gap-6 md:gap-8 items-center md:items-end">
               <div className="w-32 sm:w-44 md:w-56 lg:w-64 shrink-0 mx-auto md:mx-0">
-                <img
-                  src={imageUrl}
-                  alt={serieData.name}
-                  className="w-full rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] border-2 border-white/[0.08] object-cover aspect-[2/3]"
-                  onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-movie.jpg"; }}
-                />
+                <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] border-2 border-white/[0.08] bg-white/5">
+                  <Image
+                    src={imageUrl}
+                    alt={serieData.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
               </div>
 
               <div className="flex-1 flex flex-col justify-end pt-2 md:pt-12 text-center md:text-left w-full">

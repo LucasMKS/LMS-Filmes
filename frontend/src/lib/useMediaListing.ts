@@ -290,32 +290,83 @@ export function useMediaListing<T extends { id: number }, C extends string>({
   }, [fetchedItems, getRatingStatuses]);
 
   const toggleFavoriteMutation = useMutation({
-    mutationFn: (mediaId: string) => toggleFavorite(mediaId),
-    onSuccess: (response, mediaIdStr) => {
-      const mediaId = Number(mediaIdStr);
-      setFavoriteStatus((prev) => ({ ...prev, [mediaId]: response.isFavorite }));
-      favoriteStatusRef.current[mediaId] = response.isFavorite;
-      toast.success(
-        response.isFavorite ? messages.toggleAddSuccess : messages.toggleRemoveSuccess,
-      );
+    mutationFn: async (mediaId: string) => {
+      const { toggleFavoriteAction } = await import("@/app/actions");
+      return toggleFavoriteAction(mediaId, mediaType);
     },
-    onError: () => {
+    onMutate: async (mediaIdStr) => {
+      const mediaId = Number(mediaIdStr);
+      // Cancelar refetches em andamento para não sobrescrever o estado otimista
+      await queryClient.cancelQueries({ queryKey: [mediaType, "media"] });
+
+      // Salvar estado anterior
+      const previousStatus = favoriteStatusRef.current[mediaId];
+      const newStatus = !previousStatus;
+
+      // Atualizar estado local instantaneamente
+      setFavoriteStatus((prev) => ({ ...prev, [mediaId]: newStatus }));
+      favoriteStatusRef.current[mediaId] = newStatus;
+
+      return { previousStatus, mediaId };
+    },
+    onSuccess: (result, mediaIdStr) => {
+      if (result.success && result.data) {
+        const mediaId = Number(mediaIdStr);
+        // Garantir que o estado final condiz com o servidor
+        setFavoriteStatus((prev) => ({ ...prev, [mediaId]: result.data!.isFavorite }));
+        favoriteStatusRef.current[mediaId] = result.data!.isFavorite;
+        toast.success(
+          result.data!.isFavorite ? messages.toggleAddSuccess : messages.toggleRemoveSuccess,
+        );
+      } else {
+        toast.error(result.error || messages.toggleError);
+      }
+    },
+    onError: (err, mediaIdStr, context) => {
+      // Reverter em caso de erro
+      if (context) {
+        setFavoriteStatus((prev) => ({ ...prev, [context.mediaId]: context.previousStatus }));
+        favoriteStatusRef.current[context.mediaId] = context.previousStatus;
+      }
       toast.error(messages.toggleError);
     },
   });
 
   const toggleWatchlistMutation = useMutation({
-    mutationFn: (mediaId: string) => toggleWatchlist(mediaId),
-    onSuccess: (response, mediaIdStr) => {
-      const mediaId = Number(mediaIdStr);
-      setWatchlistStatus((prev) => ({ ...prev, [mediaId]: response.inWatchlist }));
-      watchlistStatusRef.current[mediaId] = response.inWatchlist;
-      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
-      toast.success(
-        response.inWatchlist ? "Adicionado à sua Watchlist!" : "Removido da Watchlist!",
-      );
+    mutationFn: async (mediaId: string) => {
+      const { toggleWatchlistAction } = await import("@/app/actions");
+      return toggleWatchlistAction(mediaId, mediaType);
     },
-    onError: () => {
+    onMutate: async (mediaIdStr) => {
+      const mediaId = Number(mediaIdStr);
+      await queryClient.cancelQueries({ queryKey: [mediaType, "media"] });
+
+      const previousStatus = watchlistStatusRef.current[mediaId];
+      const newStatus = !previousStatus;
+
+      setWatchlistStatus((prev) => ({ ...prev, [mediaId]: newStatus }));
+      watchlistStatusRef.current[mediaId] = newStatus;
+
+      return { previousStatus, mediaId };
+    },
+    onSuccess: (result, mediaIdStr) => {
+      if (result.success && result.data) {
+        const mediaId = Number(mediaIdStr);
+        setWatchlistStatus((prev) => ({ ...prev, [mediaId]: result.data!.inWatchlist }));
+        watchlistStatusRef.current[mediaId] = result.data!.inWatchlist;
+        queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+        toast.success(
+          result.data!.inWatchlist ? "Adicionado à sua Watchlist!" : "Removido da Watchlist!",
+        );
+      } else {
+        toast.error(result.error || "Erro ao atualizar a Watchlist.");
+      }
+    },
+    onError: (err, mediaIdStr, context) => {
+      if (context) {
+        setWatchlistStatus((prev) => ({ ...prev, [context.mediaId]: context.previousStatus }));
+        watchlistStatusRef.current[context.mediaId] = context.previousStatus;
+      }
       toast.error("Erro ao atualizar a Watchlist.");
     },
   });

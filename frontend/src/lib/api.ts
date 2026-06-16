@@ -1,4 +1,3 @@
-import axios from "axios";
 import Cookies from "js-cookie";
 import { ErrorHandler } from "./errorHandler";
 import { toast } from "sonner";
@@ -49,30 +48,56 @@ const resolveApiGatewayUrl = (): string => {
 
 const API_GATEWAY_URL = resolveApiGatewayUrl();
 
-const timeoutFromEnv = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
-const REQUEST_TIMEOUT =
-  Number.isFinite(timeoutFromEnv) && timeoutFromEnv > 0 ? timeoutFromEnv : 0;
+async function fetcher<T>(
+  service: "lms-filmes" | "lms-rating" | "lms-favorite",
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = Cookies.get("auth_token");
+  
+  const headers = new Headers(options.headers);
+  headers.set("Content-Type", "application/json");
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
 
-const apiLmsFilmes = axios.create({
-  baseURL: `${API_GATEWAY_URL}/lms-filmes`,
-  headers: { "Content-Type": "application/json" },
-  timeout: REQUEST_TIMEOUT,
-  withCredentials: true,
-});
+  const url = `${API_GATEWAY_URL}/${service}${endpoint}`;
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
 
-const apiLmsRating = axios.create({
-  baseURL: `${API_GATEWAY_URL}/lms-rating`,
-  headers: { "Content-Type": "application/json" },
-  timeout: REQUEST_TIMEOUT,
-  withCredentials: true,
-});
+    if (!response.ok) {
+      if (response.status === 401) {
+        Cookies.remove("auth_token", { domain: ".lucasmks.com.br", path: "/" });
+        Cookies.remove("user_data", { domain: ".lucasmks.com.br", path: "/" });
 
-const apiLmsFavorite = axios.create({
-  baseURL: `${API_GATEWAY_URL}/lms-favorite`,
-  headers: { "Content-Type": "application/json" },
-  timeout: REQUEST_TIMEOUT,
-  withCredentials: true,
-});
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("session_active");
+          
+          toast.error("Sessão expirada", {
+            description: "Por favor, faça login novamente.",
+          });
+
+          if (window.location.pathname !== "/filmes") {
+            window.location.href = "/filmes";
+          }
+        }
+      }
+      const errorData = await response.json().catch(() => ({}));
+      throw ErrorHandler.createApiError({ response: { status: response.status, data: errorData } });
+    }
+
+    return response.json();
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      throw new Error("Requisição cancelada por timeout");
+    }
+    throw error;
+  }
+}
 
 const buildBatchQuery = (paramName: string, ids: string[]): string => {
   const params = new URLSearchParams();
@@ -80,131 +105,78 @@ const buildBatchQuery = (paramName: string, ids: string[]): string => {
   return params.toString();
 };
 
-const attachAuthInterceptor = (apiInstance: any) => {
-  apiInstance.interceptors.request.use((config: any) => {
-    const token = Cookies.get("auth_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  });
-
-  apiInstance.interceptors.response.use(
-    (res: any) => res,
-    (error: any) => {
-      const apiError = ErrorHandler.createApiError(error);
-
-      if (error.response?.status === 401) {
-        Cookies.remove("auth_token", { domain: ".lucasmks.com.br", path: "/" });
-        Cookies.remove("user_data", { domain: ".lucasmks.com.br", path: "/" });
-
-        if (typeof window !== "undefined") {
-          window.localStorage.removeItem("session_active");
-        }
-
-        toast.error("Sessão expirada", {
-          description: "Por favor, faça login novamente.",
-        });
-
-        if (window.location.pathname !== "/filmes") {
-          window.location.href = "/filmes";
-        }
-      }
-      return Promise.reject(apiError);
-    },
-  );
-};
-
-[apiLmsFilmes, apiLmsRating, apiLmsFavorite].forEach(attachAuthInterceptor);
-
 export const authApi = {
   login: (payload: AuthDTO): Promise<AuthResponse> =>
-    apiLmsFilmes.post("/auth/login", payload).then((res) => res.data),
+    fetcher("lms-filmes", "/auth/login", { method: "POST", body: JSON.stringify(payload) }),
 
   register: (payload: AuthDTO): Promise<AuthResponse> =>
-    apiLmsFilmes.post("/auth/register", payload).then((res) => res.data),
+    fetcher("lms-filmes", "/auth/register", { method: "POST", body: JSON.stringify(payload) }),
 
   requestPasswordReset: (email: string): Promise<SimpleApiResponse> =>
-    apiLmsFilmes
-      .post("/auth/forgot-password", { email })
-      .then((res) => res.data),
+    fetcher("lms-filmes", "/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
 
   resetPassword: (
     token: string,
     newPassword: string,
   ): Promise<SimpleApiResponse> =>
-    apiLmsFilmes
-      .post("/auth/reset-password", { token, newPassword })
-      .then((res) => res.data),
+    fetcher("lms-filmes", "/auth/reset-password", { method: "POST", body: JSON.stringify({ token, newPassword }) }),
 };
 
 export const moviesApi = {
   getPopularMovies: (page: number = 1): Promise<TmdbPage<TmdbMovie>> =>
-    apiLmsFilmes.get(`/movies/popular?page=${page}`).then((res) => res.data),
+    fetcher("lms-filmes", `/movies/popular?page=${page}`),
 
   getNowPlayingMovies: (page: number = 1): Promise<TmdbPage<TmdbMovie>> =>
-    apiLmsFilmes
-      .get(`/movies/now-playing?page=${page}`)
-      .then((res) => res.data),
+    fetcher("lms-filmes", `/movies/now-playing?page=${page}`),
 
   getTopRatedMovies: (page: number = 1): Promise<TmdbPage<TmdbMovie>> =>
-    apiLmsFilmes.get(`/movies/top-rated?page=${page}`).then((res) => res.data),
+    fetcher("lms-filmes", `/movies/top-rated?page=${page}`),
 
   getUpcomingMovies: (page: number = 1): Promise<TmdbPage<TmdbMovie>> =>
-    apiLmsFilmes.get(`/movies/upcoming?page=${page}`).then((res) => res.data),
+    fetcher("lms-filmes", `/movies/upcoming?page=${page}`),
 
   searchMovies: (
     query: string,
     page: number = 1,
   ): Promise<TmdbPage<TmdbMovie>> =>
-    apiLmsFilmes
-      .get(`/movies/search?query=${encodeURIComponent(query)}&page=${page}`)
-      .then((res) => res.data),
+    fetcher("lms-filmes", `/movies/search?query=${encodeURIComponent(query)}&page=${page}`),
 
   getMovieDetails: (movieId: string | number, includeRecommendations = false): Promise<TmdbMovie> =>
-    apiLmsFilmes
-      .get(`/movies/${movieId}${includeRecommendations ? "?includeRecommendations=true" : ""}`)
-      .then((res) => res.data),
+    fetcher("lms-filmes", `/movies/${movieId}${includeRecommendations ? "?includeRecommendations=true" : ""}`),
 
   getMoviesBatch: (ids: string[]): Promise<Record<string, TmdbMovie>> => {
     if (ids.length === 0) return Promise.resolve({});
     const query = buildBatchQuery("ids", ids);
-    return apiLmsFilmes.get(`/movies/batch?${query}`).then((res) => res.data);
+    return fetcher("lms-filmes", `/movies/batch?${query}`);
   },
 };
 
 export const seriesApi = {
   getPopularSeries: (page: number = 1): Promise<TmdbPage<TmdbSerie>> =>
-    apiLmsFilmes.get(`/series/popular?page=${page}`).then((res) => res.data),
+    fetcher("lms-filmes", `/series/popular?page=${page}`),
 
   getAiringTodaySeries: (page: number = 1): Promise<TmdbPage<TmdbSerie>> =>
-    apiLmsFilmes
-      .get(`/series/airing-today?page=${page}`)
-      .then((res) => res.data),
+    fetcher("lms-filmes", `/series/airing-today?page=${page}`),
 
   getOnTheAirSeries: (page: number = 1): Promise<TmdbPage<TmdbSerie>> =>
-    apiLmsFilmes.get(`/series/on-the-air?page=${page}`).then((res) => res.data),
+    fetcher("lms-filmes", `/series/on-the-air?page=${page}`),
 
   getTopRatedSeries: (page: number = 1): Promise<TmdbPage<TmdbSerie>> =>
-    apiLmsFilmes.get(`/series/top-rated?page=${page}`).then((res) => res.data),
+    fetcher("lms-filmes", `/series/top-rated?page=${page}`),
 
   searchSeries: (
     query: string,
     page: number = 1,
   ): Promise<TmdbPage<TmdbSerie>> =>
-    apiLmsFilmes
-      .get(`/series/search?query=${encodeURIComponent(query)}&page=${page}`)
-      .then((res) => res.data),
+    fetcher("lms-filmes", `/series/search?query=${encodeURIComponent(query)}&page=${page}`),
 
   getSerieDetails: (serieId: string | number, includeRecommendations = false): Promise<TmdbSerie> =>
-    apiLmsFilmes
-      .get(`/series/${serieId}${includeRecommendations ? "?includeRecommendations=true" : ""}`)
-      .then((res) => res.data),
+    fetcher("lms-filmes", `/series/${serieId}${includeRecommendations ? "?includeRecommendations=true" : ""}`),
 
   getSeriesBatch: (ids: string[]): Promise<Record<string, TmdbSerie>> => {
     if (ids.length === 0) return Promise.resolve({});
     const query = buildBatchQuery("ids", ids);
-    return apiLmsFilmes.get(`/series/batch?${query}`).then((res) => res.data);
+    return fetcher("lms-filmes", `/series/batch?${query}`);
   },
 };
 
@@ -228,19 +200,18 @@ export type RatingStatus = { rating: string; comment?: string };
 
 export const ratingMoviesApi = {
   rateMovie: (payload: RateMoviePayload): Promise<Movie> => {
-    return apiLmsRating.post("/rate/movies", payload).then((res) => res.data);
+    return fetcher("lms-rating", "/rate/movies", { method: "POST", body: JSON.stringify(payload) });
   },
 
   getRatingStatuses: (movieIds: string[]): Promise<Record<string, RatingStatus>> => {
     if (movieIds.length === 0) return Promise.resolve({});
     const query = buildBatchQuery("movieIds", movieIds);
-    return apiLmsRating.get(`/rate/movies/status/batch?${query}`).then((res) => res.data);
+    return fetcher("lms-rating", `/rate/movies/status/batch?${query}`);
   },
 
   getRatedMovies: (): Promise<Movie[]> =>
-    apiLmsRating.get("/rate/movies/").then((res) => res.data),
+    fetcher("lms-rating", "/rate/movies/"),
 
-  // ATUALIZADO: Agora aceita minRating e maxRating
   getRatedMoviesPaged: (
     page: number = 0,
     size: number = 20,
@@ -256,30 +227,27 @@ export const ratingMoviesApi = {
     if (maxRating !== undefined) params.append("maxRating", maxRating.toString());
     if (title?.trim()) params.append("title", title.trim());
 
-    return apiLmsRating
-      .get(`/rate/movies/paged?${params.toString()}`)
-      .then((res) => res.data);
+    return fetcher("lms-rating", `/rate/movies/paged?${params.toString()}`);
   },
 
   getMovieRating: (movieId: string): Promise<Movie> =>
-    apiLmsRating.get(`/rate/movies/${movieId}`).then((res) => res.data),
+    fetcher("lms-rating", `/rate/movies/${movieId}`),
 };
 
 export const ratingSeriesApi = {
   rateSerie: (payload: RateSeriePayload): Promise<Serie> => {
-    return apiLmsRating.post("/rate/series", payload).then((res) => res.data);
+    return fetcher("lms-rating", "/rate/series", { method: "POST", body: JSON.stringify(payload) });
   },
 
   getRatingStatuses: (serieIds: string[]): Promise<Record<string, RatingStatus>> => {
     if (serieIds.length === 0) return Promise.resolve({});
     const query = buildBatchQuery("serieIds", serieIds);
-    return apiLmsRating.get(`/rate/series/status/batch?${query}`).then((res) => res.data);
+    return fetcher("lms-rating", `/rate/series/status/batch?${query}`);
   },
 
   getRatedSeries: (): Promise<Serie[]> =>
-    apiLmsRating.get("/rate/series/").then((res) => res.data),
+    fetcher("lms-rating", "/rate/series/"),
 
-  // ATUALIZADO: Agora aceita minRating e maxRating
   getRatedSeriesPaged: (
     page: number = 0,
     size: number = 20,
@@ -295,24 +263,18 @@ export const ratingSeriesApi = {
     if (maxRating !== undefined) params.append("maxRating", maxRating.toString());
     if (title?.trim()) params.append("title", title.trim());
 
-    return apiLmsRating
-      .get(`/rate/series/paged?${params.toString()}`)
-      .then((res) => res.data);
+    return fetcher("lms-rating", `/rate/series/paged?${params.toString()}`);
   },
 
   getSerieRating: (serieId: string): Promise<Serie> =>
-    apiLmsRating.get(`/rate/series/${serieId}`).then((res) => res.data),
+    fetcher("lms-rating", `/rate/series/${serieId}`),
 };
 
 export const favoriteMoviesApi = {
   toggleFavorite: (movieId: string) =>
-    apiLmsFavorite
-      .post("/favorite/movies", null, { params: { movieId } })
-      .then((res) => res.data),
+    fetcher("lms-favorite", `/favorite/movies?movieId=${movieId}`, { method: "POST" }),
   getFavoriteStatus: (movieId: string) =>
-    apiLmsFavorite
-      .get("/favorite/movies/status", { params: { movieId } })
-      .then((res) => res.data),
+    fetcher("lms-favorite", `/favorite/movies/status?movieId=${movieId}`),
   getFavoriteStatuses: (
     movieIds: string[],
   ): Promise<Record<string, boolean>> => {
@@ -321,23 +283,17 @@ export const favoriteMoviesApi = {
     }
 
     const query = buildBatchQuery("movieIds", movieIds);
-    return apiLmsFavorite
-      .get(`/favorite/movies/status/batch?${query}`)
-      .then((res) => res.data);
+    return fetcher("lms-favorite", `/favorite/movies/status/batch?${query}`);
   },
   getFavoriteMovies: () =>
-    apiLmsFavorite.get("/favorite/movies/").then((res) => res.data.data),
+    fetcher("lms-favorite", "/favorite/movies/").then((res: any) => res.data),
 };
 
 export const favoriteSeriesApi = {
   toggleFavorite: (serieId: string) =>
-    apiLmsFavorite
-      .post("/favorite/series", null, { params: { serieId } })
-      .then((res) => res.data),
+    fetcher("lms-favorite", `/favorite/series?serieId=${serieId}`, { method: "POST" }),
   getFavoriteStatus: (serieId: string) =>
-    apiLmsFavorite
-      .get("/favorite/series/status", { params: { serieId } })
-      .then((res) => res.data),
+    fetcher("lms-favorite", `/favorite/series/status?serieId=${serieId}`),
   getFavoriteStatuses: (
     serieIds: string[],
   ): Promise<Record<string, boolean>> => {
@@ -346,48 +302,36 @@ export const favoriteSeriesApi = {
     }
 
     const query = buildBatchQuery("serieIds", serieIds);
-    return apiLmsFavorite
-      .get(`/favorite/series/status/batch?${query}`)
-      .then((res) => res.data);
+    return fetcher("lms-favorite", `/favorite/series/status/batch?${query}`);
   },
   getFavoriteSeries: () =>
-    apiLmsFavorite.get("/favorite/series/").then((res) => res.data.data),
+    fetcher("lms-favorite", "/favorite/series/").then((res: any) => res.data),
 };
 
 export const watchlistMoviesApi = {
   toggleWatchlist: (movieId: string) =>
-    apiLmsFavorite
-      .post("/watchlist/movies", null, { params: { movieId } })
-      .then((res) => res.data),
+    fetcher("lms-favorite", `/watchlist/movies?movieId=${movieId}`, { method: "POST" }),
   getWatchlistStatus: (movieId: string) =>
-    apiLmsFavorite
-      .get("/watchlist/movies/status", { params: { movieId } })
-      .then((res) => res.data),
+    fetcher("lms-favorite", `/watchlist/movies/status?movieId=${movieId}`),
   getWatchlistStatuses: (movieIds: string[]): Promise<Record<string, boolean>> => {
     if (movieIds.length === 0) return Promise.resolve({});
     const query = buildBatchQuery("movieIds", movieIds);
-    return apiLmsFavorite.get(`/watchlist/movies/status/batch?${query}`).then((res) => res.data);
+    return fetcher("lms-favorite", `/watchlist/movies/status/batch?${query}`);
   },
   getWatchlistMovies: (): Promise<WatchlistMovie[]> =>
-    apiLmsFavorite.get("/watchlist/movies").then((res) => res.data),
+    fetcher("lms-favorite", "/watchlist/movies"),
 };
 
 export const watchlistSeriesApi = {
   toggleWatchlist: (serieId: string) =>
-    apiLmsFavorite
-      .post("/watchlist/series", null, { params: { serieId } })
-      .then((res) => res.data),
+    fetcher("lms-favorite", `/watchlist/series?serieId=${serieId}`, { method: "POST" }),
   getWatchlistStatus: (serieId: string) =>
-    apiLmsFavorite
-      .get("/watchlist/series/status", { params: { serieId } })
-      .then((res) => res.data),
+    fetcher("lms-favorite", `/watchlist/series/status?serieId=${serieId}`),
   getWatchlistStatuses: (serieIds: string[]): Promise<Record<string, boolean>> => {
     if (serieIds.length === 0) return Promise.resolve({});
     const query = buildBatchQuery("serieIds", serieIds);
-    return apiLmsFavorite.get(`/watchlist/series/status/batch?${query}`).then((res) => res.data);
+    return fetcher("lms-favorite", `/watchlist/series/status/batch?${query}`);
   },
   getWatchlistSeries: (): Promise<WatchlistSerie[]> =>
-    apiLmsFavorite.get("/watchlist/series").then((res) => res.data),
+    fetcher("lms-favorite", "/watchlist/series"),
 };
-
-export { apiLmsFilmes, apiLmsRating, apiLmsFavorite };

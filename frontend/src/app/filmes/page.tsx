@@ -134,15 +134,6 @@ export default function MoviesPage() {
     setMovieDetails(null);
   };
 
-  const MovieGridLoader = () => (
-    <div className="flex flex-col items-center justify-center py-32 text-center bg-[#14141c]/40 rounded-2xl border border-white/[0.06] mt-8">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500 mb-4"></div>
-      <p className="text-white/35 font-medium text-sm">
-        Buscando os melhores filmes...
-      </p>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
@@ -176,37 +167,34 @@ export default function MoviesPage() {
           onCategoryChange={handleCategoryChange}
         />
 
-        {loading ? (
-          <MovieGridLoader />
-        ) : (
-          <MediaResultsSection
-            items={isSearchMode ? searchResults : movies}
-            isSearchMode={isSearchMode}
-            searchResultsLength={searchResults.length}
-            isSearching={isSearching}
-            searchQuery={searchQuery}
-            loadingMore={loadingMore}
-            onLoadMore={loadMoreItems}
-            onClearSearch={clearSearch}
-            emptyTitle="Nenhum filme na fita"
-            emptyDescriptionPrefix="Não encontramos nenhum resultado para"
-            emptyBackButtonLabel="Voltar aos Populares"
-            emptyIcon={Film}
-            renderCard={(movie) => (
-              <MovieCard
-                key={`movie-${movie.id}`}
-                movie={movie}
-                onClick={() => handleMovieClick(movie)}
-                showActionButtons={isLoggedIn}
-                isFavorite={favoriteStatus[movie.id] || false}
-                onFavoriteToggle={() => handleToggleFavorite(movie.id)}
-                isInWatchlist={watchlistStatus[movie.id] || false}
-                onWatchlistToggle={() => handleToggleWatchlist(movie.id)}
-                userRating={ratingStatus[movie.id] ?? null}
-              />
-            )}
-          />
-        )}
+        <MediaResultsSection
+          items={isSearchMode ? searchResults : movies}
+          isSearchMode={isSearchMode}
+          searchResultsLength={searchResults.length}
+          isSearching={isSearching}
+          searchQuery={searchQuery}
+          loadingMore={loadingMore}
+          onLoadMore={loadMoreItems}
+          onClearSearch={clearSearch}
+          emptyTitle="Nenhum filme na fita"
+          emptyDescriptionPrefix="Não encontramos nenhum resultado para"
+          emptyBackButtonLabel="Voltar aos Populares"
+          emptyIcon={Film}
+          isLoading={loading}
+          renderCard={(movie) => (
+            <MovieCard
+              key={`movie-${movie.id}`}
+              movie={movie}
+              onClick={() => handleMovieClick(movie)}
+              showActionButtons={isLoggedIn}
+              isFavorite={favoriteStatus[movie.id] || false}
+              onFavoriteToggle={() => handleToggleFavorite(movie.id)}
+              isInWatchlist={watchlistStatus[movie.id] || false}
+              onWatchlistToggle={() => handleToggleWatchlist(movie.id)}
+              userRating={ratingStatus[movie.id] ?? null}
+            />
+          )}
+        />
       </main>
 
       {selectedMovie && (

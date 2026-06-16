@@ -16,8 +16,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LMS Filmes",
-  description: "Sistema de avaliação de filmes e séries",
+  title: {
+    template: "%s | LMS Filmes",
+    default: "LMS Filmes | Sua Coleção de Cinema",
+  },
+  description: "Descubra, avalie e organize seus filmes e séries favoritos. O LMS Filmes é o seu diário cinematográfico pessoal.",
+  keywords: ["filmes", "séries", "avaliação", "watchlist", "cinema"],
+  authors: [{ name: "Lucas" }],
+  openGraph: {
+    title: "LMS Filmes | Sua Coleção de Cinema",
+    description: "Descubra, avalie e organize seus filmes e séries favoritos.",
+    url: "https://filmes.lucasmks.com.br",
+    siteName: "LMS Filmes",
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LMS Filmes",
+    description: "Sua coleção pessoal de filmes e séries.",
+  },
 };
 
 export default function RootLayout({

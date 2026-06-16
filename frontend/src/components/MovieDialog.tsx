@@ -1,4 +1,5 @@
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -92,10 +93,16 @@ export function MovieDialog({
     if (!displayMovie) return;
     setLoadingWatchlist(true);
     try {
-      const res = await watchlistMoviesApi.toggleWatchlist(String(displayMovie.id));
-      setIsInWatchlist(res.inWatchlist);
-      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
-      toast.success(res.inWatchlist ? "Adicionado à sua Watchlist!" : "Removido da Watchlist!");
+      const { toggleWatchlistAction } = await import("@/app/actions");
+      const result = await toggleWatchlistAction(String(displayMovie.id), "movie");
+      
+      if (result.success && result.data) {
+        setIsInWatchlist(result.data.inWatchlist);
+        queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+        toast.success(result.data.inWatchlist ? "Adicionado à sua Watchlist!" : "Removido da Watchlist!");
+      } else {
+        toast.error(result.error || "Erro ao atualizar a Watchlist.");
+      }
     } catch {
       toast.error("Erro ao atualizar a Watchlist.");
     } finally {
@@ -144,15 +151,20 @@ export function MovieDialog({
     }
     try {
       const ratingValue = parseFloat(ratingString);
-      const updatedRating = await MovieService.rateMovie(
-        displayMovie.id,
-        ratingValue,
-        displayMovie.title || "Filme Desconhecido",
-        displayMovie.poster_path || "",
-        comment,
-      );
-      setUserRating(updatedRating);
-      onRateSuccess?.(ratingString, comment);
+      const { rateMediaAction } = await import("@/app/actions");
+      const result = await rateMediaAction(String(displayMovie.id), "movie", {
+        rating: ratingValue,
+        title: displayMovie.title || "Filme Desconhecido",
+        poster_path: displayMovie.poster_path || "",
+        comment: comment,
+      });
+
+      if (result.success && result.data) {
+        setUserRating(result.data as Movie);
+        onRateSuccess?.(ratingString, comment);
+      } else {
+        throw new Error(result.error || "Erro ao avaliar");
+      }
     } catch (error) {
       console.error("Erro capturado no Dialog ao submeter avaliação:", error);
       throw error;
@@ -167,10 +179,11 @@ export function MovieDialog({
           <div className="relative w-full h-48 sm:h-64 md:h-80 bg-[#14141c] shrink-0">
             {backdropUrl && (
               <>
-                <img
+                <Image
                   src={backdropUrl}
                   alt={displayMovie.title}
-                  className="w-full h-full object-cover opacity-40 md:opacity-50"
+                  fill
+                  className="object-cover opacity-40 md:opacity-50"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/60 to-transparent" />
               </>
@@ -180,12 +193,14 @@ export function MovieDialog({
           <div className="relative z-10 px-4 sm:px-6 md:px-10 pb-8 -mt-20 sm:-mt-28 md:-mt-32">
             <div className="flex flex-col md:flex-row gap-5 sm:gap-6 md:gap-8 items-center md:items-end">
               <div className="w-32 sm:w-44 md:w-56 lg:w-64 shrink-0 mx-auto md:mx-0">
-                <img
-                  src={imageUrl}
-                  alt={displayMovie.title}
-                  className="w-full rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] border-2 border-white/[0.08] object-cover aspect-[2/3]"
-                  onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-movie.jpg"; }}
-                />
+                <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] border-2 border-white/[0.08] bg-white/5">
+                  <Image
+                    src={imageUrl}
+                    alt={displayMovie.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
               </div>
 
               <div className="flex-1 flex flex-col justify-end pt-2 md:pt-12 text-center md:text-left w-full">

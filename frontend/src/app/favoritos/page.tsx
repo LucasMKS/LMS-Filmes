@@ -19,6 +19,7 @@ import {
 } from "../../lib/types";
 import { MovieCard } from "../../components/MovieCard";
 import { SerieCard } from "../../components/SerieCard";
+import { MediaCardSkeleton } from "../../components/MediaCardSkeleton";
 import { MovieDialog } from "../../components/MovieDialog";
 import { SerieDialog } from "../../components/SerieDialog";
 import { Input } from "@/components/ui/input";
@@ -251,9 +252,8 @@ export default function FavoritesPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-32 text-center bg-[#14141c]/40 rounded-2xl border border-white/[0.06] mt-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mb-4" />
-            <p className="text-white/35 font-medium">Carregando a sua estante especial...</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 mb-10 mt-8">
+            <MediaCardSkeleton count={12} />
           </div>
         ) : (
           <>

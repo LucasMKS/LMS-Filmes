@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Dices, Check, Trash2, ListVideo, Film, Tv } from "lucide-react";
 import { RatingDialog } from "../../components/RatingDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   watchlistMoviesApi,
   watchlistSeriesApi,
@@ -233,9 +235,17 @@ export default function WatchlistPage() {
 
         {/* Lista */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-32 text-center bg-[#14141c]/40 rounded-2xl border border-white/[0.06]">
-            <div className="w-12 h-12 mb-4 border-b-2 border-emerald-400 rounded-full animate-spin" />
-            <p className="font-medium text-white/35">Carregando sua lista...</p>
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-40 w-full bg-[#14141c] rounded-2xl border border-white/[0.06] flex animate-pulse">
+                <Skeleton className="w-28 sm:w-36 h-full rounded-l-2xl" />
+                <div className="flex-1 p-5 space-y-4">
+                  <Skeleton className="h-6 w-1/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="space-y-4">
@@ -254,10 +264,11 @@ export default function WatchlistPage() {
                 >
                   {item.backdrop && (
                     <div className="hidden sm:block absolute inset-0 z-0 pointer-events-none">
-                      <img
+                      <Image
                         src={item.backdrop}
                         alt=""
-                        className="object-cover w-full h-full opacity-10 group-hover:opacity-20 transition-opacity duration-500"
+                        fill
+                        className="object-cover opacity-10 group-hover:opacity-20 transition-opacity duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-r from-[#14141c] via-[#14141c]/95 to-[#14141c]/40" />
                     </div>
@@ -266,10 +277,11 @@ export default function WatchlistPage() {
                   <div className="relative z-10 flex flex-row items-stretch p-0">
                     {/* Pôster */}
                     <div className="relative shrink-0 w-24 sm:w-28 md:w-36 aspect-[2/3]">
-                      <img
+                      <Image
                         src={item.poster}
                         alt={item.title}
-                        className="object-cover w-full h-full rounded-l-2xl"
+                        fill
+                        className="object-cover rounded-l-2xl"
                       />
                     </div>
 
@@ -374,8 +386,10 @@ export default function WatchlistPage() {
               {isSpinning ? "Buscando nos seus interesses..." : "Você vai assistir:"}
             </p>
 
-            <img
+            <Image
               src={randomItem.poster}
+              width={200}
+              height={300}
               className={cn(
                 "object-cover mx-auto mb-6 border-4 rounded-xl shadow-xl w-40 h-60 sm:w-48 sm:h-72 transition-all duration-200",
                 isSpinning

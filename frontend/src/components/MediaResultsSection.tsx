@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Clock, type LucideIcon } from "lucide-react";
+import { MediaCardSkeleton } from "./MediaCardSkeleton";
 
 interface MediaResultsSectionProps<T extends { id: number }> {
   items: T[];
@@ -15,6 +16,7 @@ interface MediaResultsSectionProps<T extends { id: number }> {
   emptyBackButtonLabel: string;
   emptyIcon: LucideIcon;
   renderCard: (item: T) => React.ReactNode;
+  isLoading?: boolean;
 }
 
 export function MediaResultsSection<T extends { id: number }>({
@@ -31,11 +33,19 @@ export function MediaResultsSection<T extends { id: number }>({
   emptyBackButtonLabel,
   emptyIcon: EmptyIcon,
   renderCard,
+  isLoading = false,
 }: MediaResultsSectionProps<T>) {
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-        {items.map((item) => renderCard(item))}
+        {(isLoading && items.length === 0) || isSearching ? (
+          <MediaCardSkeleton count={isSearching ? 6 : 12} />
+        ) : (
+          <>
+            {items.map((item) => renderCard(item))}
+            {loadingMore && <MediaCardSkeleton count={5} />}
+          </>
+        )}
       </div>
 
       {isSearchMode && searchResultsLength === 0 && !isSearching && (

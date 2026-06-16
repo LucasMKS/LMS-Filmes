@@ -126,15 +126,6 @@ export default function SeriesPage() {
     setSerieDetails(null);
   };
 
-  const SerieGridLoader = () => (
-    <div className="flex flex-col items-center justify-center py-32 text-center bg-[#14141c]/40 rounded-2xl border border-white/[0.06] mt-8">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-500 mb-4"></div>
-      <p className="text-white/35 font-medium text-sm">
-        Buscando as melhores séries...
-      </p>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
@@ -168,37 +159,34 @@ export default function SeriesPage() {
           onCategoryChange={handleCategoryChange}
         />
 
-        {loading ? (
-          <SerieGridLoader />
-        ) : (
-          <MediaResultsSection
-            items={isSearchMode ? searchResults : series}
-            isSearchMode={isSearchMode}
-            searchResultsLength={searchResults.length}
-            isSearching={isSearching}
-            searchQuery={searchQuery}
-            loadingMore={loadingMore}
-            onLoadMore={loadMoreSeries}
-            onClearSearch={clearSearch}
-            emptyTitle="Nenhuma série na antena"
-            emptyDescriptionPrefix="Não encontramos nenhum resultado para"
-            emptyBackButtonLabel="Voltar aos Populares"
-            emptyIcon={Tv}
-            renderCard={(serie) => (
-              <SerieCard
-                key={`serie-${serie.id}`}
-                serie={serie}
-                onClick={() => handleSerieClick(serie)}
-                showActionButtons={isLoggedIn}
-                isFavorite={favoriteStatus[serie.id] || false}
-                onFavoriteToggle={() => handleToggleFavorite(serie.id)}
-                isInWatchlist={watchlistStatus[serie.id] || false}
-                onWatchlistToggle={() => handleToggleWatchlist(serie.id)}
-                userRating={ratingStatus[serie.id] ?? null}
-              />
-            )}
-          />
-        )}
+        <MediaResultsSection
+          items={isSearchMode ? searchResults : series}
+          isSearchMode={isSearchMode}
+          searchResultsLength={searchResults.length}
+          isSearching={isSearching}
+          searchQuery={searchQuery}
+          loadingMore={loadingMore}
+          onLoadMore={loadMoreSeries}
+          onClearSearch={clearSearch}
+          emptyTitle="Nenhuma série na antena"
+          emptyDescriptionPrefix="Não encontramos nenhum resultado para"
+          emptyBackButtonLabel="Voltar aos Populares"
+          emptyIcon={Tv}
+          isLoading={loading}
+          renderCard={(serie) => (
+            <SerieCard
+              key={`serie-${serie.id}`}
+              serie={serie}
+              onClick={() => handleSerieClick(serie)}
+              showActionButtons={isLoggedIn}
+              isFavorite={favoriteStatus[serie.id] || false}
+              onFavoriteToggle={() => handleToggleFavorite(serie.id)}
+              isInWatchlist={watchlistStatus[serie.id] || false}
+              onWatchlistToggle={() => handleToggleWatchlist(serie.id)}
+              userRating={ratingStatus[serie.id] ?? null}
+            />
+          )}
+        />
       </main>
 
       {selectedSerie && (
