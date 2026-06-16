@@ -120,6 +120,54 @@ export interface TmdbVideo {
   type: string;
 }
 
+export interface TmdbEpisode {
+  air_date: string;
+  episode_number: number;
+  id: number;
+  name: string;
+  overview: string;
+  production_code: string;
+  runtime: number;
+  season_number: number;
+  show_id: number;
+  still_path: string | null;
+  vote_average: number;
+  vote_count: number;
+}
+
+export interface TmdbSeason {
+  _id: string;
+  air_date: string;
+  episodes: TmdbEpisode[];
+  name: string;
+  overview: string;
+  id: number;
+  poster_path: string | null;
+  season_number: number;
+  vote_average: number;
+}
+
+export interface RatingEpisode {
+  id: number;
+  userId: number;
+  serieId: string;
+  seasonNumber: number;
+  episodeNumber: number;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  modifiedAt?: string;
+}
+
+export interface WatchedEpisode {
+  id: number;
+  userId: number;
+  serieId: string;
+  seasonNumber: number;
+  episodeNumber: number;
+  watchedAt: string;
+}
+
 export interface TmdbMovie {
   id: number;
   title: string;

@@ -315,6 +315,11 @@ export function useMediaListing<T extends { id: number }, C extends string>({
         // Garantir que o estado final condiz com o servidor
         setFavoriteStatus((prev) => ({ ...prev, [mediaId]: result.data!.isFavorite }));
         favoriteStatusRef.current[mediaId] = result.data!.isFavorite;
+        
+        if (result.data!.isFavorite) {
+          import("@/lib/celebrations").then(({ celebrateAction }) => celebrateAction("favorite"));
+        }
+
         toast.success(
           result.data!.isFavorite ? messages.toggleAddSuccess : messages.toggleRemoveSuccess,
         );
@@ -355,6 +360,11 @@ export function useMediaListing<T extends { id: number }, C extends string>({
         setWatchlistStatus((prev) => ({ ...prev, [mediaId]: result.data!.inWatchlist }));
         watchlistStatusRef.current[mediaId] = result.data!.inWatchlist;
         queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+
+        if (result.data!.inWatchlist) {
+          import("@/lib/celebrations").then(({ celebrateAction }) => celebrateAction("watchlist"));
+        }
+
         toast.success(
           result.data!.inWatchlist ? "Adicionado à sua Watchlist!" : "Removido da Watchlist!",
         );

@@ -14,6 +14,9 @@ import {
   WatchlistSerie,
   RatedMovieResponse,
   RatedSerieResponse,
+  TmdbSeason,
+  RatingEpisode,
+  WatchedEpisode,
 } from "./types";
 
 export interface PagedResponse<T> {
@@ -178,6 +181,9 @@ export const seriesApi = {
     const query = buildBatchQuery("ids", ids);
     return fetcher("lms-filmes", `/series/batch?${query}`);
   },
+
+  getSeasonDetails: (serieId: string | number, seasonNumber: number): Promise<TmdbSeason> =>
+    fetcher("lms-filmes", `/series/${serieId}/season/${seasonNumber}`),
 };
 
 interface RateMoviePayload {
@@ -268,6 +274,12 @@ export const ratingSeriesApi = {
 
   getSerieRating: (serieId: string): Promise<Serie> =>
     fetcher("lms-rating", `/rate/series/${serieId}`),
+
+  rateEpisode: (payload: { serieId: string; seasonNumber: number; episodeNumber: number; rating: number; comment?: string }): Promise<RatingEpisode> =>
+    fetcher("lms-rating", "/rate/episodes", { method: "POST", body: JSON.stringify(payload) }),
+
+  getRatedEpisodes: (serieId: string): Promise<RatingEpisode[]> =>
+    fetcher("lms-rating", `/rate/episodes/serie/${serieId}`),
 };
 
 export const favoriteMoviesApi = {
@@ -306,6 +318,15 @@ export const favoriteSeriesApi = {
   },
   getFavoriteSeries: () =>
     fetcher("lms-favorite", "/favorite/series/").then((res: any) => res.data),
+
+  markAsWatched: (payload: { serieId: string; seasonNumber: number; episodeNumber: number }): Promise<WatchedEpisode> =>
+    fetcher("lms-favorite", "/watched/episodes", { method: "POST", body: JSON.stringify(payload) }),
+
+  unmarkAsWatched: (payload: { serieId: string; seasonNumber: number; episodeNumber: number }): Promise<void> =>
+    fetcher("lms-favorite", "/watched/episodes", { method: "DELETE", body: JSON.stringify(payload) }),
+
+  getWatchedEpisodes: (serieId: string): Promise<WatchedEpisode[]> =>
+    fetcher("lms-favorite", `/watched/episodes/serie/${serieId}`),
 };
 
 export const watchlistMoviesApi = {

@@ -2,6 +2,7 @@ package com.lucasm.lmsfilmes.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lucasm.lmsfilmes.dto.SeasonDTO;
 import com.lucasm.lmsfilmes.dto.SeriesDTO;
 import com.lucasm.lmsfilmes.dto.TmdbPageDTO;
 import com.lucasm.lmsfilmes.exceptions.ResourceNotFoundException;
@@ -103,6 +104,32 @@ public class SerieService {
         } catch (Exception e) {
             logger.error("Erro ao buscar detalhes da série {}: {}", serieId, e.getMessage(), e);
             throw new TmdbApiException("Erro ao buscar detalhes da série: " + e.getMessage(), e);
+        }
+    }
+
+    @Cacheable(value = "seasonDetails", key = "#serieId + '_' + #seasonNumber")
+    public SeasonDTO getSeasonDetails(String serieId, int seasonNumber) {
+        try {
+            String path = withLanguage("/tv/" + serieId + "/season/" + seasonNumber);
+
+            String body = webClient.get()
+                    .uri(path)
+                    .retrieve()
+                    .onStatus(status -> status.value() == 404, response ->
+                            Mono.error(new ResourceNotFoundException("Temporada não encontrada: " + seasonNumber + " para série: " + serieId)))
+                    .onStatus(HttpStatusCode::isError, response ->
+                            response.bodyToMono(String.class)
+                                    .map(err -> new TmdbApiException(
+                                            "Erro ao buscar detalhes da temporada: status " + response.statusCode().value())))
+                    .bodyToMono(String.class)
+                    .block();
+
+            return objectMapper.readValue(body, SeasonDTO.class);
+        } catch (ResourceNotFoundException | TmdbApiException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Erro ao buscar detalhes da temporada {} da série {}: {}", seasonNumber, serieId, e.getMessage(), e);
+            throw new TmdbApiException("Erro ao buscar detalhes da temporada: " + e.getMessage(), e);
         }
     }
 

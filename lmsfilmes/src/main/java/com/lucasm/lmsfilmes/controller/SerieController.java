@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
+import com.lucasm.lmsfilmes.dto.SeasonDTO;
 import com.lucasm.lmsfilmes.dto.SeriesDTO;
 import com.lucasm.lmsfilmes.dto.TmdbPageDTO;
 import com.lucasm.lmsfilmes.service.SerieService;
@@ -71,6 +72,21 @@ public class SerieController {
             @RequestParam(defaultValue = "false") boolean includeRecommendations) {
         SeriesDTO serie = serieService.getSeriesDetails(serieId, includeRecommendations);
         return ResponseEntity.ok(serie);
+    }
+
+    /**
+     * Retorna os detalhes de uma temporada específica de uma série.
+     *
+     * @param serieId identificador da série no TMDB.
+     * @param seasonNumber número da temporada.
+     * @return resposta HTTP com os detalhes da temporada e seus episódios.
+     */
+    @GetMapping("/{serieId}/season/{seasonNumber}")
+    public ResponseEntity<SeasonDTO> getSeasonDetails(
+            @PathVariable String serieId,
+            @PathVariable int seasonNumber) {
+        SeasonDTO season = serieService.getSeasonDetails(serieId, seasonNumber);
+        return ResponseEntity.ok(season);
     }
 
     /**

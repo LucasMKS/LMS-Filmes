@@ -18,10 +18,12 @@ import {
   Info,
   ListPlus,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ratingSeriesApi, watchlistSeriesApi } from "@/lib/api";
 import MovieService from "@/lib/movieService";
+import { EpisodeList } from "./EpisodeList";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -323,33 +325,49 @@ export function SerieDialog({
                       <Tv className="w-5 h-5 text-white/30" />
                       Temporadas
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    
+                    <div className="space-y-4">
                       {serieData.seasons.map((season) => (
-                        <div
+                        <details 
                           key={`season-${season.id}`}
-                          className="bg-white/5 p-4 rounded-xl border border-white/[0.06] hover:bg-white/[0.07] transition-colors"
+                          className="group bg-white/5 rounded-xl border border-white/[0.06] overflow-hidden transition-all"
                         >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="text-white/80 font-semibold text-sm sm:text-base">
-                                {season.name}
-                              </h4>
-                              {season.air_date && (
-                                <p className="text-white/35 text-xs sm:text-sm mt-0.5">
-                                  {new Date(season.air_date).getFullYear()}
-                                </p>
+                          <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/[0.04] transition-colors list-none">
+                            <div className="flex items-center gap-4">
+                              {season.poster_path ? (
+                                <div className="relative w-10 h-14 sm:w-12 sm:h-18 aspect-[2/3] rounded-md overflow-hidden">
+                                  <Image 
+                                    src={`https://image.tmdb.org/t/p/w200${season.poster_path}`}
+                                    alt={season.name}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-10 h-14 sm:w-12 sm:h-18 aspect-[2/3] rounded-md bg-white/5 flex items-center justify-center">
+                                  <Tv className="w-6 h-6 text-white/10" />
+                                </div>
                               )}
+                              <div>
+                                <h4 className="text-white/90 font-bold text-sm sm:text-base">
+                                  {season.name}
+                                </h4>
+                                <p className="text-white/35 text-[10px] sm:text-xs">
+                                  {season.episode_count} episódios • {season.air_date ? new Date(season.air_date).getFullYear() : "N/A"}
+                                </p>
+                              </div>
                             </div>
-                            <span className="ml-2 shrink-0 px-2 py-0.5 rounded-lg bg-white/10 text-white/50 text-xs font-medium">
-                              {season.episode_count} ep{season.episode_count !== 1 ? "s" : ""}
-                            </span>
+                            <ChevronDown className="w-5 h-5 text-white/20 group-open:rotate-180 transition-transform" />
+                          </summary>
+                          
+                          <div className="p-4 border-t border-white/[0.03] bg-[#0a0a0f]/40">
+                            <EpisodeList 
+                              serieId={serieData.id} 
+                              seasonNumber={season.season_number} 
+                              isLoggedIn={isLoggedIn}
+                            />
                           </div>
-                          {season.overview && (
-                            <p className="text-white/35 text-xs sm:text-sm mt-3 line-clamp-2">
-                              {season.overview}
-                            </p>
-                          )}
-                        </div>
+                        </details>
                       ))}
                     </div>
                   </section>
