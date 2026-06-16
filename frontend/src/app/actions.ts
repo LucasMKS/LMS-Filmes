@@ -1,7 +1,3 @@
-"use client"
-// Wait, I should not use "use client" for actions.ts if I want them to be server actions.
-// But wait, the prompt said "use functions more modern". Server Actions are marked with "use server".
-
 "use server"
 
 import { revalidatePath } from "next/cache";
