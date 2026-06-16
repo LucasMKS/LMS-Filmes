@@ -67,7 +67,7 @@ class MovieService {
           ? `"${title}" foi ${action} favoritos.`
           : "Lista de favoritos atualizada.",
       });
-      return response;
+      return { movieId, isFavorite: response.isFavorite };
     } catch (error: any) {
       throw error;
     }
@@ -127,7 +127,7 @@ class MovieService {
           : "Lista de favoritos atualizada.",
       });
 
-      return response;
+      return { serieId, isFavorite: response.isFavorite };
     } catch (error: any) {
       throw error;
     }

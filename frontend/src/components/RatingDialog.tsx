@@ -15,12 +15,9 @@ interface RatingDialogProps {
   onClose: () => void;
   onSubmit: (rating: string, comment?: string) => Promise<void>;
   itemTitle: string;
-  itemType: "filme" | "série";
+  itemType: "filme" | "série" | "episódio";
   itemId: string | number;
-  currentRating?: {
-    myVote: string;
-    comment?: string;
-  } | null;
+  currentRating?: { myVote: string; comment?: string } | null;
 }
 
 export function RatingDialog({

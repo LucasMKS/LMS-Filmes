@@ -1,5 +1,5 @@
 import Cookies from "js-cookie";
-import { authApi, apiLmsFilmes } from "./api";
+import { authApi } from "./api";
 import { AuthDTO, User } from "./types";
 import { cookieUtils } from "./cookieUtils";
 
@@ -50,14 +50,8 @@ class AuthService {
   }
 
   async logout() {
-    try {
-      await apiLmsFilmes.post("/auth/logout");
-    } catch (error) {
-      console.error("Erro ao fazer logout no servidor:", error);
-    } finally {
-      this.clearTokens();
-      window.location.href = "/filmes";
-    }
+    this.clearTokens();
+    window.location.href = "/filmes";
   }
 
   clearTokens(): void {

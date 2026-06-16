@@ -283,9 +283,9 @@ export const ratingSeriesApi = {
 };
 
 export const favoriteMoviesApi = {
-  toggleFavorite: (movieId: string) =>
+  toggleFavorite: (movieId: string): Promise<{ isFavorite: boolean }> =>
     fetcher("lms-favorite", `/favorite/movies?movieId=${movieId}`, { method: "POST" }),
-  getFavoriteStatus: (movieId: string) =>
+  getFavoriteStatus: (movieId: string): Promise<boolean> =>
     fetcher("lms-favorite", `/favorite/movies/status?movieId=${movieId}`),
   getFavoriteStatuses: (
     movieIds: string[],
@@ -302,9 +302,9 @@ export const favoriteMoviesApi = {
 };
 
 export const favoriteSeriesApi = {
-  toggleFavorite: (serieId: string) =>
+  toggleFavorite: (serieId: string): Promise<{ isFavorite: boolean }> =>
     fetcher("lms-favorite", `/favorite/series?serieId=${serieId}`, { method: "POST" }),
-  getFavoriteStatus: (serieId: string) =>
+  getFavoriteStatus: (serieId: string): Promise<boolean> =>
     fetcher("lms-favorite", `/favorite/series/status?serieId=${serieId}`),
   getFavoriteStatuses: (
     serieIds: string[],
@@ -330,9 +330,9 @@ export const favoriteSeriesApi = {
 };
 
 export const watchlistMoviesApi = {
-  toggleWatchlist: (movieId: string) =>
+  toggleWatchlist: (movieId: string): Promise<{ inWatchlist: boolean }> =>
     fetcher("lms-favorite", `/watchlist/movies?movieId=${movieId}`, { method: "POST" }),
-  getWatchlistStatus: (movieId: string) =>
+  getWatchlistStatus: (movieId: string): Promise<{ inWatchlist: boolean }> =>
     fetcher("lms-favorite", `/watchlist/movies/status?movieId=${movieId}`),
   getWatchlistStatuses: (movieIds: string[]): Promise<Record<string, boolean>> => {
     if (movieIds.length === 0) return Promise.resolve({});
@@ -344,9 +344,9 @@ export const watchlistMoviesApi = {
 };
 
 export const watchlistSeriesApi = {
-  toggleWatchlist: (serieId: string) =>
+  toggleWatchlist: (serieId: string): Promise<{ inWatchlist: boolean }> =>
     fetcher("lms-favorite", `/watchlist/series?serieId=${serieId}`, { method: "POST" }),
-  getWatchlistStatus: (serieId: string) =>
+  getWatchlistStatus: (serieId: string): Promise<{ inWatchlist: boolean }> =>
     fetcher("lms-favorite", `/watchlist/series/status?serieId=${serieId}`),
   getWatchlistStatuses: (serieIds: string[]): Promise<Record<string, boolean>> => {
     if (serieIds.length === 0) return Promise.resolve({});
