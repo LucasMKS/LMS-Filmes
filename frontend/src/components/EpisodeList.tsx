@@ -30,9 +30,10 @@ interface EpisodeListProps {
   serieId: number;
   seasonNumber: number;
   isLoggedIn: boolean;
+  onToggleWatched?: () => void;
 }
 
-export function EpisodeList({ serieId, seasonNumber, isLoggedIn }: EpisodeListProps) {
+export function EpisodeList({ serieId, seasonNumber, isLoggedIn, onToggleWatched }: EpisodeListProps) {
   const [season, setSeason] = useState<TmdbSeason | null>(null);
   const [watchedEpisodes, setWatchedEpisodes] = useState<Set<number>>(new Set());
   const [episodeRatings, setEpisodeRatings] = useState<Record<number, RatingEpisode>>({});
@@ -101,6 +102,7 @@ export function EpisodeList({ serieId, seasonNumber, isLoggedIn }: EpisodeListPr
         });
         setWatchedEpisodes(prev => new Set(prev).add(episodeNumber));
       }
+      onToggleWatched?.();
     } catch (error) {
       toast.error("Erro ao atualizar status do episódio.");
     }

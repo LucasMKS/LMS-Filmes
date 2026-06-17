@@ -320,11 +320,14 @@ export interface RegisterFormData {
   confirmPassword: string;
 }
 
+export type WatchlistStatus = "PLAN_TO_WATCH" | "WATCHING" | "COMPLETED" | "DROPPED";
+
 export interface WatchlistMovie {
   id: string;
   email: string;
   movieId: string;
   addedAt: string;
+  status: WatchlistStatus;
 }
 
 export interface WatchlistSerie {
@@ -332,6 +335,12 @@ export interface WatchlistSerie {
   email: string;
   serieId: string;
   addedAt: string;
+  status: WatchlistStatus;
+}
+
+export interface WatchlistStatusResponse {
+  inWatchlist: boolean;
+  status?: WatchlistStatus;
 }
 
 export interface EnrichedWatchlistMovie {

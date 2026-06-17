@@ -29,4 +29,8 @@ public class WatchlistSerie {
     
     @Column(name = "mongo_id")
     private String mongoId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private WatchlistStatus status = WatchlistStatus.PLAN_TO_WATCH;
 }

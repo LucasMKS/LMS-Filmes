@@ -330,11 +330,13 @@ export const favoriteSeriesApi = {
 };
 
 export const watchlistMoviesApi = {
-  toggleWatchlist: (movieId: string): Promise<{ inWatchlist: boolean }> =>
-    fetcher("lms-favorite", `/watchlist/movies?movieId=${movieId}`, { method: "POST" }),
-  getWatchlistStatus: (movieId: string): Promise<{ inWatchlist: boolean }> =>
+  toggleWatchlist: (movieId: string, status?: WatchlistStatus): Promise<WatchlistStatusResponse> =>
+    fetcher("lms-favorite", `/watchlist/movies?movieId=${movieId}${status ? `&status=${status}` : ""}`, { method: "POST" }),
+  updateStatus: (movieId: string, status: WatchlistStatus): Promise<WatchlistStatusResponse> =>
+    fetcher("lms-favorite", `/watchlist/movies/status?movieId=${movieId}&status=${status}`, { method: "PATCH" }),
+  getWatchlistStatus: (movieId: string): Promise<WatchlistStatusResponse> =>
     fetcher("lms-favorite", `/watchlist/movies/status?movieId=${movieId}`),
-  getWatchlistStatuses: (movieIds: string[]): Promise<Record<string, boolean>> => {
+  getWatchlistStatuses: (movieIds: string[]): Promise<Record<string, WatchlistStatusResponse>> => {
     if (movieIds.length === 0) return Promise.resolve({});
     const query = buildBatchQuery("movieIds", movieIds);
     return fetcher("lms-favorite", `/watchlist/movies/status/batch?${query}`);
@@ -344,11 +346,13 @@ export const watchlistMoviesApi = {
 };
 
 export const watchlistSeriesApi = {
-  toggleWatchlist: (serieId: string): Promise<{ inWatchlist: boolean }> =>
-    fetcher("lms-favorite", `/watchlist/series?serieId=${serieId}`, { method: "POST" }),
-  getWatchlistStatus: (serieId: string): Promise<{ inWatchlist: boolean }> =>
+  toggleWatchlist: (serieId: string, status?: WatchlistStatus): Promise<WatchlistStatusResponse> =>
+    fetcher("lms-favorite", `/watchlist/series?serieId=${serieId}${status ? `&status=${status}` : ""}`, { method: "POST" }),
+  updateStatus: (serieId: string, status: WatchlistStatus): Promise<WatchlistStatusResponse> =>
+    fetcher("lms-favorite", `/watchlist/series/status?serieId=${serieId}&status=${status}`, { method: "PATCH" }),
+  getWatchlistStatus: (serieId: string): Promise<WatchlistStatusResponse> =>
     fetcher("lms-favorite", `/watchlist/series/status?serieId=${serieId}`),
-  getWatchlistStatuses: (serieIds: string[]): Promise<Record<string, boolean>> => {
+  getWatchlistStatuses: (serieIds: string[]): Promise<Record<string, WatchlistStatusResponse>> => {
     if (serieIds.length === 0) return Promise.resolve({});
     const query = buildBatchQuery("serieIds", serieIds);
     return fetcher("lms-favorite", `/watchlist/series/status/batch?${query}`);

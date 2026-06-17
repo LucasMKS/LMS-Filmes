@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RatingDialog } from "./RatingDialog";
-import { TmdbSerie, Serie } from "@/lib/types";
+import { TmdbSerie, Serie, WatchlistStatus, WatchedEpisode } from "@/lib/types";
 import {
   Star,
   Tv,
@@ -19,9 +19,12 @@ import {
   ListPlus,
   Check,
   ChevronDown,
+  Play,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { ratingSeriesApi, watchlistSeriesApi } from "@/lib/api";
+import { ratingSeriesApi, watchlistSeriesApi, favoriteSeriesApi } from "@/lib/api";
 import MovieService from "@/lib/movieService";
 import { EpisodeList } from "./EpisodeList";
 import { toast } from "sonner";
@@ -52,7 +55,9 @@ export function SerieDialog({
   const [userRating, setUserRating] = useState<Serie | null>(null);
   const [loadingRating, setLoadingRating] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [watchlistStatus, setWatchlistStatus] = useState<WatchlistStatus | null>(null);
   const [loadingWatchlist, setLoadingWatchlist] = useState(false);
+  const [watchedEpisodesCount, setWatchedEpisodesCount] = useState(0);
 
   if (!serie) return null;
   const serieData = serieDetails ?? serie;
@@ -62,10 +67,13 @@ export function SerieDialog({
       if (isLoggedIn) {
         loadUserRating(String(serieData.id));
         loadWatchlistStatus(String(serieData.id));
+        loadWatchedProgress(String(serieData.id));
       }
     } else {
       setUserRating(null);
       setIsInWatchlist(false);
+      setWatchlistStatus(null);
+      setWatchedEpisodesCount(0);
     }
   }, [isOpen, serieData?.id, isLoggedIn]);
 
@@ -88,8 +96,18 @@ export function SerieDialog({
     try {
       const res = await watchlistSeriesApi.getWatchlistStatus(serieId);
       setIsInWatchlist(res.inWatchlist);
+      setWatchlistStatus(res.status || null);
     } catch (error) {
       console.error("Erro ao carregar status da watchlist:", error);
+    }
+  };
+
+  const loadWatchedProgress = async (serieId: string) => {
+    try {
+      const watched = await favoriteSeriesApi.getWatchedEpisodes(serieId);
+      setWatchedEpisodesCount(watched.length);
+    } catch (error) {
+      console.error("Erro ao carregar progresso:", error);
     }
   };
 
@@ -99,12 +117,48 @@ export function SerieDialog({
     try {
       const res = await watchlistSeriesApi.toggleWatchlist(String(serieData.id));
       setIsInWatchlist(res.inWatchlist);
+      setWatchlistStatus(res.status || null);
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
       toast.success(res.inWatchlist ? "Série adicionada à Watchlist!" : "Série removida da Watchlist!");
     } catch {
       toast.error("Erro ao atualizar a Watchlist.");
     } finally {
       setLoadingWatchlist(false);
+    }
+  };
+
+  const handleUpdateStatus = async (status: WatchlistStatus) => {
+    if (!serieData) return;
+    setLoadingWatchlist(true);
+    try {
+      const res = await watchlistSeriesApi.updateStatus(String(serieData.id), status);
+      setIsInWatchlist(res.inWatchlist);
+      setWatchlistStatus(res.status || null);
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      toast.success(`Status atualizado para: ${getStatusLabel(status)}`);
+    } catch {
+      toast.error("Erro ao atualizar o status.");
+    } finally {
+      setLoadingWatchlist(false);
+    }
+  };
+
+  const getStatusLabel = (status: WatchlistStatus) => {
+    switch (status) {
+      case "PLAN_TO_WATCH": return "Planejo Assistir";
+      case "WATCHING": return "Assistindo";
+      case "COMPLETED": return "Concluído";
+      case "DROPPED": return "Parei de Assistir";
+      default: return "";
+    }
+  };
+
+  const getStatusIcon = (status: WatchlistStatus) => {
+    switch (status) {
+      case "PLAN_TO_WATCH": return <ListPlus className="w-4 h-4" />;
+      case "WATCHING": return <Play className="w-4 h-4 fill-current" />;
+      case "COMPLETED": return <CheckCircle2 className="w-4 h-4" />;
+      case "DROPPED": return <XCircle className="w-4 h-4" />;
     }
   };
 
@@ -147,6 +201,9 @@ export function SerieDialog({
       throw error;
     }
   };
+
+  const totalEpisodes = serieData.number_of_episodes || 0;
+  const progressPercent = totalEpisodes > 0 ? (watchedEpisodesCount / totalEpisodes) * 100 : 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -214,6 +271,22 @@ export function SerieDialog({
                   )}
                 </div>
 
+                {/* Progress Bar (if watching or has progress) */}
+                {isLoggedIn && (watchedEpisodesCount > 0 || watchlistStatus === "WATCHING") && (
+                  <div className="mt-5 max-w-md mx-auto md:mx-0">
+                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-white/40 mb-2">
+                      <span>Progresso</span>
+                      <span>{watchedEpisodesCount} / {totalEpisodes} episódios</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/[0.03]">
+                      <div 
+                        className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-500 ease-out"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-5 w-full">
                   <button
                     className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold transition-all text-sm"
@@ -225,6 +298,49 @@ export function SerieDialog({
 
                   {isLoggedIn ? (
                     <>
+                      <div className="relative group/status w-full sm:w-auto">
+                        <button
+                          className={cn(
+                            "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50",
+                            isInWatchlist
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                              : "border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5",
+                          )}
+                          onClick={handleToggleWatchlist}
+                          disabled={loadingWatchlist}
+                        >
+                          {isInWatchlist ? (watchlistStatus ? getStatusIcon(watchlistStatus) : <Check className="w-4 h-4" />) : <ListPlus className="w-4 h-4" />}
+                          {loadingWatchlist ? "Salvando..." : isInWatchlist ? getStatusLabel(watchlistStatus || "PLAN_TO_WATCH") : "Add à Watchlist"}
+                        </button>
+                        
+                        {/* Status Options Hover Menu */}
+                        <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#14141c] border border-white/[0.08] rounded-xl overflow-hidden shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover/status:opacity-100 group-hover/status:translate-y-0 group-hover/status:pointer-events-auto transition-all z-50">
+                          <p className="px-4 py-2 text-[10px] font-bold text-white/30 uppercase tracking-widest border-b border-white/[0.05]">Definir Status</p>
+                          {(["PLAN_TO_WATCH", "WATCHING", "COMPLETED", "DROPPED"] as WatchlistStatus[]).map((status) => (
+                            <button
+                              key={status}
+                              onClick={() => handleUpdateStatus(status)}
+                              className={cn(
+                                "w-full flex items-center gap-3 px-4 py-3 text-xs font-medium transition-colors hover:bg-white/5",
+                                watchlistStatus === status ? "text-emerald-400 bg-emerald-500/5" : "text-white/60 hover:text-white"
+                              )}
+                            >
+                              {getStatusIcon(status)}
+                              {getStatusLabel(status)}
+                            </button>
+                          ))}
+                          {isInWatchlist && (
+                            <button
+                              onClick={handleToggleWatchlist}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-xs font-medium text-red-400 hover:bg-red-400/5 transition-colors border-t border-white/[0.05]"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              Remover da Watchlist
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
                       <button
                         className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-semibold shadow-lg shadow-violet-900/30 transition-all text-sm"
                         onClick={() => setIsRatingOpen(true)}
@@ -232,20 +348,6 @@ export function SerieDialog({
                       >
                         <Star className="w-4 h-4" />
                         {loadingRating ? "Carregando..." : userRating ? "Editar Avaliação" : "Avaliar Série"}
-                      </button>
-
-                      <button
-                        className={cn(
-                          "w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50",
-                          isInWatchlist
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-                            : "border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5",
-                        )}
-                        onClick={handleToggleWatchlist}
-                        disabled={loadingWatchlist}
-                      >
-                        {isInWatchlist ? <Check className="w-4 h-4" /> : <ListPlus className="w-4 h-4" />}
-                        {loadingWatchlist ? "Salvando..." : isInWatchlist ? "Na Watchlist" : "Add à Watchlist"}
                       </button>
                     </>
                   ) : (
@@ -330,7 +432,11 @@ export function SerieDialog({
                       {serieData.seasons.map((season) => (
                         <details 
                           key={`season-${season.id}`}
-                          className="group bg-white/5 rounded-xl border border-white/[0.06] overflow-hidden transition-all"
+                          className={cn(
+                            "group bg-white/5 rounded-xl border border-white/[0.06] overflow-hidden transition-all",
+                            watchlistStatus === "WATCHING" && "border-emerald-500/20 bg-emerald-500/[0.02]"
+                          )}
+                          open={watchlistStatus === "WATCHING" && season.season_number === 1}
                         >
                           <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/[0.04] transition-colors list-none">
                             <div className="flex items-center gap-4">
@@ -365,6 +471,7 @@ export function SerieDialog({
                               serieId={serieData.id} 
                               seasonNumber={season.season_number} 
                               isLoggedIn={isLoggedIn}
+                              onToggleWatched={() => loadWatchedProgress(String(serieData.id))}
                             />
                           </div>
                         </details>

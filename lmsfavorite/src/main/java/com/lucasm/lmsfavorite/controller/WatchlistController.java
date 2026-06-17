@@ -2,6 +2,7 @@ package com.lucasm.lmsfavorite.controller;
 
 import com.lucasm.lmsfavorite.model.WatchlistMovie;
 import com.lucasm.lmsfavorite.model.WatchlistSerie;
+import com.lucasm.lmsfavorite.model.WatchlistStatus;
 import com.lucasm.lmsfavorite.service.WatchlistService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -46,11 +47,28 @@ public class WatchlistController {
      * Adiciona ou remove um filme da watchlist do usuário autenticado.
      *
      * @param movieId identificador do filme.
+     * @param status status inicial opcional.
      * @return estado final de presença na watchlist.
      */
     @PostMapping("/movies")
-    public ResponseEntity<Map<String, Boolean>> toggleMovie(@RequestParam String movieId) {
-        return ResponseEntity.ok(watchlistService.toggleMovieInWatchlist(movieId, getCurrentUserEmail()));
+    public ResponseEntity<Map<String, Object>> toggleMovie(
+            @RequestParam String movieId,
+            @RequestParam(required = false) WatchlistStatus status) {
+        return ResponseEntity.ok(watchlistService.toggleMovieInWatchlist(movieId, getCurrentUserEmail(), status));
+    }
+
+    /**
+     * Atualiza o status de um filme na watchlist do usuário autenticado.
+     *
+     * @param movieId identificador do filme.
+     * @param status novo status.
+     * @return estado final na watchlist.
+     */
+    @PatchMapping("/movies/status")
+    public ResponseEntity<Map<String, Object>> updateMovieStatus(
+            @RequestParam String movieId,
+            @RequestParam WatchlistStatus status) {
+        return ResponseEntity.ok(watchlistService.updateMovieStatus(movieId, getCurrentUserEmail(), status));
     }
 
     /**
@@ -60,7 +78,7 @@ public class WatchlistController {
      * @return status de presença na watchlist.
      */
     @GetMapping("/movies/status")
-    public ResponseEntity<Map<String, Boolean>> getMovieStatus(@RequestParam String movieId) {
+    public ResponseEntity<Map<String, Object>> getMovieStatus(@RequestParam String movieId) {
         return ResponseEntity.ok(watchlistService.checkMovieStatus(movieId, getCurrentUserEmail()));
     }
 
@@ -68,10 +86,10 @@ public class WatchlistController {
      * Consulta, em lote, o status de watchlist de filmes do usuário autenticado.
      *
      * @param movieIds lista de identificadores de filmes.
-     * @return mapa `movieId -> inWatchlist`.
+     * @return mapa `movieId -> statusInfo`.
      */
     @GetMapping("/movies/status/batch")
-    public ResponseEntity<Map<String, Boolean>> getMovieStatusBatch(@RequestParam List<String> movieIds) {
+    public ResponseEntity<Map<String, Object>> getMovieStatusBatch(@RequestParam List<String> movieIds) {
         return ResponseEntity.ok(watchlistService.getMovieWatchlistStatusBatch(movieIds, getCurrentUserEmail()));
     }
 
@@ -89,11 +107,28 @@ public class WatchlistController {
      * Adiciona ou remove uma série da watchlist do usuário autenticado.
      *
      * @param serieId identificador da série.
+     * @param status status inicial opcional.
      * @return estado final de presença na watchlist.
      */
     @PostMapping("/series")
-    public ResponseEntity<Map<String, Boolean>> toggleSerie(@RequestParam String serieId) {
-        return ResponseEntity.ok(watchlistService.toggleSerieInWatchlist(serieId, getCurrentUserEmail()));
+    public ResponseEntity<Map<String, Object>> toggleSerie(
+            @RequestParam String serieId,
+            @RequestParam(required = false) WatchlistStatus status) {
+        return ResponseEntity.ok(watchlistService.toggleSerieInWatchlist(serieId, getCurrentUserEmail(), status));
+    }
+
+    /**
+     * Atualiza o status de uma série na watchlist do usuário autenticado.
+     *
+     * @param serieId identificador da série.
+     * @param status novo status.
+     * @return estado final na watchlist.
+     */
+    @PatchMapping("/series/status")
+    public ResponseEntity<Map<String, Object>> updateSerieStatus(
+            @RequestParam String serieId,
+            @RequestParam WatchlistStatus status) {
+        return ResponseEntity.ok(watchlistService.updateSerieStatus(serieId, getCurrentUserEmail(), status));
     }
 
     /**
@@ -103,7 +138,7 @@ public class WatchlistController {
      * @return status de presença na watchlist.
      */
     @GetMapping("/series/status")
-    public ResponseEntity<Map<String, Boolean>> getSerieStatus(@RequestParam String serieId) {
+    public ResponseEntity<Map<String, Object>> getSerieStatus(@RequestParam String serieId) {
         return ResponseEntity.ok(watchlistService.checkSerieStatus(serieId, getCurrentUserEmail()));
     }
 
@@ -111,10 +146,10 @@ public class WatchlistController {
      * Consulta, em lote, o status de watchlist de séries do usuário autenticado.
      *
      * @param serieIds lista de identificadores de séries.
-     * @return mapa `serieId -> inWatchlist`.
+     * @return mapa `serieId -> statusInfo`.
      */
     @GetMapping("/series/status/batch")
-    public ResponseEntity<Map<String, Boolean>> getSerieStatusBatch(@RequestParam List<String> serieIds) {
+    public ResponseEntity<Map<String, Object>> getSerieStatusBatch(@RequestParam List<String> serieIds) {
         return ResponseEntity.ok(watchlistService.getSerieWatchlistStatusBatch(serieIds, getCurrentUserEmail()));
     }
 }
