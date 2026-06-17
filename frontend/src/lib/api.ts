@@ -12,6 +12,8 @@ import {
   SimpleApiResponse,
   WatchlistMovie,
   WatchlistSerie,
+  WatchlistStatus,
+  WatchlistStatusResponse,
   RatedMovieResponse,
   RatedSerieResponse,
   TmdbSeason,

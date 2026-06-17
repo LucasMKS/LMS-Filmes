@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { TmdbPage } from "./types";
+import { TmdbPage, WatchlistStatusResponse } from "./types";
 import { RatingStatus } from "./api";
 import {
   useInfiniteQuery,
@@ -30,8 +30,8 @@ interface UseMediaListingParams<T extends { id: number }, C extends string> {
   getFavoriteStatus: (id: string) => Promise<boolean>;
   getFavoriteStatuses?: (ids: string[]) => Promise<Record<string, boolean>>;
   toggleFavorite: (id: string) => Promise<{ isFavorite: boolean }>;
-  getWatchlistStatuses?: (ids: string[]) => Promise<Record<string, boolean>>;
-  toggleWatchlist: (id: string) => Promise<{ inWatchlist: boolean }>;
+  getWatchlistStatuses?: (ids: string[]) => Promise<Record<string, WatchlistStatusResponse>>;
+  toggleWatchlist: (id: string) => Promise<WatchlistStatusResponse>;
   getRatingStatuses?: (ids: string[]) => Promise<Record<string, RatingStatus>>;
   messages: ListingMessages;
 }
@@ -227,7 +227,7 @@ export function useMediaListing<T extends { id: number }, C extends string>({
             const next = { ...prev };
             chunk.forEach((id) => {
               const numId = Number(id);
-              const val = Boolean(statuses[id]);
+              const val = Boolean(statuses[id]?.inWatchlist);
               next[numId] = val;
               watchlistStatusRef.current[numId] = val;
             });
