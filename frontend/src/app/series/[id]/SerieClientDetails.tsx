@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { TmdbSerie, Serie as UserRatingSerie } from "@/lib/types";
+import { TmdbSerie, Serie as UserRatingSerie, WatchlistStatus } from "@/lib/types";
 import { RatingDialog } from "@/components/RatingDialog";
+import { EpisodeList } from "@/components/EpisodeList";
 import {
   Star,
   Clock,
@@ -20,10 +21,15 @@ import {
   Calendar,
   ListPlus,
   Check,
+  ChevronDown,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { watchlistSeriesApi, favoriteSeriesApi } from "@/lib/api";
 
 interface SerieClientDetailsProps {
   serie: TmdbSerie;
@@ -46,9 +52,37 @@ export function SerieClientDetails({
   const [loadingRating, setLoadingRating] = useState(false);
   
   const [isInWatchlist, setIsInWatchlist] = useState(initialIsInWatchlist);
+  const [watchlistStatus, setWatchlistStatus] = useState<WatchlistStatus | null>(null);
   const [loadingWatchlist, setLoadingWatchlist] = useState(false);
+  const [watchedEpisodesCount, setWatchedEpisodesCount] = useState(0);
 
   const [posterLoading, setPosterLoading] = useState(true);
+
+  useEffect(() => {
+    if (isLoggedIn && serie.id) {
+      loadWatchlistStatus(String(serie.id));
+      loadWatchedProgress(String(serie.id));
+    }
+  }, [serie.id, isLoggedIn]);
+
+  const loadWatchlistStatus = async (serieId: string) => {
+    try {
+      const res = await watchlistSeriesApi.getWatchlistStatus(serieId);
+      setIsInWatchlist(res.inWatchlist);
+      setWatchlistStatus(res.status || null);
+    } catch (error) {
+      console.error("Erro ao carregar status da watchlist:", error);
+    }
+  };
+
+  const loadWatchedProgress = async (serieId: string) => {
+    try {
+      const watched = await favoriteSeriesApi.getWatchedEpisodes(serieId);
+      setWatchedEpisodesCount(watched.length);
+    } catch (error) {
+      console.error("Erro ao carregar progresso:", error);
+    }
+  };
 
   const trailer = serie.videos?.results?.find((v) => v.site === "YouTube" && v.type === "Trailer");
   const cast = serie.credits?.cast?.slice(0, 10) || [];
@@ -85,20 +119,49 @@ export function SerieClientDetails({
   const handleToggleWatchlist = async () => {
     setLoadingWatchlist(true);
     try {
-      const { toggleWatchlistAction } = await import("@/app/actions");
-      const result = await toggleWatchlistAction(String(serie.id), "serie");
-      
-      if (result.success && result.data) {
-        setIsInWatchlist(result.data.inWatchlist);
-        queryClient.invalidateQueries({ queryKey: ["watchlist"] });
-        toast.success(result.data.inWatchlist ? "Série adicionada à Watchlist!" : "Série removida da Watchlist!");
-      } else {
-        toast.error(result.error || "Erro ao atualizar a Watchlist.");
-      }
+      const res = await watchlistSeriesApi.toggleWatchlist(String(serie.id));
+      setIsInWatchlist(res.inWatchlist);
+      setWatchlistStatus(res.status || null);
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      toast.success(res.inWatchlist ? "Série adicionada à Watchlist!" : "Série removida da Watchlist!");
     } catch {
       toast.error("Erro ao atualizar a Watchlist.");
     } finally {
       setLoadingWatchlist(false);
+    }
+  };
+
+  const handleUpdateStatus = async (status: WatchlistStatus) => {
+    setLoadingWatchlist(true);
+    try {
+      const res = await watchlistSeriesApi.updateStatus(String(serie.id), status);
+      setIsInWatchlist(res.inWatchlist);
+      setWatchlistStatus(res.status || null);
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      toast.success(`Status atualizado para: ${getStatusLabel(status)}`);
+    } catch {
+      toast.error("Erro ao atualizar o status.");
+    } finally {
+      setLoadingWatchlist(false);
+    }
+  };
+
+  const getStatusLabel = (status: WatchlistStatus) => {
+    switch (status) {
+      case "PLAN_TO_WATCH": return "Planejo Assistir";
+      case "WATCHING": return "Assistindo";
+      case "COMPLETED": return "Concluído";
+      case "DROPPED": return "Parei de Assistir";
+      default: return "";
+    }
+  };
+
+  const getStatusIcon = (status: WatchlistStatus) => {
+    switch (status) {
+      case "PLAN_TO_WATCH": return <ListPlus className="w-4 h-4" />;
+      case "WATCHING": return <Play className="w-4 h-4 fill-current" />;
+      case "COMPLETED": return <CheckCircle2 className="w-4 h-4" />;
+      case "DROPPED": return <XCircle className="w-4 h-4" />;
     }
   };
 
@@ -312,6 +375,22 @@ export function SerieClientDetails({
               )}
             </div>
 
+            {/* Progress Bar (if watching or has progress) */}
+            {isLoggedIn && (watchedEpisodesCount > 0 || watchlistStatus === "WATCHING") && (
+              <div className="mb-8 max-w-md mx-auto md:mx-0">
+                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-white/40 mb-2">
+                  <span>Progresso da Série</span>
+                  <span>{watchedEpisodesCount} / {getTotalEpisodes() || 0} episódios</span>
+                </div>
+                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/[0.03]">
+                  <div 
+                    className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-500 ease-out"
+                    style={{ width: `${(watchedEpisodesCount / (getTotalEpisodes() || 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Botões de ação */}
             <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-8 w-full">
               {isLoggedIn ? (
@@ -325,19 +404,48 @@ export function SerieClientDetails({
                     {loadingRating ? "Carregando..." : userRating ? "Editar Avaliação" : "Avaliar Série"}
                   </button>
 
-                  <button
-                    className={cn(
-                      "w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50",
-                      isInWatchlist
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-                        : "border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5",
-                    )}
-                    onClick={handleToggleWatchlist}
-                    disabled={loadingWatchlist}
-                  >
-                    {isInWatchlist ? <Check className="w-4 h-4" /> : <ListPlus className="w-4 h-4" />}
-                    {loadingWatchlist ? "Salvando..." : isInWatchlist ? "Na Watchlist" : "Add à Watchlist"}
-                  </button>
+                  <div className="relative group/status w-full sm:w-auto">
+                    <button
+                      className={cn(
+                        "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50",
+                        isInWatchlist
+                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                          : "border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5",
+                      )}
+                      onClick={handleToggleWatchlist}
+                      disabled={loadingWatchlist}
+                    >
+                      {isInWatchlist ? (watchlistStatus ? getStatusIcon(watchlistStatus) : <Check className="w-4 h-4" />) : <ListPlus className="w-4 h-4" />}
+                      {loadingWatchlist ? "Salvando..." : isInWatchlist ? getStatusLabel(watchlistStatus || "PLAN_TO_WATCH") : "Add à Watchlist"}
+                    </button>
+                    
+                    {/* Status Options Hover Menu */}
+                    <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#14141c] border border-white/[0.08] rounded-xl overflow-hidden shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover/status:opacity-100 group-hover/status:translate-y-0 group-hover/status:pointer-events-auto transition-all z-50">
+                      <p className="px-4 py-2 text-[10px] font-bold text-white/30 uppercase tracking-widest border-b border-white/[0.05]">Definir Status</p>
+                      {(["PLAN_TO_WATCH", "WATCHING", "COMPLETED", "DROPPED"] as WatchlistStatus[]).map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => handleUpdateStatus(status)}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-4 py-3 text-xs font-medium transition-colors hover:bg-white/5",
+                            watchlistStatus === status ? "text-emerald-400 bg-emerald-500/5" : "text-white/60 hover:text-white"
+                          )}
+                        >
+                          {getStatusIcon(status)}
+                          {getStatusLabel(status)}
+                        </button>
+                      ))}
+                      {isInWatchlist && (
+                        <button
+                          onClick={handleToggleWatchlist}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-xs font-medium text-red-400 hover:bg-red-400/5 transition-colors border-t border-white/[0.05]"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Remover da Watchlist
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </>
               ) : (
                 <button
@@ -480,31 +588,53 @@ export function SerieClientDetails({
                 <h3 className="text-xl font-semibold text-white/80 mb-4 flex items-center gap-2">
                   <Tv className="w-5 h-5 text-white/30" /> Todas as Temporadas ({serie.number_of_seasons})
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="space-y-4">
                   {serie.seasons.map((season) => (
-                    <div
+                    <details 
                       key={`season-${season.id}`}
-                      className="bg-white/5 p-4 rounded-xl border border-white/[0.06] hover:bg-white/[0.07] transition-colors flex gap-4"
+                      className={cn(
+                        "group bg-white/5 rounded-xl border border-white/[0.06] overflow-hidden transition-all",
+                        watchlistStatus === "WATCHING" && "border-emerald-500/20 bg-emerald-500/[0.02]"
+                      )}
+                      open={watchlistStatus === "WATCHING" && season.season_number === 1}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-1">
-                          <h4 className="text-white/80 font-semibold text-base truncate pr-2">{season.name}</h4>
-                          <span className="px-2 py-0.5 rounded-lg bg-white/10 text-white/50 text-xs font-medium shrink-0">
-                            {season.episode_count} ep.
-                          </span>
+                      <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/[0.04] transition-colors list-none">
+                        <div className="flex items-center gap-4">
+                          {season.poster_path ? (
+                            <div className="relative w-10 h-14 sm:w-12 sm:h-18 aspect-[2/3] rounded-md overflow-hidden">
+                              <Image 
+                                src={`https://image.tmdb.org/t/p/w200${season.poster_path}`}
+                                alt={season.name}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-14 sm:w-12 sm:h-18 aspect-[2/3] rounded-md bg-white/5 flex items-center justify-center">
+                              <Tv className="w-6 h-6 text-white/10" />
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="text-white/90 font-bold text-sm sm:text-base">
+                              {season.name}
+                            </h4>
+                            <p className="text-white/35 text-[10px] sm:text-xs">
+                              {season.episode_count} episódios • {season.air_date ? new Date(season.air_date).getFullYear() : "N/A"}
+                            </p>
+                          </div>
                         </div>
-                        {season.air_date && (
-                          <p className="text-white/35 text-xs mb-2">
-                            Lançamento: {new Date(season.air_date).toLocaleDateString("pt-BR")}
-                          </p>
-                        )}
-                        {season.overview ? (
-                          <p className="text-white/35 text-xs line-clamp-2 mt-1">{season.overview}</p>
-                        ) : (
-                          <p className="text-white/25 text-xs italic mt-1">Nenhuma sinopse disponível.</p>
-                        )}
+                        <ChevronDown className="w-5 h-5 text-white/20 group-open:rotate-180 transition-transform" />
+                      </summary>
+                      
+                      <div className="p-4 border-t border-white/[0.03] bg-[#0a0a0f]/40">
+                        <EpisodeList 
+                          serieId={serie.id} 
+                          seasonNumber={season.season_number} 
+                          isLoggedIn={isLoggedIn}
+                          onToggleWatched={() => loadWatchedProgress(String(serie.id))}
+                        />
                       </div>
-                    </div>
+                    </details>
                   ))}
                 </div>
               </div>
