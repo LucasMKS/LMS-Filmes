@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import { MediaSearchSection } from "../../components/MediaSearchSection";
@@ -26,6 +27,7 @@ const serieCategories: {
 ];
 
 export default function SeriesPage() {
+  const router = useRouter();
   const [selectedSerie, setSelectedSerie] = useState<TmdbSerie | null>(null);
   const [serieDetails, setSerieDetails] = useState<TmdbSerie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -129,15 +131,26 @@ export default function SeriesPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-        <div className="mb-8">
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-            <Tv className="w-6 h-6 text-violet-400" />
-            Catálogo de Séries
-          </h2>
-          <p className="text-white/35 mt-1.5 text-sm">
-            Descubra novas histórias, maratone temporadas inteiras e acompanhe
-            os episódios mais recentes.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+              <Tv className="w-6 h-6 text-violet-400" />
+              Catálogo de Séries
+            </h2>
+            <p className="text-white/35 mt-1.5 text-sm">
+              Descubra novas histórias, maratone temporadas inteiras e acompanhe
+              os episódios mais recentes.
+            </p>
+          </div>
+          {isLoggedIn && (
+            <button
+              onClick={() => router.push("/series/acompanhando")}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-violet-500/10 text-violet-300 border border-violet-500/20 hover:bg-violet-500/20 transition-all font-semibold text-sm w-full sm:w-auto self-start sm:self-center"
+            >
+              <Clock className="w-4 h-4 text-emerald-400" />
+              Séries Acompanhadas
+            </button>
+          )}
         </div>
 
         <MediaSearchSection

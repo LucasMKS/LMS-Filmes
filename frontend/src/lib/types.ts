@@ -371,4 +371,7 @@ export interface EnrichedWatchlistSerie {
   tmdbData: TmdbSerie;
   addedAt: string;
   status?: WatchlistStatus;
+  watchedEpisodesCount?: number;
+  totalEpisodes?: number;
+  userRating?: { rating: string; comment?: string } | null;
 }

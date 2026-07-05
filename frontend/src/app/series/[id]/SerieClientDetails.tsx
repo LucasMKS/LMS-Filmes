@@ -153,6 +153,42 @@ export function SerieClientDetails({
     }
   };
 
+  const getWatchlistButtonLabel = () => {
+    if (!isInWatchlist) return "Acompanhar Série";
+    
+    if (watchlistStatus === "PLAN_TO_WATCH") {
+      return "Acompanhando (Ver depois)";
+    }
+    if (watchlistStatus === "DROPPED") {
+      return "Acompanhando (Abandonado)";
+    }
+    
+    const total = getTotalEpisodes();
+    if (total !== null && total > 0 && watchedEpisodesCount >= total) {
+      return "Acompanhando (Em dia)";
+    }
+    
+    return "Acompanhando (Assistindo)";
+  };
+
+  const getWatchlistButtonIcon = () => {
+    if (!isInWatchlist) return <ListPlus className="w-4 h-4" />;
+    
+    if (watchlistStatus === "PLAN_TO_WATCH") {
+      return <Clock className="w-4 h-4 text-amber-400" />;
+    }
+    if (watchlistStatus === "DROPPED") {
+      return <XCircle className="w-4 h-4 text-red-400" />;
+    }
+    
+    const total = getTotalEpisodes();
+    if (total !== null && total > 0 && watchedEpisodesCount >= total) {
+      return <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
+    }
+    
+    return <Play className="w-4 h-4 fill-current text-violet-400" />;
+  };
+
   const hasCreators = serie.created_by && serie.created_by.length > 0;
   const hasNetworks = serie.networks && serie.networks.length > 0;
   const hasCompanies = serie.production_companies && serie.production_companies.length > 0;
@@ -380,8 +416,8 @@ export function SerieClientDetails({
                     onClick={handleToggleWatchlist}
                     disabled={loadingWatchlist}
                   >
-                    {isInWatchlist ? <Check className="w-4 h-4" /> : <ListPlus className="w-4 h-4" />}
-                    {loadingWatchlist ? "Salvando..." : isInWatchlist ? "Acompanhando" : "Acompanhar Série"}
+                    {getWatchlistButtonIcon()}
+                    {getWatchlistButtonLabel()}
                   </button>
                 </>
               ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import { MediaSearchSection } from "../../components/MediaSearchSection";
@@ -33,6 +34,7 @@ const movieCategories: {
 ];
 
 export default function MoviesPage() {
+  const router = useRouter();
   const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>(null);
   const [movieDetails, setMovieDetails] = useState<TmdbMovie | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -137,15 +139,26 @@ export default function MoviesPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-        <div className="mb-8">
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-            <Film className="w-6 h-6 text-purple-400" />
-            Catálogo de Filmes
-          </h2>
-          <p className="text-white/35 mt-1.5 text-sm">
-            Explore os maiores sucessos de bilheteria e encontre a sua próxima
-            sessão pipoca.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+              <Film className="w-6 h-6 text-purple-400" />
+              Catálogo de Filmes
+            </h2>
+            <p className="text-white/35 mt-1.5 text-sm">
+              Explore os maiores sucessos de bilheteria e encontre a sua próxima
+              sessão pipoca.
+            </p>
+          </div>
+          {isLoggedIn && (
+            <button
+              onClick={() => router.push("/watchlist")}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/20 hover:bg-purple-500/20 transition-all font-semibold text-sm w-full sm:w-auto self-start sm:self-center"
+            >
+              <Clock className="w-4 h-4 text-emerald-400" />
+              Ver Minha Watchlist
+            </button>
+          )}
         </div>
 
         <MediaSearchSection

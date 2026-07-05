@@ -94,7 +94,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       icon: Tv,
       color: "text-violet-400",
       activeBg: "bg-violet-500/10 border-violet-500/20 text-violet-300",
-      current: pathname === "/series" || (pathname.startsWith("/series/") && pathname !== "/series/acompanhando"),
+      current: pathname === "/series" || pathname.startsWith("/series/"),
       requiresAuth: false,
     },
     {
@@ -113,24 +113,6 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       color: "text-pink-400",
       activeBg: "bg-pink-500/10 border-pink-500/20 text-pink-300",
       current: pathname === "/favoritos",
-      requiresAuth: true,
-    },
-    {
-      name: "Watchlist",
-      href: "/watchlist",
-      icon: ListPlus,
-      color: "text-emerald-400",
-      activeBg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-300",
-      current: pathname === "/watchlist",
-      requiresAuth: true,
-    },
-    {
-      name: "Acompanhando",
-      href: "/series/acompanhando",
-      icon: Eye,
-      color: "text-teal-400",
-      activeBg: "bg-teal-500/10 border-teal-500/20 text-teal-300",
-      current: pathname === "/series/acompanhando",
       requiresAuth: true,
     },
   ];

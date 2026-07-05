@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Dices, Check, Trash2, Tv } from "lucide-react";
+import { Dices, Check, Trash2, Tv, Search } from "lucide-react";
 import { RatingDialog } from "@/components/RatingDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { watchlistSeriesApi, seriesApi } from "@/lib/api";
+import { watchlistSeriesApi, seriesApi, favoriteSeriesApi, ratingSeriesApi } from "@/lib/api";
 import MovieService from "@/lib/movieService";
 import AuthService from "@/lib/auth";
 import { EnrichedWatchlistSerie } from "@/lib/types";
@@ -24,15 +24,44 @@ export default function SeriesAcompanhandoPage() {
   const [isSpinning, setIsSpinning] = useState(false);
  
   const [ratingItem, setRatingItem] = useState<EnrichedWatchlistSerie | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
  
   const { data: series = [], isLoading: loadingSeries } = useQuery({
     queryKey: ["watchlist", "series"],
     queryFn: async () => {
       const response = await watchlistSeriesApi.getWatchlistSeries();
+      
+      const serieIds = response.map((item: any) => item.serieId);
+      let ratings: Record<string, { rating: string; comment?: string }> = {};
+      if (serieIds.length > 0) {
+        try {
+          ratings = await ratingSeriesApi.getRatingStatuses(serieIds);
+        } catch (err) {
+          console.error("Error fetching rating statuses", err);
+        }
+      }
+
       const enriched = await Promise.all(
         response.map(async (item: any) => {
           try {
             const tmdbData = await seriesApi.getSerieDetails(item.serieId);
+            
+            let watchedEpisodesCount = 0;
+            try {
+              const watched = await favoriteSeriesApi.getWatchedEpisodes(item.serieId);
+              watchedEpisodesCount = watched.length;
+            } catch (err) {
+              console.error("Error fetching watched episodes", err);
+            }
+
+            const totalEpisodes = tmdbData.seasons
+              ? tmdbData.seasons.reduce((total: number, season: any) => total + (season.episode_count || 0), 0)
+              : 0;
+
+            const userRating = ratings[item.serieId]
+              ? { rating: ratings[item.serieId].rating, comment: ratings[item.serieId].comment }
+              : null;
+
             return {
               type: "serie",
               id: item.serieId,
@@ -52,6 +81,9 @@ export default function SeriesAcompanhandoPage() {
               tmdbData,
               addedAt: item.addedAt,
               status: item.status,
+              watchedEpisodesCount,
+              totalEpisodes,
+              userRating,
             };
           } catch {
             return null;
@@ -88,6 +120,7 @@ export default function SeriesAcompanhandoPage() {
       toast.success("Avaliação salva com sucesso!", {
         description: "A série foi avaliada e continua sendo acompanhada.",
       });
+      queryClient.invalidateQueries({ queryKey: ["watchlist", "series"] });
       setRatingItem(null);
     } catch (error) {
       console.error("Erro ao avaliar na watchlist:", error);
@@ -99,7 +132,8 @@ export default function SeriesAcompanhandoPage() {
   };
  
   const handleRandomPick = () => {
-    if (series.length === 0) {
+    const listToPick = searchTerm.trim() ? filteredSeries : series;
+    if (listToPick.length === 0) {
       toast.error("Sua lista de séries acompanhadas está vazia!", { description: "Adicione séries para usar a roleta." });
       return;
     }
@@ -107,8 +141,8 @@ export default function SeriesAcompanhandoPage() {
     setIsSpinning(true);
     let counter = 0;
     const interval = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * series.length);
-      setRandomItem(series[randomIndex]);
+      const randomIndex = Math.floor(Math.random() * listToPick.length);
+      setRandomItem(listToPick[randomIndex]);
       counter++;
       if (counter > 15) {
         clearInterval(interval);
@@ -153,6 +187,10 @@ export default function SeriesAcompanhandoPage() {
     }
   };
  
+  const filteredSeries = series.filter((s) =>
+    s.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+ 
   return (
     <div className="min-h-screen bg-[#0a0a0f] p-4 sm:p-8">
       <div className="max-w-5xl mx-auto">
@@ -178,6 +216,20 @@ export default function SeriesAcompanhandoPage() {
           </button>
         </div>
  
+        {/* Campo de Busca */}
+        <div className="relative mb-6">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+            <Search className="w-5 h-5 text-white/20" />
+          </span>
+          <input
+            type="text"
+            placeholder="Buscar nas séries que estou acompanhando..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-[#14141c] border border-white/[0.06] focus:border-violet-500/50 rounded-2xl py-3.5 pl-12 pr-5 text-white placeholder-white/30 outline-none transition-all text-sm focus:ring-1 focus:ring-violet-500/30"
+          />
+        </div>
+ 
         {/* Lista */}
         {loadingSeries ? (
           <div className="space-y-4">
@@ -194,14 +246,24 @@ export default function SeriesAcompanhandoPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {series.length === 0 ? (
+            {filteredSeries.length === 0 ? (
               <div className="py-16 sm:py-20 text-center border-2 border-dashed border-white/[0.06] text-white/35 rounded-2xl px-4">
-                Nenhuma série sendo acompanhada ainda.{" "}
-                <br className="hidden sm:block" />
-                Navegue pelo catálogo e clique em "Acompanhar Série" para salvar!
+                {searchTerm ? (
+                  <>
+                    Nenhuma série encontrada para "<strong>{searchTerm}</strong>".
+                    <br />
+                    Tente digitar outro título.
+                  </>
+                ) : (
+                  <>
+                    Nenhuma série sendo acompanhada ainda.{" "}
+                    <br className="hidden sm:block" />
+                    Navegue pelo catálogo e clique em "Acompanhar Série" para salvar!
+                  </>
+                )}
               </div>
             ) : (
-              series.map((item) => (
+              filteredSeries.map((item) => (
                 <div
                   key={item.internalId}
                   onClick={() => handleNavigate(item.id)}
@@ -234,9 +296,35 @@ export default function SeriesAcompanhandoPage() {
                     <div className="flex flex-col flex-1 p-3 sm:p-4 md:p-5 justify-between min-w-0">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0 pr-2 sm:pr-4">
-                          <span className="inline-block mb-1.5 px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[10px] sm:text-xs font-semibold">
-                            Série
-                          </span>
+                          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                            <span className="inline-block px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[10px] sm:text-xs font-semibold">
+                              Série
+                            </span>
+                            {item.status === "PLAN_TO_WATCH" ? (
+                              <span className="inline-block px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] sm:text-xs font-semibold">
+                                Ver depois
+                              </span>
+                            ) : item.status === "DROPPED" ? (
+                              <span className="inline-block px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] sm:text-xs font-semibold">
+                                Abandonado
+                              </span>
+                            ) : item.totalEpisodes && item.totalEpisodes > 0 && item.watchedEpisodesCount !== undefined && item.watchedEpisodesCount >= item.totalEpisodes ? (
+                              <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] sm:text-xs font-semibold">
+                                Em dia
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] sm:text-xs font-semibold">
+                                Assistindo
+                              </span>
+                            )}
+ 
+                            {/* Sua Nota Badge */}
+                            {item.userRating && (
+                              <span className="inline-block px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/20 text-[10px] sm:text-xs font-bold">
+                                ★ {item.userRating.rating}/10
+                              </span>
+                            )}
+                          </div>
                           <h3 className="mb-1 text-base sm:text-lg md:text-xl font-bold text-white line-clamp-1 group-hover:text-violet-400 transition-colors">
                             {item.title}
                           </h3>
@@ -272,7 +360,7 @@ export default function SeriesAcompanhandoPage() {
                             }}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-600/15 text-violet-400 hover:bg-violet-600/30 border border-violet-500/20 text-sm font-medium transition-all"
                           >
-                            <Check className="w-4 h-4" /> Avaliar Série
+                            <Check className="w-4 h-4" /> {item.userRating ? "Alterar avaliação" : "Avaliar Série"}
                           </button>
                           <button
                             onClick={(e) => {
@@ -297,7 +385,7 @@ export default function SeriesAcompanhandoPage() {
                           }}
                           className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-violet-600/15 text-violet-400 border border-violet-500/20 text-xs font-medium transition-all"
                         >
-                          <Check className="w-3.5 h-3.5" /> Avaliar
+                          <Check className="w-3.5 h-3.5" /> {item.userRating ? "Alterar" : "Avaliar"}
                         </button>
                         <button
                           onClick={(e) => {
@@ -375,7 +463,11 @@ export default function SeriesAcompanhandoPage() {
         itemTitle={ratingItem?.title || ""}
         itemType="série"
         itemId={ratingItem?.tmdbData.id || 0}
-        currentRating={null}
+        currentRating={
+          ratingItem?.userRating
+            ? { myVote: String(ratingItem.userRating.rating), comment: ratingItem.userRating.comment }
+            : null
+        }
       />
     </div>
   );
