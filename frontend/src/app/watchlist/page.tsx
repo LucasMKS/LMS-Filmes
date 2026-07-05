@@ -59,6 +59,7 @@ export default function WatchlistPage() {
                 : "N/A",
               tmdbData,
               addedAt: item.addedAt,
+              status: item.status,
             };
           } catch {
             return null;
@@ -96,6 +97,7 @@ export default function WatchlistPage() {
                 : "N/A",
               tmdbData,
               addedAt: item.addedAt,
+              status: item.status,
             };
           } catch {
             return null;
@@ -131,6 +133,10 @@ export default function WatchlistPage() {
           ratingItem.tmdbData.poster_path || "",
           comment,
         );
+        removeMutation.mutate({ type: ratingItem.type, id: ratingItem.id });
+        toast.success("Avaliação salva com sucesso!", {
+          description: "O filme foi removido da sua Watchlist automaticamente.",
+        });
       } else {
         await MovieService.rateSerie(
           ratingItem.tmdbData.id,
@@ -139,11 +145,12 @@ export default function WatchlistPage() {
           ratingItem.tmdbData.poster_path || "",
           comment,
         );
+        await watchlistSeriesApi.updateStatus(ratingItem.id, "COMPLETED");
+        queryClient.invalidateQueries({ queryKey: ["watchlist", "series"] });
+        toast.success("Avaliação salva com sucesso!", {
+          description: "A série foi marcada como Concluída e continua sendo acompanhada no LifeOS.",
+        });
       }
-      removeMutation.mutate({ type: ratingItem.type, id: ratingItem.id });
-      toast.success("Avaliação salva com sucesso!", {
-        description: "O título foi removido da sua Watchlist automaticamente.",
-      });
       setRatingItem(null);
     } catch (error) {
       console.error("Erro ao avaliar na watchlist:", error);
@@ -154,7 +161,8 @@ export default function WatchlistPage() {
     }
   };
 
-  const currentList = activeTab === "movie" ? movies : series;
+  const activeSeries = series.filter(s => s.status !== "COMPLETED" && s.status !== "DROPPED");
+  const currentList = activeTab === "movie" ? movies : activeSeries;
   const isLoading = loadingMovies || loadingSeries;
 
   const handleRandomPick = () => {

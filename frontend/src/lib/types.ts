@@ -355,6 +355,7 @@ export interface EnrichedWatchlistMovie {
   year: string;
   tmdbData: TmdbMovie;
   addedAt: string;
+  status?: WatchlistStatus;
 }
 
 export interface EnrichedWatchlistSerie {
@@ -369,4 +370,5 @@ export interface EnrichedWatchlistSerie {
   year: string;
   tmdbData: TmdbSerie;
   addedAt: string;
+  status?: WatchlistStatus;
 }
