@@ -119,49 +119,15 @@ export function SerieClientDetails({
   const handleToggleWatchlist = async () => {
     setLoadingWatchlist(true);
     try {
-      const res = await watchlistSeriesApi.toggleWatchlist(String(serie.id));
+      const res = await watchlistSeriesApi.toggleWatchlist(String(serie.id), isInWatchlist ? undefined : "WATCHING");
       setIsInWatchlist(res.inWatchlist);
       setWatchlistStatus(res.status || null);
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
-      toast.success(res.inWatchlist ? "Série adicionada à Watchlist!" : "Série removida da Watchlist!");
+      toast.success(res.inWatchlist ? "Você está acompanhando esta série!" : "Parou de acompanhar esta série!");
     } catch {
-      toast.error("Erro ao atualizar a Watchlist.");
+      toast.error("Erro ao atualizar o acompanhamento.");
     } finally {
       setLoadingWatchlist(false);
-    }
-  };
-
-  const handleUpdateStatus = async (status: WatchlistStatus) => {
-    setLoadingWatchlist(true);
-    try {
-      const res = await watchlistSeriesApi.updateStatus(String(serie.id), status);
-      setIsInWatchlist(res.inWatchlist);
-      setWatchlistStatus(res.status || null);
-      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
-      toast.success(`Status atualizado para: ${getStatusLabel(status)}`);
-    } catch {
-      toast.error("Erro ao atualizar o status.");
-    } finally {
-      setLoadingWatchlist(false);
-    }
-  };
-
-  const getStatusLabel = (status: WatchlistStatus) => {
-    switch (status) {
-      case "PLAN_TO_WATCH": return "Planejo Assistir";
-      case "WATCHING": return "Assistindo";
-      case "COMPLETED": return "Concluído";
-      case "DROPPED": return "Parei de Assistir";
-      default: return "";
-    }
-  };
-
-  const getStatusIcon = (status: WatchlistStatus) => {
-    switch (status) {
-      case "PLAN_TO_WATCH": return <ListPlus className="w-4 h-4" />;
-      case "WATCHING": return <Play className="w-4 h-4 fill-current" />;
-      case "COMPLETED": return <CheckCircle2 className="w-4 h-4" />;
-      case "DROPPED": return <XCircle className="w-4 h-4" />;
     }
   };
 
@@ -404,48 +370,19 @@ export function SerieClientDetails({
                     {loadingRating ? "Carregando..." : userRating ? "Editar Avaliação" : "Avaliar Série"}
                   </button>
 
-                  <div className="relative group/status w-full sm:w-auto">
-                    <button
-                      className={cn(
-                        "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50",
-                        isInWatchlist
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-                          : "border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5",
-                      )}
-                      onClick={handleToggleWatchlist}
-                      disabled={loadingWatchlist}
-                    >
-                      {isInWatchlist ? (watchlistStatus ? getStatusIcon(watchlistStatus) : <Check className="w-4 h-4" />) : <ListPlus className="w-4 h-4" />}
-                      {loadingWatchlist ? "Salvando..." : isInWatchlist ? getStatusLabel(watchlistStatus || "PLAN_TO_WATCH") : "Add à Watchlist"}
-                    </button>
-                    
-                    {/* Status Options Hover Menu */}
-                    <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#14141c] border border-white/[0.08] rounded-xl overflow-hidden shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover/status:opacity-100 group-hover/status:translate-y-0 group-hover/status:pointer-events-auto transition-all z-50">
-                      <p className="px-4 py-2 text-[10px] font-bold text-white/30 uppercase tracking-widest border-b border-white/[0.05]">Definir Status</p>
-                      {(["PLAN_TO_WATCH", "WATCHING", "COMPLETED", "DROPPED"] as WatchlistStatus[]).map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => handleUpdateStatus(status)}
-                          className={cn(
-                            "w-full flex items-center gap-3 px-4 py-3 text-xs font-medium transition-colors hover:bg-white/5",
-                            watchlistStatus === status ? "text-emerald-400 bg-emerald-500/5" : "text-white/60 hover:text-white"
-                          )}
-                        >
-                          {getStatusIcon(status)}
-                          {getStatusLabel(status)}
-                        </button>
-                      ))}
-                      {isInWatchlist && (
-                        <button
-                          onClick={handleToggleWatchlist}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-xs font-medium text-red-400 hover:bg-red-400/5 transition-colors border-t border-white/[0.05]"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          Remover da Watchlist
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  <button
+                    className={cn(
+                      "w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50",
+                      isInWatchlist
+                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                        : "border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5",
+                    )}
+                    onClick={handleToggleWatchlist}
+                    disabled={loadingWatchlist}
+                  >
+                    {isInWatchlist ? <Check className="w-4 h-4" /> : <ListPlus className="w-4 h-4" />}
+                    {loadingWatchlist ? "Salvando..." : isInWatchlist ? "Acompanhando" : "Acompanhar Série"}
+                  </button>
                 </>
               ) : (
                 <button

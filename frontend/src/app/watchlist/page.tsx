@@ -145,10 +145,8 @@ export default function WatchlistPage() {
           ratingItem.tmdbData.poster_path || "",
           comment,
         );
-        await watchlistSeriesApi.updateStatus(ratingItem.id, "COMPLETED");
-        queryClient.invalidateQueries({ queryKey: ["watchlist", "series"] });
         toast.success("Avaliação salva com sucesso!", {
-          description: "A série foi marcada como Concluída e continua sendo acompanhada no LifeOS.",
+          description: "A série foi avaliada e continua sendo acompanhada.",
         });
       }
       setRatingItem(null);
@@ -161,7 +159,7 @@ export default function WatchlistPage() {
     }
   };
 
-  const activeSeries = series.filter(s => s.status !== "COMPLETED" && s.status !== "DROPPED");
+  const activeSeries = series;
   const currentList = activeTab === "movie" ? movies : activeSeries;
   const isLoading = loadingMovies || loadingSeries;
 
@@ -335,7 +333,7 @@ export default function WatchlistPage() {
                             }}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/15 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/20 text-sm font-medium transition-all"
                           >
-                            <Check className="w-4 h-4" /> Assisti e Avaliar
+                            <Check className="w-4 h-4" /> {item.type === "movie" ? "Assisti e Avaliar" : "Avaliar Série"}
                           </button>
                           <button
                             onClick={(e) => {
