@@ -5,16 +5,16 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Dices, Check, Trash2, ListVideo } from "lucide-react";
-import { RatingDialog } from "../../components/RatingDialog";
+import { Dices, Check, Trash2, Tv } from "lucide-react";
+import { RatingDialog } from "@/components/RatingDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { watchlistMoviesApi, moviesApi } from "../../lib/api";
-import MovieService from "../../lib/movieService";
-import AuthService from "../../lib/auth";
-import { EnrichedWatchlistMovie } from "../../lib/types";
+import { watchlistSeriesApi, seriesApi } from "@/lib/api";
+import MovieService from "@/lib/movieService";
+import AuthService from "@/lib/auth";
+import { EnrichedWatchlistSerie } from "@/lib/types";
 import { cn } from "@/lib/utils";
  
-export default function WatchlistPage() {
+export default function SeriesAcompanhandoPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isAuth = AuthService.isAuthenticated();
@@ -23,21 +23,21 @@ export default function WatchlistPage() {
   const [isRandomDialogOpen, setIsRandomDialogOpen] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
  
-  const [ratingItem, setRatingItem] = useState<EnrichedWatchlistMovie | null>(null);
+  const [ratingItem, setRatingItem] = useState<EnrichedWatchlistSerie | null>(null);
  
-  const { data: movies = [], isLoading: loadingMovies } = useQuery({
-    queryKey: ["watchlist", "movies"],
+  const { data: series = [], isLoading: loadingSeries } = useQuery({
+    queryKey: ["watchlist", "series"],
     queryFn: async () => {
-      const response = await watchlistMoviesApi.getWatchlistMovies();
+      const response = await watchlistSeriesApi.getWatchlistSeries();
       const enriched = await Promise.all(
         response.map(async (item: any) => {
           try {
-            const tmdbData = await moviesApi.getMovieDetails(item.movieId);
+            const tmdbData = await seriesApi.getSerieDetails(item.serieId);
             return {
-              type: "movie",
-              id: item.movieId,
+              type: "serie",
+              id: item.serieId,
               internalId: item.id,
-              title: tmdbData.title,
+              title: tmdbData.name,
               poster: tmdbData.poster_path
                 ? `https://image.tmdb.org/t/p/w500${tmdbData.poster_path}`
                 : "/placeholder-movie.jpg",
@@ -46,8 +46,8 @@ export default function WatchlistPage() {
                 : null,
               overview: tmdbData.overview || "Nenhuma sinopse disponível.",
               genres: tmdbData.genres?.map((g) => g.name).slice(0, 3) || [],
-              year: tmdbData.release_date
-                ? new Date(tmdbData.release_date).getFullYear().toString()
+              year: tmdbData.first_air_date
+                ? new Date(tmdbData.first_air_date).getFullYear().toString()
                 : "N/A",
               tmdbData,
               addedAt: item.addedAt,
@@ -58,18 +58,18 @@ export default function WatchlistPage() {
           }
         }),
       );
-      return enriched.filter(Boolean) as EnrichedWatchlistMovie[];
+      return enriched.filter(Boolean) as EnrichedWatchlistSerie[];
     },
     enabled: isAuth,
   });
  
   const removeMutation = useMutation({
     mutationFn: async (id: string) => {
-      return watchlistMoviesApi.toggleWatchlist(id);
+      return watchlistSeriesApi.toggleWatchlist(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["watchlist", "movies"],
+        queryKey: ["watchlist", "series"],
       });
     },
   });
@@ -78,16 +78,15 @@ export default function WatchlistPage() {
     if (!ratingItem) return;
     try {
       const ratingValue = parseFloat(ratingString);
-      await MovieService.rateMovie(
+      await MovieService.rateSerie(
         ratingItem.tmdbData.id,
         ratingValue,
         ratingItem.title,
         ratingItem.tmdbData.poster_path || "",
         comment,
       );
-      removeMutation.mutate(ratingItem.id);
       toast.success("Avaliação salva com sucesso!", {
-        description: "O filme foi removido da sua Watchlist automaticamente.",
+        description: "A série foi avaliada e continua sendo acompanhada.",
       });
       setRatingItem(null);
     } catch (error) {
@@ -100,16 +99,16 @@ export default function WatchlistPage() {
   };
  
   const handleRandomPick = () => {
-    if (movies.length === 0) {
-      toast.error("Sua lista está vazia!", { description: "Adicione títulos para usar a roleta." });
+    if (series.length === 0) {
+      toast.error("Sua lista de séries acompanhadas está vazia!", { description: "Adicione séries para usar a roleta." });
       return;
     }
     setIsRandomDialogOpen(true);
     setIsSpinning(true);
     let counter = 0;
     const interval = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * movies.length);
-      setRandomItem(movies[randomIndex]);
+      const randomIndex = Math.floor(Math.random() * series.length);
+      setRandomItem(series[randomIndex]);
       counter++;
       if (counter > 15) {
         clearInterval(interval);
@@ -118,12 +117,12 @@ export default function WatchlistPage() {
     }, 100);
   };
  
-  const handleMarkAsWatched = (item: EnrichedWatchlistMovie) => {
+  const handleMarkAsWatched = (item: EnrichedWatchlistSerie) => {
     setRatingItem(item);
   };
  
   const handleNavigate = (id: string) => {
-    router.push(`/filmes/${id}`);
+    router.push(`/series/${id}`);
   };
  
   const formatAddedAt = (dateStr?: string) => {
@@ -161,18 +160,18 @@ export default function WatchlistPage() {
         <div className="flex flex-col items-start justify-between gap-4 mb-8 sm:mb-10 sm:flex-row sm:items-center">
           <div>
             <h1 className="flex items-center gap-3 text-2xl sm:text-3xl font-extrabold text-white">
-              <ListVideo className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-400" />
-              Minha Watchlist (Filmes)
+              <Tv className="w-7 h-7 sm:w-8 sm:h-8 text-violet-400" />
+              Séries Acompanhadas
             </h1>
             <p className="mt-2 text-sm sm:text-base text-white/35">
-              Filmes que você separou para assistir em breve.
+              Séries que você está acompanhando e mantendo progresso no LifeOS.
             </p>
           </div>
  
           <button
             onClick={handleRandomPick}
-            disabled={loadingMovies || isSpinning}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3 px-6 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all hover:scale-[1.02] duration-200"
+            disabled={loadingSeries || isSpinning}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-bold py-3 px-6 rounded-2xl shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all hover:scale-[1.02] duration-200"
           >
             <Dices className="w-5 h-5 sm:w-6 sm:h-6" />
             Escolher Aleatório
@@ -180,7 +179,7 @@ export default function WatchlistPage() {
         </div>
  
         {/* Lista */}
-        {loadingMovies ? (
+        {loadingSeries ? (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="h-40 w-full bg-[#14141c] rounded-2xl border border-white/[0.06] flex animate-pulse">
@@ -195,14 +194,14 @@ export default function WatchlistPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {movies.length === 0 ? (
+            {series.length === 0 ? (
               <div className="py-16 sm:py-20 text-center border-2 border-dashed border-white/[0.06] text-white/35 rounded-2xl px-4">
-                Nenhum filme adicionado à watchlist ainda.{" "}
+                Nenhuma série sendo acompanhada ainda.{" "}
                 <br className="hidden sm:block" />
-                Navegue pelo catálogo e clique em "Add à Watchlist" para salvar!
+                Navegue pelo catálogo e clique em "Acompanhar Série" para salvar!
               </div>
             ) : (
-              movies.map((item) => (
+              series.map((item) => (
                 <div
                   key={item.internalId}
                   onClick={() => handleNavigate(item.id)}
@@ -235,10 +234,10 @@ export default function WatchlistPage() {
                     <div className="flex flex-col flex-1 p-3 sm:p-4 md:p-5 justify-between min-w-0">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0 pr-2 sm:pr-4">
-                          <span className="inline-block mb-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px] sm:text-xs font-semibold">
-                            Filme
+                          <span className="inline-block mb-1.5 px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[10px] sm:text-xs font-semibold">
+                            Série
                           </span>
-                          <h3 className="mb-1 text-base sm:text-lg md:text-xl font-bold text-white line-clamp-1 group-hover:text-emerald-400 transition-colors">
+                          <h3 className="mb-1 text-base sm:text-lg md:text-xl font-bold text-white line-clamp-1 group-hover:text-violet-400 transition-colors">
                             {item.title}
                           </h3>
                           <div className="flex items-center gap-2 text-xs sm:text-sm text-white/40 mb-2">
@@ -271,20 +270,20 @@ export default function WatchlistPage() {
                               e.stopPropagation();
                               handleMarkAsWatched(item);
                             }}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/15 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/20 text-sm font-medium transition-all"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-600/15 text-violet-400 hover:bg-violet-600/30 border border-violet-500/20 text-sm font-medium transition-all"
                           >
-                            <Check className="w-4 h-4" /> Assisti e Avaliar
+                            <Check className="w-4 h-4" /> Avaliar Série
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               removeMutation.mutate(item.id);
-                              toast.success("Removido da Watchlist");
+                              toast.success("Parou de acompanhar a série");
                             }}
                             disabled={removeMutation.isPending}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/35 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 text-sm font-medium transition-all disabled:opacity-50"
                           >
-                            <Trash2 className="w-4 h-4" /> Remover
+                            <Trash2 className="w-4 h-4" /> Parar de Acompanhar
                           </button>
                         </div>
                       </div>
@@ -296,7 +295,7 @@ export default function WatchlistPage() {
                             e.stopPropagation();
                             handleMarkAsWatched(item);
                           }}
-                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-emerald-600/15 text-emerald-400 border border-emerald-500/20 text-xs font-medium transition-all"
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-violet-600/15 text-violet-400 border border-violet-500/20 text-xs font-medium transition-all"
                         >
                           <Check className="w-3.5 h-3.5" /> Avaliar
                         </button>
@@ -304,7 +303,7 @@ export default function WatchlistPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             removeMutation.mutate(item.id);
-                            toast.success("Removido da Watchlist");
+                            toast.success("Parou de acompanhar a série");
                           }}
                           disabled={removeMutation.isPending}
                           className="px-3 py-1.5 rounded-xl text-white/35 hover:text-red-400 bg-white/5 border border-transparent hover:border-red-500/20 transition-all disabled:opacity-50"
@@ -360,7 +359,7 @@ export default function WatchlistPage() {
               <button
                 disabled={isSpinning}
                 onClick={() => { setIsRandomDialogOpen(false); handleMarkAsWatched(randomItem); }}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all disabled:opacity-50"
               >
                 <Check className="w-4 h-4" /> Avaliar
               </button>
@@ -374,7 +373,7 @@ export default function WatchlistPage() {
         onClose={() => setRatingItem(null)}
         onSubmit={handleRateSubmit}
         itemTitle={ratingItem?.title || ""}
-        itemType="filme"
+        itemType="série"
         itemId={ratingItem?.tmdbData.id || 0}
         currentRating={null}
       />

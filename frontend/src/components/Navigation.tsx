@@ -13,6 +13,7 @@ import {
   Play,
   Menu,
   User as UserIcon,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AuthService from "../lib/auth";
@@ -93,7 +94,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       icon: Tv,
       color: "text-violet-400",
       activeBg: "bg-violet-500/10 border-violet-500/20 text-violet-300",
-      current: pathname === "/series" || pathname.startsWith("/series/"),
+      current: pathname === "/series" || (pathname.startsWith("/series/") && pathname !== "/series/acompanhando"),
       requiresAuth: false,
     },
     {
@@ -121,6 +122,15 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       color: "text-emerald-400",
       activeBg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-300",
       current: pathname === "/watchlist",
+      requiresAuth: true,
+    },
+    {
+      name: "Acompanhando",
+      href: "/series/acompanhando",
+      icon: Eye,
+      color: "text-teal-400",
+      activeBg: "bg-teal-500/10 border-teal-500/20 text-teal-300",
+      current: pathname === "/series/acompanhando",
       requiresAuth: true,
     },
   ];
