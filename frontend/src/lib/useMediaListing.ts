@@ -60,6 +60,11 @@ export function useMediaListing<T extends { id: number }, C extends string>({
   const queryClient = useQueryClient();
 
   const [categoryFilter, setCategoryFilter] = useState<C>(initialCategory);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setIsAuthenticated(AuthService.isAuthenticated());
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -114,7 +119,7 @@ export function useMediaListing<T extends { id: number }, C extends string>({
 
   // Carrega status de favoritos em batch para itens novos
   useEffect(() => {
-    if (fetchedItems.length === 0 || !AuthService.isAuthenticated()) return;
+    if (fetchedItems.length === 0 || !isAuthenticated) return;
 
     const pending = fetchedItems.filter(
       (media) =>
@@ -198,11 +203,11 @@ export function useMediaListing<T extends { id: number }, C extends string>({
       }
     };
     Array.from({ length: workers }).forEach(runWorker);
-  }, [fetchedItems, getFavoriteStatus]);
+  }, [fetchedItems, getFavoriteStatus, isAuthenticated]);
 
   // Carrega status de watchlist em batch para itens novos
   useEffect(() => {
-    if (fetchedItems.length === 0 || !AuthService.isAuthenticated() || !getWatchlistStatuses) return;
+    if (fetchedItems.length === 0 || !isAuthenticated || !getWatchlistStatuses) return;
 
     const pending = fetchedItems.filter(
       (media) =>
@@ -240,11 +245,11 @@ export function useMediaListing<T extends { id: number }, C extends string>({
         pending.forEach((m) => watchlistInFlightRef.current.delete(m.id));
       }
     })();
-  }, [fetchedItems, getWatchlistStatuses]);
+  }, [fetchedItems, getWatchlistStatuses, isAuthenticated]);
 
   // Carrega avaliações do usuário em batch para itens novos
   useEffect(() => {
-    if (fetchedItems.length === 0 || !AuthService.isAuthenticated()) return;
+    if (fetchedItems.length === 0 || !isAuthenticated) return;
     if (!getRatingStatuses) return;
 
     const pending = fetchedItems.filter(
@@ -287,7 +292,7 @@ export function useMediaListing<T extends { id: number }, C extends string>({
         pending.forEach((m) => ratingInFlightRef.current.delete(m.id));
       }
     })();
-  }, [fetchedItems, getRatingStatuses]);
+  }, [fetchedItems, getRatingStatuses, isAuthenticated]);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async (mediaId: string) => {

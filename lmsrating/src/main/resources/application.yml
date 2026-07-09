@@ -51,3 +51,10 @@ logging:
         cache: INFO
         orm:
           jpa: INFO
+    com:
+      netflix:
+        discovery:
+          shared:
+            resolver:
+              aws:
+                ConfigClusterResolver: WARN
