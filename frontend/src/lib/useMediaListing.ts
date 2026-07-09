@@ -361,10 +361,6 @@ export function useMediaListing<T extends { id: number }, C extends string>({
         watchlistStatusRef.current[mediaId] = result.data!.inWatchlist;
         queryClient.invalidateQueries({ queryKey: ["watchlist"] });
 
-        if (result.data!.inWatchlist) {
-          import("@/lib/celebrations").then(({ celebrateAction }) => celebrateAction("watchlist"));
-        }
-
         toast.success(
           result.data!.inWatchlist ? "Adicionado à sua Watchlist!" : "Removido da Watchlist!",
         );

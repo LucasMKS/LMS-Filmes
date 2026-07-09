@@ -1,10 +1,9 @@
 import confetti from "canvas-confetti";
 
-export const celebrateAction = (type: "rating" | "favorite" | "watchlist") => {
+export const celebrateAction = (type: "rating" | "favorite") => {
   const colors = {
     rating: ["#f59e0b", "#fbbf24", "#ffffff"], // Amber/Gold
     favorite: ["#ec4899", "#f472b6", "#ffffff"], // Pink
-    watchlist: ["#10b981", "#34d399", "#ffffff"], // Emerald
   };
 
   const duration = 3 * 1000;
