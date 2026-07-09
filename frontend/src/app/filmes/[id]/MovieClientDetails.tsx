@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { TmdbMovie, Movie as UserRatingMovie } from "@/lib/types";
@@ -47,6 +47,7 @@ export function MovieClientDetails({
   const [loadingWatchlist, setLoadingWatchlist] = useState(false);
 
   const [posterLoading, setPosterLoading] = useState(true);
+  const posterRef = useRef<HTMLImageElement>(null);
 
   const trailer = movie.videos?.results?.find((v) => v.site === "YouTube" && v.type === "Trailer");
   const cast = movie.credits?.cast?.slice(0, 10) || [];
@@ -66,6 +67,12 @@ export function MovieClientDetails({
   const posterUrl = movie.poster_path
     ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
     : "/placeholder-movie.jpg";
+
+  useEffect(() => {
+    if (posterRef.current?.complete) {
+      setPosterLoading(false);
+    }
+  }, [posterUrl]);
 
   const formatRuntime = (minutes: number) => {
     const h = Math.floor(minutes / 60);
@@ -163,6 +170,8 @@ export function MovieClientDetails({
           <div className="w-48 sm:w-64 md:w-72 shrink-0 mx-auto md:mx-0 space-y-6">
             <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-white/[0.08] bg-white/5">
               <Image
+                ref={posterRef}
+                key={posterUrl}
                 src={posterUrl}
                 alt={movie.title}
                 fill

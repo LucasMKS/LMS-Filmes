@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { TmdbSerie, Serie as UserRatingSerie, WatchlistStatus } from "@/lib/types";
@@ -57,6 +57,7 @@ export function SerieClientDetails({
   const [watchedEpisodesCount, setWatchedEpisodesCount] = useState(0);
 
   const [posterLoading, setPosterLoading] = useState(true);
+  const posterRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (isLoggedIn && serie.id) {
@@ -102,6 +103,12 @@ export function SerieClientDetails({
   const posterUrl = serie.poster_path
     ? `https://image.tmdb.org/t/p/w500${serie.poster_path}`
     : "/placeholder-movie.jpg";
+
+  useEffect(() => {
+    if (posterRef.current?.complete) {
+      setPosterLoading(false);
+    }
+  }, [posterUrl]);
 
   const getYearRange = () => {
     const firstYear = serie.first_air_date ? new Date(serie.first_air_date).getFullYear() : null;
@@ -228,6 +235,8 @@ export function SerieClientDetails({
           <div className="w-48 sm:w-64 md:w-72 shrink-0 mx-auto md:mx-0 space-y-6">
             <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)] border border-white/[0.08] bg-white/5">
               <Image
+                ref={posterRef}
+                key={posterUrl}
                 src={posterUrl}
                 alt={serie.name}
                 fill

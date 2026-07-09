@@ -38,6 +38,7 @@ interface SerieDialogProps {
   serieDetails?: TmdbSerie | null;
   isLoggedIn?: boolean;
   onRateSuccess?: (rating: string, comment?: string) => void;
+  onWatchlistToggle?: (inWatchlist: boolean) => void;
 }
 
 export function SerieDialog({
@@ -47,6 +48,7 @@ export function SerieDialog({
   serieDetails,
   isLoggedIn = false,
   onRateSuccess,
+  onWatchlistToggle,
 }: SerieDialogProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -120,6 +122,7 @@ export function SerieDialog({
       setWatchlistStatus(res.status || null);
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
       toast.success(res.inWatchlist ? "Série adicionada à Watchlist!" : "Série removida da Watchlist!");
+      onWatchlistToggle?.(res.inWatchlist);
     } catch {
       toast.error("Erro ao atualizar a Watchlist.");
     } finally {
@@ -136,6 +139,7 @@ export function SerieDialog({
       setWatchlistStatus(res.status || null);
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
       toast.success(`Status atualizado para: ${getStatusLabel(status)}`);
+      onWatchlistToggle?.(res.inWatchlist);
     } catch {
       toast.error("Erro ao atualizar o status.");
     } finally {

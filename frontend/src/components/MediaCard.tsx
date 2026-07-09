@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,11 +57,18 @@ export function MediaCard({
 }: MediaCardProps) {
   const [imgSrc, setImgSrc] = useState(imageUrl);
   const [isLoading, setIsLoading] = useState(true);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     setImgSrc(imageUrl);
     setIsLoading(true);
   }, [imageUrl]);
+
+  useEffect(() => {
+    if (imgRef.current?.complete) {
+      setIsLoading(false);
+    }
+  }, [imgSrc]);
 
   const hasRating = !!userRating && !!userRating.rating && userRating.rating !== "0";
 
@@ -96,6 +103,8 @@ export function MediaCard({
         {/* Imagem */}
         <div className="relative overflow-hidden aspect-[2/3] bg-white/5">
           <Image
+            ref={imgRef}
+            key={imgSrc}
             src={imgSrc}
             alt={altText}
             fill

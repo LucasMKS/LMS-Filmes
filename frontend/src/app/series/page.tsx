@@ -85,6 +85,7 @@ export default function SeriesPage() {
     handleToggleFavorite,
     handleToggleWatchlist,
     updateRatingStatus,
+    updateWatchlistStatus,
   } = useMediaListing<TmdbSerie, SerieCategory>({
     mediaType: "serie",
     initialCategory: "popular",
@@ -211,6 +212,9 @@ export default function SeriesPage() {
           isLoggedIn={isLoggedIn}
           onRateSuccess={(rating, comment) =>
             handleRateSuccess(selectedSerie.id, rating, comment)
+          }
+          onWatchlistToggle={(inWatchlist) =>
+            updateWatchlistStatus(selectedSerie.id, inWatchlist)
           }
         />
       )}

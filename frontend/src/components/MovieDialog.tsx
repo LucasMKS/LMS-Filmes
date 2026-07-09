@@ -33,6 +33,7 @@ interface MovieDialogProps {
   onClose: () => void;
   isLoggedIn?: boolean;
   onRateSuccess?: (rating: string, comment?: string) => void;
+  onWatchlistToggle?: (inWatchlist: boolean) => void;
 }
 
 export function MovieDialog({
@@ -42,6 +43,7 @@ export function MovieDialog({
   onClose,
   isLoggedIn = false,
   onRateSuccess,
+  onWatchlistToggle,
 }: MovieDialogProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -100,6 +102,7 @@ export function MovieDialog({
         setIsInWatchlist(result.data.inWatchlist);
         queryClient.invalidateQueries({ queryKey: ["watchlist"] });
         toast.success(result.data.inWatchlist ? "Adicionado à sua Watchlist!" : "Removido da Watchlist!");
+        onWatchlistToggle?.(result.data.inWatchlist);
       } else {
         toast.error(result.error || "Erro ao atualizar a Watchlist.");
       }

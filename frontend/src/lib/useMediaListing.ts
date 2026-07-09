@@ -427,7 +427,7 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const initialize = useCallback(async () => {
+  const initialize = useCallback(() => {
     favoriteStatusRef.current = {};
     favoriteInFlightRef.current.clear();
     watchlistStatusRef.current = {};
@@ -437,13 +437,22 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     setFavoriteStatus({});
     setWatchlistStatus({});
     setRatingStatus({});
-    await refetch();
-  }, [refetch]);
+  }, []);
 
   // Atualiza o rating local após o usuário avaliar (sem refetch)
   const updateRatingStatus = useCallback((mediaId: number, status: RatingStatus | null) => {
     ratingStatusRef.current[mediaId] = status;
     setRatingStatus((prev) => ({ ...prev, [mediaId]: status }));
+  }, []);
+
+  const updateWatchlistStatus = useCallback((mediaId: number, inWatchlist: boolean) => {
+    watchlistStatusRef.current[mediaId] = inWatchlist;
+    setWatchlistStatus((prev) => ({ ...prev, [mediaId]: inWatchlist }));
+  }, []);
+
+  const updateFavoriteStatus = useCallback((mediaId: number, isFavorite: boolean) => {
+    favoriteStatusRef.current[mediaId] = isFavorite;
+    setFavoriteStatus((prev) => ({ ...prev, [mediaId]: isFavorite }));
   }, []);
 
   return {
@@ -467,5 +476,7 @@ export function useMediaListing<T extends { id: number }, C extends string>({
     handleToggleFavorite,
     handleToggleWatchlist,
     updateRatingStatus,
+    updateFavoriteStatus,
+    updateWatchlistStatus,
   };
 }
