@@ -31,6 +31,10 @@ public class WatchlistMovie {
     private String mongoId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", columnDefinition = "varchar(255) default 'PLAN_TO_WATCH'")
     private WatchlistStatus status = WatchlistStatus.PLAN_TO_WATCH;
+
+    public WatchlistStatus getStatus() {
+        return this.status != null ? this.status : WatchlistStatus.PLAN_TO_WATCH;
+    }
 }
