@@ -97,7 +97,7 @@ export function MediaCard({
       />
 
       <div className="relative z-10 pointer-events-none">
-        {/* Imagem */}
+        {/* Imagem / Pôster */}
         <div className="relative overflow-hidden aspect-[2/3] bg-white/5">
           <Image
             ref={imgRef}
@@ -156,7 +156,14 @@ export function MediaCard({
             </div>
           )}
 
-          {/* Badge ÚNICA de Avaliação (Minha Nota em Amarelo com Estrela ou Nota TMDB em Branco com ícone de Público Users) */}
+          {/* Ícone de comentário (Canto Inferior Esquerdo do Pôster, na mesma linha da avaliação) */}
+          {userRating && userRating.comment && (
+            <div className="pointer-events-none absolute left-3 bottom-3 z-20 flex items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-600/90 p-1.5 text-white shadow-lg backdrop-blur-md">
+              <MessageSquare className="h-3.5 w-3.5" />
+            </div>
+          )}
+
+          {/* Badge ÚNICA de Avaliação (Canto Inferior Direito do Pôster) */}
           <div className="absolute right-3 bottom-3 z-20 pointer-events-none">
             {hasRating ? (
               <div className="flex items-center gap-1.5 rounded-xl border border-yellow-500/40 bg-yellow-500/20 px-2.5 py-1 text-xs font-extrabold text-yellow-300 shadow-[0_0_12px_rgba(234,179,8,0.25)] backdrop-blur-md">
@@ -176,7 +183,7 @@ export function MediaCard({
           </div>
         </div>
 
-        {/* Footer do card */}
+        {/* Footer do card (Título e Subtítulo) */}
         <div className="border-t border-white/[0.05] bg-[#14141c] px-4 py-3.5">
           <h3 className="mb-0.5 line-clamp-1 text-sm font-bold text-white/90 transition-colors duration-200 group-hover:text-purple-300">
             {title}
@@ -185,7 +192,7 @@ export function MediaCard({
         </div>
       </div>
 
-      {/* Badge de categoria */}
+      {/* Badge de categoria (Topo Esquerdo) */}
       <Badge
         className={cn(
           "pointer-events-none absolute left-3 top-3 z-20 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-white shadow-lg backdrop-blur-md rounded-xl",
@@ -196,7 +203,7 @@ export function MediaCard({
         {badgeLabel}
       </Badge>
 
-      {/* Botão de Ação (Wishlist ou Favorito) */}
+      {/* Botão de Ação (Topo Direito - Wishlist ou Favorito) */}
       {showActionButtons && (
         <div className="absolute right-3 top-3 z-30 transition-all duration-300 pointer-events-auto">
           {hasRating ? (
@@ -238,13 +245,6 @@ export function MediaCard({
               <Bookmark className={cn("h-4 w-4", isInWatchlist && "fill-current")} />
             </Button>
           )}
-        </div>
-      )}
-
-      {/* Ícone de comentário (parte inferior esquerda do card) */}
-      {userRating && userRating.comment && (
-        <div className="pointer-events-none absolute left-3 bottom-3 z-20 flex items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-600/90 p-1.5 text-white shadow-lg backdrop-blur-md">
-          <MessageSquare className="h-3.5 w-3.5" />
         </div>
       )}
     </div>
