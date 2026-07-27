@@ -13,7 +13,10 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "custom_lists")
+@Table(name = "custom_lists", indexes = {
+    @Index(name = "idx_custom_lists_user_id", columnList = "user_id"),
+    @Index(name = "idx_custom_lists_user_updated", columnList = "user_id, updated_at DESC")
+})
 public class CustomList {
 
     @Id

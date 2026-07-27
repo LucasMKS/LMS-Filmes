@@ -13,6 +13,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "custom_list_items", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"custom_list_id", "media_id", "media_type"})
+}, indexes = {
+    @Index(name = "idx_custom_list_items_list_id", columnList = "custom_list_id"),
+    @Index(name = "idx_custom_list_items_media", columnList = "media_id, media_type")
 })
 public class CustomListItem {
 

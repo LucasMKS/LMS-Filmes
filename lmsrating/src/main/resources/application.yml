@@ -1,5 +1,9 @@
 server:
   port: ${SERVER_PORT_RATING}
+  compression:
+    enabled: true
+    mime-types: application/json,text/html,text/xml,text/plain,application/javascript,text/css
+    min-response-size: 1024
 
 spring:
   application:
@@ -17,6 +21,12 @@ spring:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASS}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 20000
   jpa:
     hibernate:
       ddl-auto: update

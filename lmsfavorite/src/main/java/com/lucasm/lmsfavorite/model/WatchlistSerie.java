@@ -11,6 +11,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "watchlist_series", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"user_id", "serie_id"})
+}, indexes = {
+    @Index(name = "idx_watchlist_series_user", columnList = "user_id"),
+    @Index(name = "idx_watchlist_series_added", columnList = "user_id, added_at DESC")
 })
 public class WatchlistSerie {
     @Id
