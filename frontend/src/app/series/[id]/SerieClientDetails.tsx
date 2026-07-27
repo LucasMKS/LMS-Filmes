@@ -24,10 +24,12 @@ import {
   ChevronDown,
   CheckCircle2,
   XCircle,
+  FolderPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { AddToListModal } from "@/components/AddToListModal";
 import { useEffect } from "react";
 import { watchlistSeriesApi, favoriteSeriesApi } from "@/lib/api";
 
@@ -55,6 +57,7 @@ export function SerieClientDetails({
   const [watchlistStatus, setWatchlistStatus] = useState<WatchlistStatus | null>(null);
   const [loadingWatchlist, setLoadingWatchlist] = useState(false);
   const [watchedEpisodesCount, setWatchedEpisodesCount] = useState(0);
+  const [isAddToListOpen, setIsAddToListOpen] = useState(false);
 
   const [posterLoading, setPosterLoading] = useState(true);
   const posterRef = useRef<HTMLImageElement>(null);
@@ -439,6 +442,14 @@ export function SerieClientDetails({
                 </button>
               )}
 
+              <button
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 font-semibold text-sm transition-all"
+                onClick={() => setIsAddToListOpen(true)}
+              >
+                <FolderPlus className="w-4 h-4 text-violet-400" />
+                Salvar em Lista
+              </button>
+
               {serie.homepage && (
                 <button
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 text-sm font-medium transition-all"
@@ -675,6 +686,22 @@ export function SerieClientDetails({
         currentRating={
           userRating ? { myVote: String(userRating.rating), comment: userRating.comment } : null
         }
+      />
+
+      <AddToListModal
+        isOpen={isAddToListOpen}
+        onClose={() => setIsAddToListOpen(false)}
+        item={{
+          id: serie.id,
+          type: "serie",
+          title: serie.name || "",
+          posterPath: serie.poster_path || null,
+          backdropPath: serie.backdrop_path || null,
+          voteAverage: serie.vote_average,
+          releaseYear: serie.first_air_date
+            ? serie.first_air_date.substring(0, 4)
+            : undefined,
+        }}
       />
     </div>
   );

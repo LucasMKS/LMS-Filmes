@@ -18,6 +18,7 @@ import {
   Info,
   ListPlus,
   Check,
+  FolderPlus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,6 +26,7 @@ import MovieService from "@/lib/movieService";
 import { ratingMoviesApi, watchlistMoviesApi } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { AddToListModal } from "./AddToListModal";
 
 interface MovieDialogProps {
   movie: TmdbMovie;
@@ -52,6 +54,7 @@ export function MovieDialog({
   const [loadingRating, setLoadingRating] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [loadingWatchlist, setLoadingWatchlist] = useState(false);
+  const [isAddToListOpen, setIsAddToListOpen] = useState(false);
 
   const displayMovie = movieDetails ?? movie;
 
@@ -277,6 +280,14 @@ export function MovieDialog({
                     </button>
                   )}
 
+                  <button
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 font-semibold text-sm transition-all"
+                    onClick={() => setIsAddToListOpen(true)}
+                  >
+                    <FolderPlus className="w-4 h-4 text-purple-400" />
+                    Salvar em Lista
+                  </button>
+
                   {displayMovie.homepage && (
                     <button
                       className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 text-sm font-medium transition-all"
@@ -412,6 +423,24 @@ export function MovieDialog({
             userRating ? { myVote: String(userRating.rating), comment: userRating.comment } : null
           }
         />
+
+        {displayMovie && (
+          <AddToListModal
+            isOpen={isAddToListOpen}
+            onClose={() => setIsAddToListOpen(false)}
+            item={{
+              id: displayMovie.id,
+              type: "movie",
+              title: displayMovie.title || "",
+              posterPath: displayMovie.poster_path || null,
+              backdropPath: displayMovie.backdrop_path || null,
+              voteAverage: displayMovie.vote_average,
+              releaseYear: displayMovie.release_date
+                ? displayMovie.release_date.substring(0, 4)
+                : undefined,
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -18,10 +18,12 @@ import {
   Building2,
   ListPlus,
   Check,
+  FolderPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { AddToListModal } from "@/components/AddToListModal";
 
 interface MovieClientDetailsProps {
   movie: TmdbMovie;
@@ -45,6 +47,7 @@ export function MovieClientDetails({
   
   const [isInWatchlist, setIsInWatchlist] = useState(initialIsInWatchlist);
   const [loadingWatchlist, setLoadingWatchlist] = useState(false);
+  const [isAddToListOpen, setIsAddToListOpen] = useState(false);
 
   const [posterLoading, setPosterLoading] = useState(true);
   const posterRef = useRef<HTMLImageElement>(null);
@@ -338,6 +341,14 @@ export function MovieClientDetails({
                 </button>
               )}
 
+              <button
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 font-semibold text-sm transition-all"
+                onClick={() => setIsAddToListOpen(true)}
+              >
+                <FolderPlus className="w-4 h-4 text-purple-400" />
+                Salvar em Lista
+              </button>
+
               {movie.homepage && (
                 <button
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 text-sm font-medium transition-all"
@@ -471,6 +482,22 @@ export function MovieClientDetails({
         currentRating={
           userRating ? { myVote: String(userRating.rating), comment: userRating.comment } : null
         }
+      />
+
+      <AddToListModal
+        isOpen={isAddToListOpen}
+        onClose={() => setIsAddToListOpen(false)}
+        item={{
+          id: movie.id,
+          type: "movie",
+          title: movie.title || "",
+          posterPath: movie.poster_path || null,
+          backdropPath: movie.backdrop_path || null,
+          voteAverage: movie.vote_average,
+          releaseYear: movie.release_date
+            ? movie.release_date.substring(0, 4)
+            : undefined,
+        }}
       />
     </div>
   );

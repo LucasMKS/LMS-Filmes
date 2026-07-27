@@ -22,6 +22,7 @@ import {
   Play,
   CheckCircle2,
   XCircle,
+  FolderPlus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ratingSeriesApi, watchlistSeriesApi, favoriteSeriesApi } from "@/lib/api";
@@ -30,6 +31,7 @@ import { EpisodeList } from "./EpisodeList";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { AddToListModal } from "./AddToListModal";
 
 interface SerieDialogProps {
   isOpen: boolean;
@@ -60,6 +62,7 @@ export function SerieDialog({
   const [watchlistStatus, setWatchlistStatus] = useState<WatchlistStatus | null>(null);
   const [loadingWatchlist, setLoadingWatchlist] = useState(false);
   const [watchedEpisodesCount, setWatchedEpisodesCount] = useState(0);
+  const [isAddToListOpen, setIsAddToListOpen] = useState(false);
 
   if (!serie) return null;
   const serieData = serieDetails ?? serie;
@@ -363,6 +366,14 @@ export function SerieDialog({
                       Faça login para interagir
                     </button>
                   )}
+
+                  <button
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 font-semibold text-sm transition-all"
+                    onClick={() => setIsAddToListOpen(true)}
+                  >
+                    <FolderPlus className="w-4 h-4 text-violet-400" />
+                    Salvar em Lista
+                  </button>
                   {serieData.homepage && (
                     <button
                       className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 text-sm font-medium transition-all"
@@ -577,6 +588,24 @@ export function SerieDialog({
             userRating ? { myVote: String(userRating.rating), comment: userRating.comment } : null
           }
         />
+
+        {serieData && (
+          <AddToListModal
+            isOpen={isAddToListOpen}
+            onClose={() => setIsAddToListOpen(false)}
+            item={{
+              id: serieData.id,
+              type: "serie",
+              title: serieData.name || "",
+              posterPath: serieData.poster_path || null,
+              backdropPath: serieData.backdrop_path || null,
+              voteAverage: serieData.vote_average,
+              releaseYear: serieData.first_air_date
+                ? serieData.first_air_date.substring(0, 4)
+                : undefined,
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
