@@ -112,4 +112,19 @@ class AuthService {
   }
 }
 
+export function getUserSlug(user?: User | null): string {
+  if (!user) return "usuario";
+  if (user.nickname) return user.nickname.toLowerCase();
+  if (user.name) {
+    const slugified = user.name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (slugified) return slugified;
+  }
+  return user.id || "usuario";
+}
+
 export default new AuthService();

@@ -20,7 +20,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import AuthService from "../lib/auth";
+import AuthService, { getUserSlug } from "../lib/auth";
 import { toast } from "sonner";
 import { useEffect, useState, useRef } from "react";
 import { User } from "../lib/types";
@@ -94,6 +94,8 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
     setIsMobileMenuOpen(false);
   };
 
+  const userSlug = getUserSlug(user);
+
   const allNavigationItems = [
     {
       name: "Filmes",
@@ -101,7 +103,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       icon: Film,
       color: "text-purple-400",
       activeBg: "bg-purple-500/10 border-purple-500/20 text-purple-300",
-      current: pathname === "/filmes" || pathname.startsWith("/filmes/"),
+      current: pathname === "/filmes" || (pathname.startsWith("/filmes/") && !pathname.includes("/watchlist") && !pathname.includes("/assistidos") && !pathname.includes("/favoritos")),
       requiresAuth: false,
     },
     {
@@ -114,21 +116,30 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       requiresAuth: false,
     },
     {
-      name: "Avaliações",
-      href: "/avaliacoes",
+      name: "Watchlist",
+      href: `/filmes/${userSlug}/watchlist`,
+      icon: Eye,
+      color: "text-blue-400",
+      activeBg: "bg-blue-500/10 border-blue-500/20 text-blue-300",
+      current: pathname.includes("/watchlist"),
+      requiresAuth: true,
+    },
+    {
+      name: "Assistidos",
+      href: `/filmes/${userSlug}/assistidos`,
       icon: Star,
       color: "text-amber-400",
       activeBg: "bg-amber-500/10 border-amber-500/20 text-amber-300",
-      current: pathname === "/avaliacoes",
+      current: pathname.includes("/assistidos") || pathname === "/avaliacoes",
       requiresAuth: true,
     },
     {
       name: "Favoritos",
-      href: "/favoritos",
+      href: `/filmes/${userSlug}/favoritos`,
       icon: Heart,
       color: "text-pink-400",
       activeBg: "bg-pink-500/10 border-pink-500/20 text-pink-300",
-      current: pathname === "/favoritos",
+      current: pathname.includes("/favoritos"),
       requiresAuth: true,
     },
   ];
@@ -333,7 +344,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
 
                         <button
                           onClick={() => {
-                            router.push("/listas");
+                            router.push(`/${userSlug}/listas`);
                             setIsUserMenuOpen(false);
                           }}
                           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors text-left"

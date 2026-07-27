@@ -1,5 +1,6 @@
 "use client";
 
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/Navigation";
 import { MediaCard } from "@/components/MediaCard";
@@ -30,7 +31,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import AuthService from "@/lib/auth";
+import AuthService, { getUserSlug } from "@/lib/auth";
 import {
   getUserLists,
   fetchUserLists,
@@ -50,10 +51,30 @@ import { TmdbMovie, TmdbSerie, User } from "@/lib/types";
 import Image from "next/image";
 
 export default function UserListsPage() {
+  const router = useRouter();
+  const params = useParams();
+  const urlListId = params?.id as string | undefined;
+
   const [user, setUser] = useState<User | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [lists, setLists] = useState<CustomList[]>([]);
-  const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [selectedListId, setSelectedListId] = useState<string | null>(urlListId || null);
+
+  useEffect(() => {
+    if (urlListId) {
+      setSelectedListId(urlListId);
+    }
+  }, [urlListId]);
+
+  const handleSelectList = (id: string | null) => {
+    setSelectedListId(id);
+    const slug = getUserSlug(user);
+    if (id) {
+      router.push(`/${slug}/listas/${id}`);
+    } else {
+      router.push(`/${slug}/listas`);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">("all");
 
@@ -337,7 +358,7 @@ export default function UserListsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#14141c] border border-white/10 p-6 rounded-3xl backdrop-blur-xl">
               <div className="space-y-2">
                 <button
-                  onClick={() => setSelectedListId(null)}
+                  onClick={() => handleSelectList(null)}
                   className="flex items-center gap-2 text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -658,7 +679,7 @@ export default function UserListsPage() {
                   return (
                     <div
                       key={list.id}
-                      onClick={() => setSelectedListId(list.id)}
+                      onClick={() => handleSelectList(list.id)}
                       className="group relative bg-[#14141c] border border-white/[0.08] hover:border-purple-500/40 rounded-3xl p-5 transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-950/20 overflow-hidden flex flex-col justify-between"
                     >
                       {/* Efeito Glow Topo */}
