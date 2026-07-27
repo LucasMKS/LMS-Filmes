@@ -41,6 +41,7 @@ import {
   removeItemFromCustomList,
   isItemInList,
   useListsListener,
+  notifyListsChanged,
   CustomList,
   CustomListItem,
 } from "@/lib/userLists";
@@ -139,11 +140,12 @@ export default function UserListsPage() {
     if (!selectedListId) return;
     const inList = isItemInList(selectedListId, String(item.id), item.type, user?.email);
 
+    let updatedList: CustomList | null = null;
     if (inList) {
-      await removeItemFromCustomList(selectedListId, String(item.id), item.type, user?.email);
+      updatedList = await removeItemFromCustomList(selectedListId, String(item.id), item.type, user?.email);
       toast.success(`Removido da lista`);
     } else {
-      await addItemToCustomList(
+      updatedList = await addItemToCustomList(
         selectedListId,
         {
           id: String(item.id),
@@ -159,7 +161,14 @@ export default function UserListsPage() {
       toast.success(`"${item.title}" adicionado à lista!`);
     }
 
-    setLists(getUserLists(user?.email));
+    if (updatedList) {
+      setLists((prevLists) =>
+        prevLists.map((l) => (String(l.id) === String(selectedListId) ? updatedList! : l))
+      );
+    } else {
+      setLists(getUserLists(user?.email));
+    }
+    notifyListsChanged();
   };
 
   useEffect(() => {
@@ -234,9 +243,16 @@ export default function UserListsPage() {
 
   const handleRemoveItem = async (listId: string, item: CustomListItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    await removeItemFromCustomList(listId, item.id, item.type, currentEmail);
+    const updatedList = await removeItemFromCustomList(listId, item.id, item.type, currentEmail);
     toast.success(`"${item.title}" removido da lista.`);
-    setLists(getUserLists(currentEmail));
+    if (updatedList) {
+      setLists((prevLists) =>
+        prevLists.map((l) => (String(l.id) === String(listId) ? updatedList! : l))
+      );
+    } else {
+      setLists(getUserLists(currentEmail));
+    }
+    notifyListsChanged();
   };
 
   const handleOpenItem = async (item: CustomListItem) => {
@@ -371,101 +387,127 @@ export default function UserListsPage() {
               </div>
             </div>
 
-            {/* Widget de Pesquisa & Adição Direta de Títulos */}
-            <div className="bg-[#14141c] border border-purple-500/20 p-4 rounded-3xl space-y-3 relative z-30 shadow-xl my-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold text-purple-300">
-                  <Plus className="w-4 h-4 text-purple-400" />
-                  <span>Adicionar filmes ou séries a esta lista</span>
+            {/* Widget de Pesquisa & Resumo da Lista em Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 my-4">
+              {/* Lado Esquerdo: Busca rápida para Adicionar Títulos */}
+              <div className="lg:col-span-7 bg-[#14141c] border border-purple-500/20 p-4 rounded-3xl space-y-3 relative z-30 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-purple-300">
+                    <Plus className="w-4 h-4 text-purple-400" />
+                    <span>Adicionar filmes ou séries a esta lista</span>
+                  </div>
+                  {addItemSearchQuery && (
+                    <button
+                      onClick={() => {
+                        setAddItemSearchQuery("");
+                        setAddItemSearchResults([]);
+                      }}
+                      className="text-[11px] text-white/40 hover:text-white transition-colors"
+                    >
+                      Limpar busca
+                    </button>
+                  )}
                 </div>
-                {addItemSearchQuery && (
-                  <button
-                    onClick={() => {
-                      setAddItemSearchQuery("");
-                      setAddItemSearchResults([]);
-                    }}
-                    className="text-[11px] text-white/40 hover:text-white transition-colors"
-                  >
-                    Limpar busca
-                  </button>
-                )}
-              </div>
 
-              <div className="relative">
-                <Search className="w-4 h-4 text-white/30 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <Input
-                  placeholder="Digite o nome do filme ou série (ex: Batman, Breaking Bad)..."
-                  value={addItemSearchQuery}
-                  onChange={(e) => setAddItemSearchQuery(e.target.value)}
-                  className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-white/30 text-xs rounded-2xl h-10 focus:border-purple-500"
-                />
-              </div>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-white/30 absolute left-3.5 top-1/2 -translate-y-1/2 z-10" />
+                  <Input
+                    placeholder="Digite o nome do filme ou série (ex: Batman, Breaking Bad)..."
+                    value={addItemSearchQuery}
+                    onChange={(e) => setAddItemSearchQuery(e.target.value)}
+                    className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-white/30 text-xs rounded-2xl h-10 focus:border-purple-500"
+                  />
 
-              {/* Resultados de Pesquisa Instantâneos */}
-              {isSearchingAddItem ? (
-                <div className="p-3 text-center text-xs text-white/40 animate-pulse font-medium">
-                  Buscando no catálogo...
-                </div>
-              ) : addItemSearchResults.length > 0 ? (
-                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-                  {addItemSearchResults.map((result) => {
-                    const inList = isItemInList(selectedList.id, String(result.id), result.type, user?.email);
-                    const posterUrl = result.posterPath
-                      ? result.posterPath.startsWith("http")
-                        ? result.posterPath
-                        : `https://image.tmdb.org/t/p/w92${result.posterPath}`
-                      : "/placeholder-movie.jpg";
-
-                    return (
-                      <div
-                        key={`${result.type}_${result.id}`}
-                        className="flex items-center justify-between p-2 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.07] transition-all"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="relative w-8 h-11 rounded-lg overflow-hidden bg-white/5 shrink-0 border border-white/10">
-                            <Image src={posterUrl} alt={result.title} fill className="object-cover" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className={cn("text-[9px] px-1.5 py-0.2 rounded font-semibold border", result.type === "movie" ? "bg-purple-500/10 text-purple-300 border-purple-500/20" : "bg-violet-500/10 text-violet-300 border-violet-500/20")}>
-                                {result.type === "movie" ? "Filme" : "Série"}
-                              </span>
-                              {result.releaseYear && <span className="text-[10px] text-white/40 font-medium">{result.releaseYear}</span>}
-                            </div>
-                            <h5 className="text-xs font-bold text-white line-clamp-1 mt-0.5">{result.title}</h5>
-                          </div>
+                  {/* Dropdown FLUTUANTE que sobrepõe sem mover a Grid */}
+                  {(isSearchingAddItem || addItemSearchResults.length > 0 || (addItemSearchQuery.trim().length >= 2 && !isSearchingAddItem)) && (
+                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-[#12121a]/95 border border-purple-500/30 rounded-2xl p-2.5 shadow-2xl backdrop-blur-2xl space-y-1.5 max-h-72 overflow-y-auto">
+                      {isSearchingAddItem ? (
+                        <div className="p-3 text-center text-xs text-white/40 animate-pulse font-medium">
+                          Buscando no catálogo...
                         </div>
+                      ) : addItemSearchResults.length > 0 ? (
+                        addItemSearchResults.map((result) => {
+                          const inList = isItemInList(selectedList.id, String(result.id), result.type, user?.email);
+                          const posterUrl = result.posterPath
+                            ? result.posterPath.startsWith("http")
+                              ? result.posterPath
+                              : `https://image.tmdb.org/t/p/w92${result.posterPath}`
+                            : "/placeholder-movie.jpg";
 
-                        <button
-                          onClick={() => handleAddSearchResultToList(result)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5",
-                            inList
-                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
-                              : "bg-purple-600 hover:bg-purple-500 text-white shadow-md"
-                          )}
-                        >
-                          {inList ? (
-                            <>
-                              <Check className="w-3 h-3 stroke-[3]" />
-                              <span>Adicionado</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="w-3 h-3" />
-                              <span>Adicionar</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
+                          return (
+                            <div
+                              key={`${result.type}_${result.id}`}
+                              className="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/5 hover:bg-white/[0.08] transition-all"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="relative w-8 h-11 rounded-lg overflow-hidden bg-white/5 shrink-0 border border-white/10">
+                                  <Image src={posterUrl} alt={result.title} fill className="object-cover" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={cn("text-[9px] px-1.5 py-0.2 rounded font-semibold border", result.type === "movie" ? "bg-purple-500/10 text-purple-300 border-purple-500/20" : "bg-violet-500/10 text-violet-300 border-violet-500/20")}>
+                                      {result.type === "movie" ? "Filme" : "Série"}
+                                    </span>
+                                    {result.releaseYear && <span className="text-[10px] text-white/40 font-medium">{result.releaseYear}</span>}
+                                  </div>
+                                  <h5 className="text-xs font-bold text-white line-clamp-1 mt-0.5">{result.title}</h5>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => handleAddSearchResultToList(result)}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5",
+                                  inList
+                                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+                                    : "bg-purple-600 hover:bg-purple-500 text-white shadow-md"
+                                )}
+                              >
+                                {inList ? (
+                                  <>
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                    <span>Adicionado</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-3 h-3" />
+                                    <span>Adicionar</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="p-3 text-center text-xs text-white/40 font-medium">
+                          Nenhum título encontrado para "{addItemSearchQuery}".
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ) : addItemSearchQuery.trim().length >= 2 ? (
-                <div className="p-3 text-center text-xs text-white/40 font-medium">
-                  Nenhum título encontrado para "{addItemSearchQuery}".
+              </div>
+
+              {/* Lado Direito: Resumo e Estatísticas da Lista */}
+              <div className="lg:col-span-5 bg-[#14141c] border border-white/10 p-4 rounded-3xl flex items-center justify-between shadow-xl">
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" /> Resumo da Seleção
+                  </span>
+                  <div className="flex items-center gap-3 text-xs text-white/70 font-medium pt-1">
+                    <span>Filmes: <strong className="text-white">{selectedList.items.filter(i => i.type === 'movie').length}</strong></span>
+                    <span className="text-white/20">•</span>
+                    <span>Séries: <strong className="text-white">{selectedList.items.filter(i => i.type === 'serie').length}</strong></span>
+                  </div>
                 </div>
-              ) : null}
+
+                <div className="text-right">
+                  <span className="text-[10px] text-white/40 font-medium block">Última atualização</span>
+                  <span className="text-xs font-semibold text-white/80">
+                    {new Date(selectedList.updatedAt).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Filtros e Busca dentro da Lista */}
@@ -521,7 +563,7 @@ export default function UserListsPage() {
               </div>
             )}
 
-            {/* Grid de Itens da Lista */}
+            {/* Grid de Itens da Lista (Compacta - Reduzida em ~30%) */}
             {filteredItems.length === 0 ? (
               <div className="text-center py-16 bg-[#14141c]/50 rounded-3xl border border-dashed border-white/10 space-y-3">
                 <BookmarkX className="w-12 h-12 text-white/20 mx-auto" />
@@ -535,7 +577,7 @@ export default function UserListsPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4">
                 {filteredItems.map((item) => {
                   const posterUrl = item.posterPath
                     ? item.posterPath.startsWith("http")
