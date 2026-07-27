@@ -131,24 +131,6 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       current: pathname === "/favoritos",
       requiresAuth: true,
     },
-    {
-      name: "Minhas Listas",
-      href: "/listas",
-      icon: FolderHeart,
-      color: "text-purple-400",
-      activeBg: "bg-purple-500/10 border-purple-500/20 text-purple-300",
-      current: pathname === "/listas" || pathname.startsWith("/listas/"),
-      requiresAuth: false,
-    },
-    {
-      name: "Estatísticas",
-      href: "/estatisticas",
-      icon: BarChart3,
-      color: "text-emerald-400",
-      activeBg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-300",
-      current: pathname === "/estatisticas",
-      requiresAuth: true,
-    },
   ];
 
   const navigationItems = allNavigationItems.filter(
@@ -304,24 +286,6 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                 </SheetContent>
               </Sheet>
             </div>
-
-            {/* Botão Discreto de Listas (Quick Access) */}
-            <button
-              onClick={() => router.push("/listas")}
-              title="Minhas Listas Personalizadas"
-              className={cn(
-                "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 group border",
-                pathname.startsWith("/listas")
-                  ? "bg-purple-500/15 border-purple-500/30 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
-                  : "bg-white/[0.03] text-white/50 hover:text-white hover:bg-white/[0.08] border-white/10"
-              )}
-            >
-              <FolderHeart className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
-              <span>Listas</span>
-            </button>
-
-            {/* Divisor */}
-            <div className="h-5 w-px bg-white/10 mx-1 hidden sm:block" />
 
             {/* Ações Desktop / Dropdown do Usuário */}
             <div className="hidden sm:flex items-center gap-2">

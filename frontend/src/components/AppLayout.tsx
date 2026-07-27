@@ -20,6 +20,10 @@ export function AppLayout({ children }: AppLayoutProps) {
       "/series": "Catálogo de Séries",
       "/avaliacoes": "Minhas Avaliações",
       "/favoritos": "Meus Favoritos",
+      "/watchlist": "Minha Watchlist",
+      "/series/acompanhando": "Séries Acompanhadas",
+      "/listas": "Minhas Listas",
+      "/estatisticas": "Estatísticas",
       "/login": "Login",
     };
 

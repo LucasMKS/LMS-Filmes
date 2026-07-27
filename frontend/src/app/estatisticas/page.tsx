@@ -198,8 +198,6 @@ export default function StatisticsPage() {
 
   return (
     <div className="min-h-screen bg-[#09090b] text-white selection:bg-emerald-500/30">
-      <Navigation title="Estatísticas" />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Cabeçalho da Página */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 border-b border-white/[0.06]">
