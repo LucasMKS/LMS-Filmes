@@ -58,6 +58,7 @@ export default function UserListsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [lists, setLists] = useState<CustomList[]>([]);
+  const [isLoadingLists, setIsLoadingLists] = useState(true);
   const [selectedListId, setSelectedListId] = useState<string | null>(urlListId || null);
 
   useEffect(() => {
@@ -196,7 +197,18 @@ export default function UserListsPage() {
     setIsMounted(true);
     const currentUser = AuthService.getUser();
     setUser(currentUser);
-    fetchUserLists(currentUser?.email).then(setLists);
+    const cached = getUserLists(currentUser?.email);
+    if (cached && cached.length > 0) {
+      setLists(cached);
+      setIsLoadingLists(false);
+    }
+    fetchUserLists(currentUser?.email)
+      .then((data) => {
+        setLists(data);
+      })
+      .finally(() => {
+        setIsLoadingLists(false);
+      });
   }, []);
 
   // Listen to list changes from anywhere in app
@@ -637,7 +649,26 @@ export default function UserListsPage() {
         ) : (
           /* Visão Geral das Listas */
           <div className="mt-8">
-            {lists.length === 0 ? (
+            {isLoadingLists ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-[#14141c] border border-white/[0.06] rounded-3xl p-5 space-y-4 animate-pulse"
+                  >
+                    <div className="aspect-[16/9] w-full bg-white/5 rounded-2xl" />
+                    <div className="space-y-2">
+                      <div className="h-5 bg-white/10 rounded-lg w-3/4" />
+                      <div className="h-3.5 bg-white/5 rounded-lg w-1/2" />
+                    </div>
+                    <div className="pt-4 border-t border-white/5 flex justify-between items-center">
+                      <div className="h-3 bg-white/5 rounded w-1/3" />
+                      <div className="h-3 bg-white/5 rounded w-1/4" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : lists.length === 0 ? (
               <div className="text-center py-20 bg-[#14141c]/40 rounded-3xl border border-dashed border-white/10 space-y-4 max-w-xl mx-auto">
                 <div className="w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto">
                   <FolderHeart className="w-8 h-8 text-purple-400" />
