@@ -200,6 +200,60 @@ export default function SeriesAcompanhandoPage() {
     }
   };
  
+  const renderSerieStatusBadge = (item: EnrichedWatchlistSerie) => {
+    const firstAirDate = item.tmdbData?.first_air_date ? new Date(item.tmdbData.first_air_date) : null;
+    const now = new Date();
+    const isUpcoming = firstAirDate ? firstAirDate.getTime() > now.getTime() : false;
+    const statusStr = item.tmdbData?.status;
+    const inProduction = statusStr === "In Production" || statusStr === "Planned";
+    const totalEps = item.totalEpisodes || item.tmdbData?.number_of_episodes || 0;
+    const watchedEps = item.watchedEpisodesCount || 0;
+
+    // 1. Não lançada ainda / Em Breve (Futuro ou In Production)
+    if (isUpcoming || inProduction || (totalEps === 0 && (!firstAirDate || firstAirDate.getTime() > now.getTime()))) {
+      const yearStr = firstAirDate ? firstAirDate.getFullYear().toString() : "";
+      return (
+        <span className="px-2 py-0.5 rounded-full bg-purple-600/85 text-purple-100 border border-purple-400/30 backdrop-blur-md text-[10px] font-bold">
+          {yearStr ? `Em Breve (${yearStr})` : "Em Breve"}
+        </span>
+      );
+    }
+
+    // 2. Abandonado
+    if (item.status === "DROPPED") {
+      return (
+        <span className="px-2 py-0.5 rounded-full bg-red-500/80 text-white backdrop-blur-md text-[10px] font-bold">
+          Abandonado
+        </span>
+      );
+    }
+
+    // 3. Concluída
+    if (item.status === "COMPLETED" || (statusStr === "Ended" && totalEps > 0 && watchedEps >= totalEps)) {
+      return (
+        <span className="px-2 py-0.5 rounded-full bg-emerald-500/80 text-white backdrop-blur-md text-[10px] font-bold">
+          Concluída
+        </span>
+      );
+    }
+
+    // 4. Em dia (Assistiu todos os episódios lançados até o momento)
+    if (totalEps > 0 && watchedEps >= totalEps) {
+      return (
+        <span className="px-2 py-0.5 rounded-full bg-teal-500/80 text-white backdrop-blur-md text-[10px] font-bold">
+          Em dia
+        </span>
+      );
+    }
+
+    // 5. A assistir (Série já lançada com episódios disponíveis)
+    return (
+      <span className="px-2 py-0.5 rounded-full bg-blue-500/80 text-white backdrop-blur-md text-[10px] font-bold">
+        A assistir
+      </span>
+    );
+  };
+
   const filteredSeries = series.filter((s) =>
     s.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -330,23 +384,7 @@ export default function SeriesAcompanhandoPage() {
                         <span className="px-2.5 py-0.5 rounded-full bg-violet-500/80 text-white backdrop-blur-md text-[10px] font-bold tracking-wide">
                           Série
                         </span>
-                        {item.status === "PLAN_TO_WATCH" ? (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/80 text-white backdrop-blur-md text-[10px] font-bold">
-                            Ver depois
-                          </span>
-                        ) : item.status === "DROPPED" ? (
-                          <span className="px-2 py-0.5 rounded-full bg-red-500/80 text-white backdrop-blur-md text-[10px] font-bold">
-                            Abandonado
-                          </span>
-                        ) : item.totalEpisodes && item.totalEpisodes > 0 && item.watchedEpisodesCount !== undefined && item.watchedEpisodesCount >= item.totalEpisodes ? (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/80 text-white backdrop-blur-md text-[10px] font-bold">
-                            Em dia
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-blue-500/80 text-white backdrop-blur-md text-[10px] font-bold">
-                            Assistindo
-                          </span>
-                        )}
+                        {renderSerieStatusBadge(item)}
                         {item.userRating && (
                           <span className="px-2 py-0.5 rounded-full bg-yellow-500/90 text-black font-extrabold backdrop-blur-md text-[10px]">
                             ★ {item.userRating.rating}
@@ -437,23 +475,7 @@ export default function SeriesAcompanhandoPage() {
                               <span className="inline-block px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[10px] sm:text-xs font-semibold">
                                 Série
                               </span>
-                              {item.status === "PLAN_TO_WATCH" ? (
-                                <span className="inline-block px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] sm:text-xs font-semibold">
-                                  Ver depois
-                                </span>
-                              ) : item.status === "DROPPED" ? (
-                                <span className="inline-block px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] sm:text-xs font-semibold">
-                                  Abandonado
-                                </span>
-                              ) : item.totalEpisodes && item.totalEpisodes > 0 && item.watchedEpisodesCount !== undefined && item.watchedEpisodesCount >= item.totalEpisodes ? (
-                                <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] sm:text-xs font-semibold">
-                                  Em dia
-                                </span>
-                              ) : (
-                                <span className="inline-block px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] sm:text-xs font-semibold">
-                                  Assistindo
-                                </span>
-                              )}
+                              {renderSerieStatusBadge(item)}
 
                               {/* Sua Nota Badge */}
                               {item.userRating && (

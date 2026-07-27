@@ -289,22 +289,6 @@ export function SerieDialog({
                   )}
                 </div>
 
-                {/* Progress Bar (if watching or has progress) */}
-                {isLoggedIn && (watchedEpisodesCount > 0 || watchlistStatus === "WATCHING") && (
-                  <div className="mt-5 max-w-md mx-auto md:mx-0">
-                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-white/40 mb-2">
-                      <span>Progresso</span>
-                      <span>{watchedEpisodesCount} / {totalEpisodes} episódios</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/[0.03]">
-                      <div 
-                        className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-500 ease-out"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 mt-5 w-full">
                   <button
                     className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold transition-all text-sm shadow-md"
@@ -325,49 +309,20 @@ export function SerieDialog({
                         <span>{loadingRating ? "Carregando..." : userRating ? "Editar Avaliação" : "Avaliar Série"}</span>
                       </button>
 
-                      {/* Dropdown / Botão de Watchlist */}
-                      <div className="relative group/status">
-                        <button
-                          title={isInWatchlist ? `Watchlist: ${getStatusLabel(watchlistStatus || "PLAN_TO_WATCH")}` : "Adicionar à Watchlist"}
-                          className={cn(
-                            "p-2.5 rounded-xl border transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-1.5",
-                            isInWatchlist
-                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
-                              : "bg-white/[0.04] border-white/10 text-white/60 hover:text-white hover:bg-white/10"
-                          )}
-                          onClick={handleToggleWatchlist}
-                          disabled={loadingWatchlist}
-                        >
-                          {isInWatchlist ? (watchlistStatus ? getStatusIcon(watchlistStatus) : <Check className="w-4 h-4" />) : <ListPlus className="w-4 h-4" />}
-                        </button>
-                        
-                        {/* Status Options Hover Menu */}
-                        <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#14141c] border border-white/[0.08] rounded-xl overflow-hidden shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover/status:opacity-100 group-hover/status:translate-y-0 group-hover/status:pointer-events-auto transition-all z-50">
-                          <p className="px-4 py-2 text-[10px] font-bold text-white/30 uppercase tracking-widest border-b border-white/[0.05]">Definir Status</p>
-                          {(["PLAN_TO_WATCH", "WATCHING", "COMPLETED", "DROPPED"] as WatchlistStatus[]).map((status) => (
-                            <button
-                              key={status}
-                              onClick={() => handleUpdateStatus(status)}
-                              className={cn(
-                                "w-full flex items-center gap-3 px-4 py-3 text-xs font-medium transition-colors hover:bg-white/5",
-                                watchlistStatus === status ? "text-emerald-400 bg-emerald-500/5" : "text-white/60 hover:text-white"
-                              )}
-                            >
-                              {getStatusIcon(status)}
-                              {getStatusLabel(status)}
-                            </button>
-                          ))}
-                          {isInWatchlist && (
-                            <button
-                              onClick={handleToggleWatchlist}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-xs font-medium text-red-400 hover:bg-red-400/5 transition-colors border-t border-white/[0.05]"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              Remover da Watchlist
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                      {/* Botão Simples de Watchlist sem menu hover */}
+                      <button
+                        title={isInWatchlist ? "Remover da Watchlist" : "Adicionar à Watchlist"}
+                        className={cn(
+                          "p-2.5 rounded-xl border transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-1.5",
+                          isInWatchlist
+                            ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
+                            : "bg-white/[0.04] border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+                        )}
+                        onClick={handleToggleWatchlist}
+                        disabled={loadingWatchlist}
+                      >
+                        {isInWatchlist ? <Check className="w-4 h-4" /> : <ListPlus className="w-4 h-4" />}
+                      </button>
 
                       {/* Botão Minimalista de Salvar em Lista */}
                       <button

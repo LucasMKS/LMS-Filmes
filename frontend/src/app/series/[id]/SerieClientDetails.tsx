@@ -389,22 +389,6 @@ export function SerieClientDetails({
               )}
             </div>
 
-            {/* Progress Bar (if watching or has progress) */}
-            {isLoggedIn && (watchedEpisodesCount > 0 || watchlistStatus === "WATCHING") && (
-              <div className="mb-8 max-w-md mx-auto md:mx-0">
-                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-white/40 mb-2">
-                  <span>Progresso da Série</span>
-                  <span>{watchedEpisodesCount} / {getTotalEpisodes() || 0} episódios</span>
-                </div>
-                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/[0.03]">
-                  <div 
-                    className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-500 ease-out"
-                    style={{ width: `${(watchedEpisodesCount / (getTotalEpisodes() || 1)) * 100}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Botões de ação */}
             <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-8 w-full">
               {isLoggedIn ? (
