@@ -1,11 +1,11 @@
 "use client";
  
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Dices, Check, Trash2, ListVideo } from "lucide-react";
+import { Dices, Check, Trash2, ListVideo, LayoutGrid, List } from "lucide-react";
 import { RatingDialog } from "../../components/RatingDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { watchlistMoviesApi, moviesApi } from "../../lib/api";
@@ -24,6 +24,19 @@ export default function WatchlistPage() {
   const [isSpinning, setIsSpinning] = useState(false);
  
   const [ratingItem, setRatingItem] = useState<EnrichedWatchlistMovie | null>(null);
+  const [layoutMode, setLayoutMode] = useState<"list" | "grid">("list");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("lms_watchlist_layout");
+    if (saved === "grid" || saved === "list") {
+      setLayoutMode(saved);
+    }
+  }, []);
+
+  const toggleLayout = (mode: "list" | "grid") => {
+    setLayoutMode(mode);
+    localStorage.setItem("lms_watchlist_layout", mode);
+  };
  
   const { data: movies = [], isLoading: loadingMovies } = useQuery({
     queryKey: ["watchlist", "movies"],
@@ -169,111 +182,236 @@ export default function WatchlistPage() {
             </p>
           </div>
  
-          <button
-            onClick={handleRandomPick}
-            disabled={loadingMovies || isSpinning}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3 px-6 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all hover:scale-[1.02] duration-200"
-          >
-            <Dices className="w-5 h-5 sm:w-6 sm:h-6" />
-            Escolher Aleatório
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            {/* Seletor de Layout (Lista vs Grid) */}
+            <div className="flex items-center gap-1 bg-[#14141c] border border-white/10 p-1 rounded-2xl">
+              <button
+                onClick={() => toggleLayout("list")}
+                title="Visualização em Lista"
+                className={cn(
+                  "p-2 rounded-xl transition-all duration-200",
+                  layoutMode === "list"
+                    ? "bg-emerald-600 text-white shadow-md"
+                    : "text-white/40 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => toggleLayout("grid")}
+                title="Visualização em Grid (3 por linha)"
+                className={cn(
+                  "p-2 rounded-xl transition-all duration-200",
+                  layoutMode === "grid"
+                    ? "bg-emerald-600 text-white shadow-md"
+                    : "text-white/40 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+            </div>
+
+            <button
+              onClick={handleRandomPick}
+              disabled={loadingMovies || isSpinning}
+              className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-2.5 px-5 rounded-2xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all hover:scale-[1.02] duration-200 text-sm"
+            >
+              <Dices className="w-4 h-4 sm:w-5 sm:h-5" />
+              Escolher Aleatório
+            </button>
+          </div>
         </div>
  
-        {/* Lista */}
+        {/* Conteúdo */}
         {loadingMovies ? (
-          <div className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-40 w-full bg-[#14141c] rounded-2xl border border-white/[0.06] flex animate-pulse">
-                <Skeleton className="w-28 sm:w-36 h-full rounded-l-2xl" />
-                <div className="flex-1 p-5 space-y-4">
-                  <Skeleton className="h-6 w-1/3" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-4 w-full" />
+          <div className={layoutMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" : "space-y-4"}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className={cn("bg-[#14141c] rounded-2xl border border-white/[0.06] flex animate-pulse", layoutMode === "grid" ? "h-72 flex-col" : "h-40 w-full")}>
+                <Skeleton className={layoutMode === "grid" ? "w-full h-40 rounded-t-2xl" : "w-28 sm:w-36 h-full rounded-l-2xl"} />
+                <div className="flex-1 p-5 space-y-3">
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-4 w-1/3" />
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div>
             {movies.length === 0 ? (
               <div className="py-16 sm:py-20 text-center border-2 border-dashed border-white/[0.06] text-white/35 rounded-2xl px-4">
                 Nenhum filme adicionado à watchlist ainda.{" "}
                 <br className="hidden sm:block" />
                 Navegue pelo catálogo e clique em "Add à Watchlist" para salvar!
               </div>
-            ) : (
-              movies.map((item) => (
-                <div
-                  key={item.internalId}
-                  onClick={() => handleNavigate(item.id)}
-                  className="relative overflow-hidden transition-all duration-300 border border-white/[0.06] bg-[#14141c] hover:border-white/10 hover:shadow-xl cursor-pointer group rounded-2xl"
-                >
-                  {item.backdrop && (
-                    <div className="hidden sm:block absolute inset-0 z-0 pointer-events-none">
+            ) : layoutMode === "grid" ? (
+              /* MODO GRID (3 por linha em desktop) */
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {movies.map((item) => (
+                  <div
+                    key={item.internalId}
+                    onClick={() => handleNavigate(item.id)}
+                    className="group relative bg-[#14141c] border border-white/[0.06] hover:border-emerald-500/40 rounded-3xl overflow-hidden transition-all duration-300 cursor-pointer flex flex-col justify-between hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-950/20"
+                  >
+                    {/* Glow decorativo no topo */}
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+
+                    {/* Capa Grid */}
+                    <div className="relative aspect-[16/10] w-full bg-white/5 overflow-hidden">
                       <Image
-                        src={item.backdrop}
-                        alt=""
-                        fill
-                        className="object-cover opacity-10 group-hover:opacity-20 transition-opacity duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#14141c] via-[#14141c]/95 to-[#14141c]/40" />
-                    </div>
-                  )}
- 
-                  <div className="relative z-10 flex flex-row items-stretch p-0">
-                    {/* Pôster */}
-                    <div className="relative shrink-0 w-24 sm:w-28 md:w-36 aspect-[2/3]">
-                      <Image
-                        src={item.poster}
+                        src={item.backdrop || item.poster}
                         alt={item.title}
                         fill
-                        className="object-cover rounded-l-2xl"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#14141c] via-[#14141c]/40 to-transparent" />
+                      
+                      <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-purple-500/80 text-white backdrop-blur-md text-[10px] font-bold tracking-wide">
+                        Filme
+                      </span>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeMutation.mutate(item.id);
+                          toast.success("Removido da Watchlist");
+                        }}
+                        disabled={removeMutation.isPending}
+                        title="Remover da Watchlist"
+                        className="absolute top-3 right-3 p-1.5 rounded-xl bg-black/60 hover:bg-red-600 text-white/70 hover:text-white backdrop-blur-md border border-white/10 transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
- 
-                    {/* Informações */}
-                    <div className="flex flex-col flex-1 p-3 sm:p-4 md:p-5 justify-between min-w-0">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0 pr-2 sm:pr-4">
-                          <span className="inline-block mb-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px] sm:text-xs font-semibold">
-                            Filme
-                          </span>
-                          <h3 className="mb-1 text-base sm:text-lg md:text-xl font-bold text-white line-clamp-1 group-hover:text-emerald-400 transition-colors">
-                            {item.title}
-                          </h3>
-                          <div className="flex items-center gap-2 text-xs sm:text-sm text-white/40 mb-2">
-                            <span className="font-semibold text-white/60">{item.year}</span>
-                            <span className="hidden sm:flex items-center gap-1">
-                              <span className="mx-1">•</span>
-                              {formatAddedAt(item.addedAt)}
-                            </span>
-                          </div>
- 
-                          <div className="hidden md:flex flex-wrap gap-2 mb-2">
-                            {item.genres.map((g) => (
-                              <span
-                                key={g}
-                                className="text-[10px] text-white/50 border border-white/[0.06] bg-white/5 rounded-lg px-2 py-0.5"
-                              >
-                                {g}
-                              </span>
-                            ))}
-                          </div>
-                          <p className="hidden md:block text-white/35 text-sm line-clamp-2 leading-relaxed">
-                            {item.overview}
-                          </p>
+
+                    {/* Conteúdo compacto Grid (sem a descrição) */}
+                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                      <div>
+                        <h3 className="text-base font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-1">
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-white/40 mt-1">
+                          <span className="font-semibold text-white/60">{item.year}</span>
+                          <span>•</span>
+                          <span>{formatAddedAt(item.addedAt)}</span>
                         </div>
- 
-                        {/* Botões Desktop */}
-                        <div className="hidden sm:flex flex-col gap-2 shrink-0">
+                      </div>
+
+                      {/* Botões de Ação Grid */}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkAsWatched(item);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-600/15 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/20 text-xs font-semibold transition-all"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Assisti e Avaliar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* MODO LISTA */
+              <div className="space-y-4">
+                {movies.map((item) => (
+                  <div
+                    key={item.internalId}
+                    onClick={() => handleNavigate(item.id)}
+                    className="relative overflow-hidden transition-all duration-300 border border-white/[0.06] bg-[#14141c] hover:border-white/10 hover:shadow-xl cursor-pointer group rounded-2xl"
+                  >
+                    {item.backdrop && (
+                      <div className="hidden sm:block absolute inset-0 z-0 pointer-events-none">
+                        <Image
+                          src={item.backdrop}
+                          alt=""
+                          fill
+                          className="object-cover opacity-10 group-hover:opacity-20 transition-opacity duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#14141c] via-[#14141c]/95 to-[#14141c]/40" />
+                      </div>
+                    )}
+
+                    <div className="relative z-10 flex flex-row items-stretch p-0">
+                      {/* Pôster */}
+                      <div className="relative shrink-0 w-24 sm:w-28 md:w-36 aspect-[2/3]">
+                        <Image
+                          src={item.poster}
+                          alt={item.title}
+                          fill
+                          className="object-cover rounded-l-2xl"
+                        />
+                      </div>
+
+                      {/* Informações */}
+                      <div className="flex flex-col flex-1 p-3 sm:p-4 md:p-5 justify-between min-w-0">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0 pr-2 sm:pr-4">
+                            <span className="inline-block mb-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px] sm:text-xs font-semibold">
+                              Filme
+                            </span>
+                            <h3 className="mb-1 text-base sm:text-lg md:text-xl font-bold text-white line-clamp-1 group-hover:text-emerald-400 transition-colors">
+                              {item.title}
+                            </h3>
+                            <div className="flex items-center gap-2 text-xs sm:text-sm text-white/40 mb-2">
+                              <span className="font-semibold text-white/60">{item.year}</span>
+                              <span className="hidden sm:flex items-center gap-1">
+                                <span className="mx-1">•</span>
+                                {formatAddedAt(item.addedAt)}
+                              </span>
+                            </div>
+
+                            <div className="hidden md:flex flex-wrap gap-2 mb-2">
+                              {item.genres.map((g) => (
+                                <span
+                                  key={g}
+                                  className="text-[10px] text-white/50 border border-white/[0.06] bg-white/5 rounded-lg px-2 py-0.5"
+                                >
+                                  {g}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="hidden md:block text-white/35 text-sm line-clamp-2 leading-relaxed">
+                              {item.overview}
+                            </p>
+                          </div>
+
+                          {/* Botões Desktop */}
+                          <div className="hidden sm:flex flex-col gap-2 shrink-0">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsWatched(item);
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/15 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/20 text-sm font-medium transition-all"
+                            >
+                              <Check className="w-4 h-4" /> Assisti e Avaliar
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeMutation.mutate(item.id);
+                                toast.success("Removido da Watchlist");
+                              }}
+                              disabled={removeMutation.isPending}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/35 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 text-sm font-medium transition-all disabled:opacity-50"
+                            >
+                              <Trash2 className="w-4 h-4" /> Remover
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Botões Mobile */}
+                        <div className="flex sm:hidden gap-2 mt-auto pt-2">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleMarkAsWatched(item);
                             }}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/15 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/20 text-sm font-medium transition-all"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-emerald-600/15 text-emerald-400 border border-emerald-500/20 text-xs font-medium transition-all"
                           >
-                            <Check className="w-4 h-4" /> Assisti e Avaliar
+                            <Check className="w-3.5 h-3.5" /> Avaliar
                           </button>
                           <button
                             onClick={(e) => {
@@ -282,40 +420,16 @@ export default function WatchlistPage() {
                               toast.success("Removido da Watchlist");
                             }}
                             disabled={removeMutation.isPending}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/35 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 text-sm font-medium transition-all disabled:opacity-50"
+                            className="px-3 py-1.5 rounded-xl text-white/35 hover:text-red-400 bg-white/5 border border-transparent hover:border-red-500/20 transition-all disabled:opacity-50"
                           >
-                            <Trash2 className="w-4 h-4" /> Remover
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
- 
-                      {/* Botões Mobile */}
-                      <div className="flex sm:hidden gap-2 mt-auto pt-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMarkAsWatched(item);
-                          }}
-                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-emerald-600/15 text-emerald-400 border border-emerald-500/20 text-xs font-medium transition-all"
-                        >
-                          <Check className="w-3.5 h-3.5" /> Avaliar
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeMutation.mutate(item.id);
-                            toast.success("Removido da Watchlist");
-                          }}
-                          disabled={removeMutation.isPending}
-                          className="px-3 py-1.5 rounded-xl text-white/35 hover:text-red-400 bg-white/5 border border-transparent hover:border-red-500/20 transition-all disabled:opacity-50"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         )}
