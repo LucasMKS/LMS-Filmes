@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import AuthService from "../../lib/auth";
+import AuthService, { getUserSlug } from "../../lib/auth";
 import { MediaSearchSection } from "../../components/MediaSearchSection";
 import { MediaResultsSection } from "../../components/MediaResultsSection";
 import { SerieCard } from "../../components/SerieCard";
@@ -145,7 +145,11 @@ export default function SeriesPage() {
           </div>
           {isLoggedIn && (
             <button
-              onClick={() => router.push("/series/acompanhando")}
+              onClick={() => {
+                const user = AuthService.getUser();
+                const userSlug = getUserSlug(user);
+                router.push(`/series/${userSlug}/acompanhando`);
+              }}
               className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-violet-500/10 text-violet-300 border border-violet-500/20 hover:bg-violet-500/20 transition-all font-semibold text-sm w-full sm:w-auto self-start sm:self-center"
             >
               <Clock className="w-4 h-4 text-emerald-400" />

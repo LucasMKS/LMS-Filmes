@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import AuthService from "../../lib/auth";
+import AuthService, { getUserSlug } from "../../lib/auth";
 import { MediaSearchSection } from "../../components/MediaSearchSection";
 import { MediaResultsSection } from "../../components/MediaResultsSection";
 import { MovieCard } from "../../components/MovieCard";
@@ -153,7 +153,11 @@ export default function MoviesPage() {
           </div>
           {isLoggedIn && (
             <button
-              onClick={() => router.push("/watchlist")}
+              onClick={() => {
+                const user = AuthService.getUser();
+                const userSlug = getUserSlug(user);
+                router.push(`/filmes/${userSlug}/watchlist`);
+              }}
               className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/20 hover:bg-purple-500/20 transition-all font-semibold text-sm w-full sm:w-auto self-start sm:self-center"
             >
               <Clock className="w-4 h-4 text-emerald-400" />
