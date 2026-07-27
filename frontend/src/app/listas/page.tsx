@@ -46,7 +46,7 @@ import {
   CustomList,
   CustomListItem,
 } from "@/lib/userLists";
-import { moviesApi, seriesApi } from "@/lib/api";
+import { moviesApi, seriesApi, ratingMoviesApi, ratingSeriesApi } from "@/lib/api";
 import { TmdbMovie, TmdbSerie, User } from "@/lib/types";
 import Image from "next/image";
 
@@ -220,10 +220,47 @@ export default function UserListsPage() {
     return cleanup;
   }, []);
 
+  const [userRatingsMap, setUserRatingsMap] = useState<Record<string, { rating: string; comment?: string }>>({});
+
+  const selectedList = lists.find((l) => String(l.id) === String(selectedListId));
+
+  // Fetch ratings for items in selected list
+  useEffect(() => {
+    if (!selectedList || selectedList.items.length === 0 || !user) return;
+
+    const movieIds = selectedList.items.filter((i) => i.type === "movie").map((i) => String(i.id));
+    const serieIds = selectedList.items.filter((i) => i.type === "serie").map((i) => String(i.id));
+
+    (async () => {
+      try {
+        const [movieRatings, serieRatings] = await Promise.all([
+          movieIds.length > 0 ? ratingMoviesApi.getRatingStatuses(movieIds).catch(() => ({})) : Promise.resolve({}),
+          serieIds.length > 0 ? ratingSeriesApi.getRatingStatuses(serieIds).catch(() => ({})) : Promise.resolve({}),
+        ]);
+
+        const map: Record<string, { rating: string; comment?: string }> = {};
+        
+        Object.entries(movieRatings).forEach(([id, r]) => {
+          if (r && r.rating) {
+            map[`movie_${id}`] = { rating: String(r.rating), comment: r.comment };
+          }
+        });
+        Object.entries(serieRatings).forEach(([id, r]) => {
+          if (r && r.rating) {
+            map[`serie_${id}`] = { rating: String(r.rating), comment: r.comment };
+          }
+        });
+
+        setUserRatingsMap(map);
+      } catch (err) {
+        console.error("Erro ao carregar avaliações da lista:", err);
+      }
+    })();
+  }, [selectedList, user]);
+
   if (!isMounted) return null;
 
   const currentEmail = user?.email;
-  const selectedList = lists.find((l) => String(l.id) === String(selectedListId));
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -618,6 +655,8 @@ export default function UserListsPage() {
                       : `https://image.tmdb.org/t/p/w500${item.posterPath}`
                     : "/placeholder-movie.jpg";
 
+                  const itemUserRating = userRatingsMap[`${item.type}_${item.id}`] || null;
+
                   return (
                     <div key={`${item.type}_${item.id}`} className="relative group">
                       <MediaCard
@@ -626,6 +665,7 @@ export default function UserListsPage() {
                         title={item.title}
                         subtitle={item.releaseYear ? `Ano: ${item.releaseYear}` : item.type === "movie" ? "Filme" : "Série"}
                         onClick={() => handleOpenItem(item)}
+                        userRating={itemUserRating}
                         badgeLabel={item.type === "movie" ? "Filme" : "Série"}
                         badgeIcon={item.type === "movie" ? Film : Tv}
                         badgeClassName={item.type === "movie" ? "bg-purple-500/80 text-white" : "bg-violet-500/80 text-white"}

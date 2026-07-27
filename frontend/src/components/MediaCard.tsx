@@ -241,10 +241,10 @@ export function MediaCard({
         </div>
       )}
 
-      {/* Ícone de comentário */}
+      {/* Ícone de comentário (parte inferior esquerda do card) */}
       {userRating && userRating.comment && (
-        <div className="pointer-events-none absolute bottom-[72px] right-3 z-20 rounded-full border border-emerald-500/30 bg-emerald-600/90 p-1.5 text-white shadow-lg backdrop-blur-md">
-          <MessageSquare className="h-3 w-3" />
+        <div className="pointer-events-none absolute left-3 bottom-3 z-20 flex items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-600/90 p-1.5 text-white shadow-lg backdrop-blur-md">
+          <MessageSquare className="h-3.5 w-3.5" />
         </div>
       )}
     </div>
