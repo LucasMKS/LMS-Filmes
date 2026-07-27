@@ -565,16 +565,17 @@ export default function StatisticsPage() {
                               {item.title}
                             </h4>
 
-                            {item.comment ? (
-                              <p className="text-[10px] text-white/40 italic line-clamp-1 mt-0.5 flex items-center gap-1">
-                                <MessageSquare className="w-2.5 h-2.5 shrink-0 text-white/30" />
-                                "{item.comment}"
-                              </p>
-                            ) : (
-                              <p className="text-[9px] text-white/30 font-medium mt-0.5">
+                            <div className="flex items-center justify-between gap-2 mt-1">
+                              <span className="text-[10px] text-white/40 font-medium">
                                 {new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                              </p>
-                            )}
+                              </span>
+                              {item.comment && (
+                                <span className="inline-flex items-center gap-1 text-[9px] text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20" title="Possui comentário registrado">
+                                  <MessageSquare className="w-2.5 h-2.5" />
+                                  <span>Comentário</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
