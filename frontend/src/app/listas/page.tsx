@@ -260,6 +260,113 @@ export default function UserListsPage() {
     })();
   }, [selectedList, user]);
 
+  const renderListCover = (list: CustomList) => {
+    const items = list.items || [];
+    const count = items.length;
+
+    if (count === 0) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-white/[0.02]">
+          <ListFilter className="w-10 h-10 text-white/10" />
+        </div>
+      );
+    }
+
+    const getBackdropUrl = (item: any) => {
+      if (item?.backdropPath) {
+        return item.backdropPath.startsWith("http")
+          ? item.backdropPath
+          : `https://image.tmdb.org/t/p/w780${item.backdropPath}`;
+      }
+      if (item?.posterPath) {
+        return item.posterPath.startsWith("http")
+          ? item.posterPath
+          : `https://image.tmdb.org/t/p/w500${item.posterPath}`;
+      }
+      return "/placeholder-movie.jpg";
+    };
+
+    const getPosterUrl = (item: any) => {
+      if (item?.posterPath) {
+        return item.posterPath.startsWith("http")
+          ? item.posterPath
+          : `https://image.tmdb.org/t/p/w500${item.posterPath}`;
+      }
+      if (item?.backdropPath) {
+        return item.backdropPath.startsWith("http")
+          ? item.backdropPath
+          : `https://image.tmdb.org/t/p/w780${item.backdropPath}`;
+      }
+      return "/placeholder-movie.jpg";
+    };
+
+    // 1 item: Exibe a Capa de Fundo (Backdrop 16:9) em destaque
+    if (count === 1) {
+      return (
+        <div className="relative w-full h-full bg-white/5">
+          <Image
+            src={getBackdropUrl(items[0])}
+            alt={items[0].title || "Capa da lista"}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        </div>
+      );
+    }
+
+    // 2 items: Exibe 2 Pôsteres lado a lado
+    if (count === 2) {
+      return (
+        <div className="grid grid-cols-2 gap-0.5 w-full h-full">
+          {items.slice(0, 2).map((item, idx) => (
+            <div key={idx} className="relative w-full h-full bg-white/5">
+              <Image
+                src={getPosterUrl(item)}
+                alt={item.title || "Capa da lista"}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // 3 items: Exibe 3 Pôsteres lado a lado (grid 3 colunas)
+    if (count === 3) {
+      return (
+        <div className="grid grid-cols-3 gap-0.5 w-full h-full">
+          {items.slice(0, 3).map((item, idx) => (
+            <div key={idx} className="relative w-full h-full bg-white/5">
+              <Image
+                src={getPosterUrl(item)}
+                alt={item.title || "Capa da lista"}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // 4 ou mais items: Grid 2x2 com as Capas de Fundo (Backdrops 16:9) sem cortes verticais
+    return (
+      <div className="grid grid-cols-2 gap-0.5 w-full h-full">
+        {items.slice(0, 4).map((item, idx) => (
+          <div key={idx} className="relative w-full h-full bg-white/5">
+            <Image
+              src={getBackdropUrl(item)}
+              alt={item.title || "Capa da lista"}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   if (!isMounted) return null;
 
   const currentEmail = user?.email;
@@ -746,15 +853,6 @@ export default function UserListsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {lists.map((list) => {
                   const itemsCount = list.items.length;
-                  const coverPosters = list.items
-                    .slice(0, 4)
-                    .map((item) =>
-                      item.posterPath
-                        ? item.posterPath.startsWith("http")
-                          ? item.posterPath
-                          : `https://image.tmdb.org/t/p/w300${item.posterPath}`
-                        : "/placeholder-movie.jpg"
-                    );
 
                   return (
                     <div
@@ -766,25 +864,10 @@ export default function UserListsPage() {
                       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
                       <div className="space-y-4">
-                        {/* Colagem de capas */}
-                        <div className="relative aspect-[16/9] w-full bg-black/40 rounded-2xl overflow-hidden border border-white/5 grid grid-cols-2 gap-0.5">
-                          {coverPosters.length > 0 ? (
-                            coverPosters.map((poster, idx) => (
-                              <div key={idx} className="relative w-full h-full bg-white/5">
-                                <Image
-                                  src={poster}
-                                  alt="Capa da lista"
-                                  fill
-                                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                />
-                              </div>
-                            ))
-                          ) : (
-                            <div className="col-span-2 flex items-center justify-center bg-white/[0.02]">
-                              <ListFilter className="w-10 h-10 text-white/10" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#14141c] via-transparent to-transparent opacity-40" />
+                        {/* Colagem de capas dinâmica */}
+                        <div className="relative aspect-[16/9] w-full bg-black/40 rounded-2xl overflow-hidden border border-white/5">
+                          {renderListCover(list)}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#14141c] via-transparent to-transparent opacity-40 pointer-events-none" />
                         </div>
 
                         {/* Informações da lista */}
