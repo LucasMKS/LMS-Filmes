@@ -8,6 +8,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -25,6 +27,8 @@ import java.util.List;
  */
 @Component
 public class JWTAuthFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JWTAuthFilter.class);
 
     @Autowired
     private JWTUtils jwtUtils;
@@ -44,15 +48,13 @@ public class JWTAuthFilter extends OncePerRequestFilter {
         final String jwtToken = recuperarToken(request);
 
         if (jwtToken == null) {
-            System.out.println("[LMS-FAVORITE] Requisicão sem token interceptada para: " + request.getRequestURI());
+            log.trace("[LMS-FAVORITE] Requisição sem token interceptada para: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
 
-        String userEmail = null;
-
         try {
-            userEmail = jwtUtils.extractUsername(jwtToken);
+            String userEmail = jwtUtils.extractUsername(jwtToken);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 if (jwtUtils.isTokenValid(jwtToken)) {
@@ -65,7 +67,7 @@ public class JWTAuthFilter extends OncePerRequestFilter {
                     
                     List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
 
-                    System.out.println("[LMS-FAVORITE] Liberando acesso para: " + userEmail + " com permissão: " + authorities);
+                    log.debug("[LMS-FAVORITE] Token validado para: {} com permissão: {}", userEmail, authorities);
 
                     UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                             userEmail,
@@ -78,8 +80,7 @@ public class JWTAuthFilter extends OncePerRequestFilter {
                 }
             }
         } catch (JwtException e) {
-            System.out.println("[LMS-FAVORITE] Erro crítico ao validar token: " + e.getMessage());
-            logger.error("[LMS-FAVORITE ERROR] Erro ao processar o token JWT: " + e.getClass().getName() + " - " + e.getMessage());
+            log.warn("[LMS-FAVORITE] Erro ao validar token JWT ({}): {}", e.getClass().getSimpleName(), e.getMessage());
             SecurityContextHolder.clearContext();
         }
 
