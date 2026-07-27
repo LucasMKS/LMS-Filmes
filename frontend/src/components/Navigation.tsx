@@ -52,7 +52,10 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
         setIsUserMenuOpen(false);
       }
     };
@@ -103,7 +106,9 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       icon: Film,
       color: "text-purple-400",
       activeBg: "bg-purple-500/10 border-purple-500/20 text-purple-300",
-      current: pathname === "/filmes" || (pathname.startsWith("/filmes/") && !pathname.includes("/watchlist")),
+      current:
+        pathname === "/filmes" ||
+        (pathname.startsWith("/filmes/") && !pathname.includes("/watchlist")),
       requiresAuth: false,
     },
     {
@@ -112,17 +117,11 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       icon: Tv,
       color: "text-violet-400",
       activeBg: "bg-violet-500/10 border-violet-500/20 text-violet-300",
-      current: pathname === "/series" || (pathname.startsWith("/series/") && !pathname.includes("/acompanhando")),
+      current:
+        pathname === "/series" ||
+        (pathname.startsWith("/series/") &&
+          !pathname.includes("/acompanhando")),
       requiresAuth: false,
-    },
-    {
-      name: "Watchlist",
-      href: `/filmes/${userSlug}/watchlist`,
-      icon: Eye,
-      color: "text-blue-400",
-      activeBg: "bg-blue-500/10 border-blue-500/20 text-blue-300",
-      current: pathname.includes("/watchlist"),
-      requiresAuth: true,
     },
     {
       name: "Avaliados",
@@ -130,7 +129,8 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       icon: Star,
       color: "text-amber-400",
       activeBg: "bg-amber-500/10 border-amber-500/20 text-amber-300",
-      current: pathname.includes("/avaliados") || pathname.includes("/avaliacoes"),
+      current:
+        pathname.includes("/avaliados") || pathname.includes("/avaliacoes"),
       requiresAuth: true,
     },
     {
@@ -215,11 +215,18 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
             <div className="lg:hidden">
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/5 rounded-xl">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white/70 hover:text-white hover:bg-white/5 rounded-xl"
+                  >
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[280px] sm:w-[350px] bg-[#0a0a0f] border-white/10 p-0">
+                <SheetContent
+                  side="left"
+                  className="w-[280px] sm:w-[350px] bg-[#0a0a0f] border-white/10 p-0"
+                >
                   <SheetHeader className="p-6 text-left border-b border-white/5">
                     <div className="flex items-center gap-2.5">
                       <div className="bg-gradient-to-br from-purple-500 to-violet-700 p-1.5 rounded-xl shadow-lg shadow-purple-500/20">
@@ -230,7 +237,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                       </SheetTitle>
                     </div>
                   </SheetHeader>
-                  
+
                   <div className="flex flex-col h-[calc(100%-80px)] justify-between">
                     <nav className="flex flex-col gap-1 p-4">
                       {navigationItems.map((item) => {
@@ -242,7 +249,10 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                             className={cn(
                               "flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 w-full text-left",
                               item.current
-                                ? cn("bg-white/5 border border-white/10 text-white", item.activeBg)
+                                ? cn(
+                                    "bg-white/5 border border-white/10 text-white",
+                                    item.activeBg,
+                                  )
                                 : "text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent",
                             )}
                           >
@@ -270,7 +280,9 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                                 {user.name}
                               </span>
                               <span className="text-xs text-white/40 font-medium mt-1">
-                                {user.nickname ? `@${user.nickname}` : user.email}
+                                {user.nickname
+                                  ? `@${user.nickname}`
+                                  : user.email}
                               </span>
                             </div>
                           </div>
@@ -312,7 +324,12 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                     <span className="text-xs font-semibold text-white/90 line-clamp-1 max-w-[100px]">
                       {user.nickname ? `@${user.nickname}` : user.name}
                     </span>
-                    <ChevronDown className={cn("w-3.5 h-3.5 text-white/40 transition-transform duration-200", isUserMenuOpen && "rotate-180")} />
+                    <ChevronDown
+                      className={cn(
+                        "w-3.5 h-3.5 text-white/40 transition-transform duration-200",
+                        isUserMenuOpen && "rotate-180",
+                      )}
+                    />
                   </button>
 
                   {/* Dropdown Popover */}
@@ -320,14 +337,18 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                     <div className="absolute right-0 mt-2 w-56 bg-[#0f0f17]/95 border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                       <div className="p-2.5 pb-3 border-b border-white/5 space-y-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-xs font-bold text-white line-clamp-1">{user.name}</p>
+                          <p className="text-xs font-bold text-white line-clamp-1">
+                            {user.name}
+                          </p>
                           {user.role === "ADMIN" && (
                             <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-semibold border border-purple-500/30">
                               Admin
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-white/40 line-clamp-1 font-medium">{user.email}</p>
+                        <p className="text-[11px] text-white/40 line-clamp-1 font-medium">
+                          {user.email}
+                        </p>
                       </div>
 
                       <div className="py-1 space-y-0.5">
@@ -361,7 +382,9 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                             <Settings className="w-4 h-4" />
                             <span>Configurações</span>
                           </div>
-                          <span className="text-[9px] bg-white/5 text-white/40 px-1.5 py-0.5 rounded">Em breve</span>
+                          <span className="text-[9px] bg-white/5 text-white/40 px-1.5 py-0.5 rounded">
+                            Em breve
+                          </span>
                         </button>
                       </div>
 
@@ -393,9 +416,9 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
 
             {/* Mobile User Icon (if not in menu) - Optional but good for UX */}
             {!isAuthenticated && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleLogin}
                 className="sm:hidden text-white/70 hover:text-white hover:bg-white/5 rounded-xl"
               >
