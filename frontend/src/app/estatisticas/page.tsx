@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Navigation } from "@/components/Navigation";
 import { MovieDialog } from "@/components/MovieDialog";
 import { SerieDialog } from "@/components/SerieDialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,20 +12,31 @@ import {
   Tv,
   ListVideo,
   FolderHeart,
-  TrendingUp,
   Sparkles,
   Award,
-  Calendar,
   MessageSquare,
   Clock,
   PieChart as PieChartIcon,
-  ArrowUpRight,
   User as UserIcon,
+  Flame,
 } from "lucide-react";
-import { ratingMoviesApi, ratingSeriesApi, watchlistMoviesApi, watchlistSeriesApi, moviesApi, seriesApi } from "@/lib/api";
+import {
+  ratingMoviesApi,
+  ratingSeriesApi,
+  watchlistMoviesApi,
+  watchlistSeriesApi,
+  moviesApi,
+  seriesApi,
+} from "@/lib/api";
 import { getUserLists } from "@/lib/userLists";
 import AuthService from "@/lib/auth";
-import { Movie, Serie, TmdbMovie, TmdbSerie, User } from "@/lib/types";
+import {
+  RatedMovieResponse,
+  RatedSerieResponse,
+  TmdbMovie,
+  TmdbSerie,
+  User,
+} from "@/lib/types";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -48,8 +58,10 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true);
 
   // Raw Stats Data
-  const [ratedMovies, setRatedMovies] = useState<Movie[]>([]);
-  const [ratedSeries, setRatedSeries] = useState<Serie[]>([]);
+  const [ratedMovies, setRatedMovies] = useState<RatedMovieResponse[]>([]);
+  const [ratedSeries, setRatedSeries] = useState<RatedSerieResponse[]>([]);
+  const [tmdbMoviesMap, setTmdbMoviesMap] = useState<Record<string, TmdbMovie>>({});
+  const [tmdbSeriesMap, setTmdbSeriesMap] = useState<Record<string, TmdbSerie>>({});
   const [watchlistMoviesCount, setWatchlistMoviesCount] = useState(0);
   const [watchlistSeriesCount, setWatchlistSeriesCount] = useState(0);
   const [customListsCount, setCustomListsCount] = useState(0);
@@ -75,15 +87,31 @@ export default function StatisticsPage() {
   const loadStatistics = async (email: string) => {
     setLoading(true);
     try {
-      const [movies, series, watchlistMovies, watchlistSeries] = await Promise.all([
-        ratingMoviesApi.getRatedMovies().catch(() => []),
-        ratingSeriesApi.getRatedSeries().catch(() => []),
+      // 1. Buscar filmes e séries avaliados via endpoints paginados do backend de avaliação
+      const [moviesRes, seriesRes, watchlistMovies, watchlistSeries] = await Promise.all([
+        ratingMoviesApi.getRatedMoviesPaged(0, 100).catch(() => ({ content: [] })),
+        ratingSeriesApi.getRatedSeriesPaged(0, 100).catch(() => ({ content: [] })),
         watchlistMoviesApi.getWatchlistMovies().catch(() => []),
         watchlistSeriesApi.getWatchlistSeries().catch(() => []),
       ]);
 
-      setRatedMovies(movies || []);
-      setRatedSeries(series || []);
+      const moviesList = moviesRes?.content || [];
+      const seriesList = seriesRes?.content || [];
+
+      // 2. Buscar lote TMDB para obter os gêneros e posters corretos
+      const movieIds = moviesList.map((m) => String(m.movieId));
+      const serieIds = seriesList.map((s) => String(s.serieId));
+
+      const [movieDetailsMap, serieDetailsMap] = await Promise.all([
+        moviesApi.getMoviesBatch(movieIds).catch(() => ({} as Record<string, TmdbMovie>)),
+        seriesApi.getSeriesBatch(serieIds).catch(() => ({} as Record<string, TmdbSerie>)),
+      ]);
+
+      setRatedMovies(moviesList);
+      setRatedSeries(seriesList);
+      setTmdbMoviesMap(movieDetailsMap);
+      setTmdbSeriesMap(serieDetailsMap);
+
       setWatchlistMoviesCount(watchlistMovies?.length || 0);
       setWatchlistSeriesCount(watchlistSeries?.length || 0);
 
@@ -113,28 +141,54 @@ export default function StatisticsPage() {
   const totalSumRatings = sumMovieRatings + sumSeriesRatings;
   const overallAvgRating = totalRatings > 0 ? (totalSumRatings / totalRatings).toFixed(1) : "0.0";
 
+  // Top Gêneros Preferidos
+  const genreCounts: Record<string, number> = {};
+  ratedMovies.forEach((m) => {
+    const tmdb = tmdbMoviesMap[m.movieId];
+    tmdb?.genres?.forEach((g) => {
+      genreCounts[g.name] = (genreCounts[g.name] || 0) + 1;
+    });
+  });
+  ratedSeries.forEach((s) => {
+    const tmdb = tmdbSeriesMap[s.serieId];
+    tmdb?.genres?.forEach((g) => {
+      genreCounts[g.name] = (genreCounts[g.name] || 0) + 1;
+    });
+  });
+
+  const topGenres = Object.entries(genreCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const maxGenreCount = topGenres[0]?.[1] || 1;
+
   // Fila combinada dos últimos avaliados
   const recentRatings: MediaItem[] = [
-    ...ratedMovies.map((m) => ({
-      id: `m_${m.id}`,
-      tmdbId: String(m.movieId),
-      type: "movie" as const,
-      title: m.title,
-      rating: m.rating,
-      comment: m.comment,
-      posterPath: m.poster_path,
-      createdAt: m.createdAt || new Date().toISOString(),
-    })),
-    ...ratedSeries.map((s) => ({
-      id: `s_${s.id}`,
-      tmdbId: String(s.serieId),
-      type: "serie" as const,
-      title: s.title,
-      rating: s.rating,
-      comment: s.comment,
-      posterPath: s.poster_path,
-      createdAt: s.createdAt || new Date().toISOString(),
-    })),
+    ...ratedMovies.map((m) => {
+      const tmdb = tmdbMoviesMap[m.movieId];
+      return {
+        id: `m_${m.id}`,
+        tmdbId: String(m.movieId),
+        type: "movie" as const,
+        title: m.title || tmdb?.title || "Filme",
+        rating: m.rating,
+        comment: m.comment,
+        posterPath: m.posterPath || tmdb?.poster_path || null,
+        createdAt: m.createdAt || new Date().toISOString(),
+      };
+    }),
+    ...ratedSeries.map((s) => {
+      const tmdb = tmdbSeriesMap[s.serieId];
+      return {
+        id: `s_${s.id}`,
+        tmdbId: String(s.serieId),
+        type: "serie" as const,
+        title: s.title || tmdb?.name || "Série",
+        rating: s.rating,
+        comment: s.comment,
+        posterPath: s.posterPath || tmdb?.poster_path || null,
+        createdAt: s.createdAt || new Date().toISOString(),
+      };
+    }),
   ]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 8);
@@ -161,10 +215,10 @@ export default function StatisticsPage() {
   // Perfil Cineasta Persona
   const getPersona = () => {
     if (totalRatings === 0) return { title: "Iniciante", desc: "Comece a avaliar títulos para desbloquear seu perfil!" };
-    const avg = parseFloat(overallAvgRating);
-    if (avg >= 8.5) return { title: "Espectador Entusiasta 🌟", desc: "Você vê o melhor em quase tudo que assiste e adora se emocionar." };
-    if (avg >= 7.0) return { title: "Cinéfilo Equilibrado 🎬", desc: "Você sabe apreciar boas produções com critério e bom gosto." };
-    if (avg >= 5.0) return { title: "Crítico Exigente 🧐", desc: "Suas avaliações são criteriosas. Poucas obras alcançam seu 10." };
+    const avgVal = parseFloat(overallAvgRating);
+    if (avgVal >= 8.5) return { title: "Espectador Entusiasta 🌟", desc: "Você vê o melhor em quase tudo que assiste e adora se emocionar." };
+    if (avgVal >= 7.0) return { title: "Cinéfilo Equilibrado 🎬", desc: "Você sabe apreciar boas produções com critério e bom gosto." };
+    if (avgVal >= 5.0) return { title: "Crítico Exigente 🧐", desc: "Suas avaliações são criteriosas. Poucas obras alcançam seu 10." };
     return { title: "O Espectador Implacável ⚡", desc: "Muito difícil de agradar! Apenas verdadeiras obras-primas passam de ano." };
   };
 
@@ -361,9 +415,9 @@ export default function StatisticsPage() {
               )}
             </div>
 
-            {/* Grid 2 Colunas: Histograma de Votos + Últimas Avaliações */}
+            {/* Grid 3 Seções: Histograma + Gêneros + Últimas Avaliações */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Histograma de Distribuição de Notas (1 coluna) */}
+              {/* Histograma de Distribuição de Notas */}
               <div className="bg-[#14141c] border border-white/[0.08] p-6 rounded-3xl space-y-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -407,18 +461,57 @@ export default function StatisticsPage() {
                 </div>
               </div>
 
-              {/* Fila dos Últimos Votados (2 colunas) */}
-              <div className="lg:col-span-2 bg-[#14141c] border border-white/[0.08] p-6 rounded-3xl space-y-6">
+              {/* Gêneros Preferidos */}
+              <div className="bg-[#14141c] border border-white/[0.08] p-6 rounded-3xl space-y-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-base font-bold text-white flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-purple-400" />
-                      Últimos Filmes e Séries Avaliados
-                    </h2>
-                    <p className="text-xs text-white/40 font-medium mt-0.5">
-                      Suas avaliações mais recentes
-                    </p>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-orange-400" />
+                    Gêneros Mais Avaliados
+                  </h2>
+                  <span className="text-xs text-white/40 font-medium">Top Gêneros</span>
+                </div>
+
+                {topGenres.length === 0 ? (
+                  <div className="py-12 text-center text-white/40 text-xs border border-dashed border-white/10 rounded-2xl">
+                    Sem dados de gêneros disponíveis ainda.
                   </div>
+                ) : (
+                  <div className="space-y-4">
+                    {topGenres.map(([genreName, count], idx) => {
+                      const pct = Math.round((count / maxGenreCount) * 100);
+                      return (
+                        <div key={genreName} className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-white flex items-center gap-2">
+                              <span className="text-[10px] text-white/40 font-bold w-4">
+                                #{idx + 1}
+                              </span>
+                              {genreName}
+                            </span>
+                            <span className="text-white/40 text-[11px] font-bold">
+                              {count} {count === 1 ? "título" : "títulos"}
+                            </span>
+                          </div>
+                          <div className="h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/[0.04]">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-purple-500 via-violet-500 to-emerald-400 transition-all duration-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Fila dos Últimos Votados */}
+              <div className="bg-[#14141c] border border-white/[0.08] p-6 rounded-3xl space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-purple-400" />
+                    Últimas Avaliações
+                  </h2>
                 </div>
 
                 {recentRatings.length === 0 ? (
@@ -426,8 +519,8 @@ export default function StatisticsPage() {
                     Você ainda não fez nenhuma avaliação.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {recentRatings.map((item) => {
+                  <div className="space-y-3">
+                    {recentRatings.slice(0, 5).map((item) => {
                       const posterUrl = item.posterPath
                         ? item.posterPath.startsWith("http")
                           ? item.posterPath
@@ -438,9 +531,9 @@ export default function StatisticsPage() {
                         <div
                           key={item.id}
                           onClick={() => handleOpenItemDetails(item)}
-                          className="flex items-center gap-3.5 p-3 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-purple-500/30 hover:bg-white/[0.06] transition-all cursor-pointer group"
+                          className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-purple-500/30 hover:bg-white/[0.06] transition-all cursor-pointer group"
                         >
-                          <div className="relative w-12 h-16 rounded-xl overflow-hidden bg-white/5 border border-white/10 shrink-0">
+                          <div className="relative w-10 h-14 rounded-xl overflow-hidden bg-white/5 border border-white/10 shrink-0">
                             <Image
                               src={posterUrl}
                               alt={item.title}
@@ -453,7 +546,7 @@ export default function StatisticsPage() {
                             <div className="flex items-center justify-between gap-1">
                               <span
                                 className={cn(
-                                  "text-[10px] px-2 py-0.5 rounded-full font-semibold border",
+                                  "text-[9px] px-1.5 py-0.5 rounded font-semibold border",
                                   item.type === "movie"
                                     ? "bg-purple-500/10 text-purple-300 border-purple-500/20"
                                     : "bg-violet-500/10 text-violet-300 border-violet-500/20"
@@ -462,23 +555,23 @@ export default function StatisticsPage() {
                                 {item.type === "movie" ? "Filme" : "Série"}
                               </span>
 
-                              <span className="flex items-center text-xs font-bold text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-md border border-yellow-400/20">
-                                <Star className="w-3 h-3 fill-current mr-1" />
+                              <span className="flex items-center text-[11px] font-bold text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/20">
+                                <Star className="w-2.5 h-2.5 fill-current mr-1" />
                                 {item.rating}
                               </span>
                             </div>
 
-                            <h4 className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1 mt-1">
+                            <h4 className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1 mt-1">
                               {item.title}
                             </h4>
 
                             {item.comment ? (
-                              <p className="text-[11px] text-white/50 italic line-clamp-1 mt-0.5 flex items-center gap-1">
-                                <MessageSquare className="w-3 h-3 shrink-0 text-white/30" />
+                              <p className="text-[10px] text-white/40 italic line-clamp-1 mt-0.5 flex items-center gap-1">
+                                <MessageSquare className="w-2.5 h-2.5 shrink-0 text-white/30" />
                                 "{item.comment}"
                               </p>
                             ) : (
-                              <p className="text-[10px] text-white/30 font-medium mt-0.5">
+                              <p className="text-[9px] text-white/30 font-medium mt-0.5">
                                 {new Date(item.createdAt).toLocaleDateString("pt-BR")}
                               </p>
                             )}
