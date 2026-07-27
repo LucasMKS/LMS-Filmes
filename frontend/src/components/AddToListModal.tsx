@@ -17,6 +17,7 @@ import {
   Tv,
   ListFilter,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ export function AddToListModal({
 }: AddToListModalProps) {
   const [lists, setLists] = useState<CustomList[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isCreatingList, setIsCreatingList] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [newListDesc, setNewListDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -116,29 +118,35 @@ export function AddToListModal({
       toast.error("Por favor, digite um nome para a lista");
       return;
     }
+    if (isCreatingList) return;
 
-    const newList = await createCustomList(newListName.trim(), newListDesc.trim(), effectiveEmail);
-    if (newList) {
-      await addItemToCustomList(
-        newList.id,
-        {
-          id: itemIdStr,
-          type: item.type,
-          title: item.title,
-          posterPath: item.posterPath,
-          backdropPath: item.backdropPath,
-          voteAverage: item.voteAverage,
-          releaseYear: item.releaseYear,
-        },
-        effectiveEmail
-      );
+    setIsCreatingList(true);
+    try {
+      const newList = await createCustomList(newListName.trim(), newListDesc.trim(), effectiveEmail);
+      if (newList) {
+        await addItemToCustomList(
+          newList.id,
+          {
+            id: itemIdStr,
+            type: item.type,
+            title: item.title,
+            posterPath: item.posterPath,
+            backdropPath: item.backdropPath,
+            voteAverage: item.voteAverage,
+            releaseYear: item.releaseYear,
+          },
+          effectiveEmail
+        );
 
-      toast.success(`Lista "${newList.name}" criada e item adicionado!`);
+        toast.success(`Lista "${newList.name}" criada e item adicionado!`);
+      }
+      setLists(getUserLists(effectiveEmail));
+      setNewListName("");
+      setNewListDesc("");
+      setIsCreating(false);
+    } finally {
+      setIsCreatingList(false);
     }
-    setLists(getUserLists(effectiveEmail));
-    setNewListName("");
-    setNewListDesc("");
-    setIsCreating(false);
   };
 
   const posterUrl = item.posterPath
@@ -213,9 +221,17 @@ export function AddToListModal({
                 <Button
                   type="submit"
                   size="sm"
-                  className="bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold px-4"
+                  disabled={isCreatingList || !newListName.trim()}
+                  className="bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold px-4 disabled:opacity-50 flex items-center gap-2"
                 >
-                  Criar e Adicionar
+                  {isCreatingList ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Criando...</span>
+                    </>
+                  ) : (
+                    <span>Criar e Adicionar</span>
+                  )}
                 </Button>
               </div>
             </form>

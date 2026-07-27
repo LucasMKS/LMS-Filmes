@@ -28,6 +28,7 @@ import {
   Sparkles,
   BookmarkX,
   Check,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,7 @@ export default function UserListsPage() {
 
   // State for Create/Edit Modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSubmittingList, setIsSubmittingList] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [editingList, setEditingList] = useState<CustomList | null>(null);
   const [listNameInput, setListNameInput] = useState("");
@@ -268,14 +270,21 @@ export default function UserListsPage() {
       toast.error("Por favor, informe o nome da lista.");
       return;
     }
-    const created = await createCustomList(listNameInput.trim(), listDescInput.trim(), currentEmail);
-    if (created) {
-      toast.success(`Lista "${created.name}" criada com sucesso!`);
-      setLists(getUserLists(currentEmail));
-      setListNameInput("");
-      setListDescInput("");
-      setIsCreateModalOpen(false);
-      setSelectedListId(String(created.id));
+    if (isSubmittingList) return;
+
+    setIsSubmittingList(true);
+    try {
+      const created = await createCustomList(listNameInput.trim(), listDescInput.trim(), currentEmail);
+      if (created) {
+        toast.success(`Lista "${created.name}" criada com sucesso!`);
+        setLists(getUserLists(currentEmail));
+        setListNameInput("");
+        setListDescInput("");
+        setIsCreateModalOpen(false);
+        setSelectedListId(String(created.id));
+      }
+    } finally {
+      setIsSubmittingList(false);
     }
   };
 
@@ -885,9 +894,17 @@ export default function UserListsPage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold px-5"
+                disabled={isSubmittingList || !listNameInput.trim()}
+                className="bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold px-5 disabled:opacity-50 flex items-center gap-2"
               >
-                Criar Lista
+                {isSubmittingList ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Criando...</span>
+                  </>
+                ) : (
+                  <span>Criar Lista</span>
+                )}
               </Button>
             </DialogFooter>
           </form>
