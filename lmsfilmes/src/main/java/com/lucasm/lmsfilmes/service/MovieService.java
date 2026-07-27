@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.util.retry.Retry;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -22,6 +23,8 @@ import reactor.core.scheduler.Schedulers;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +49,14 @@ public class MovieService {
         return path + (path.contains("?") ? "&" : "?") + "language=pt-BR";
     }
 
+    private boolean isRetryable(Throwable throwable) {
+        if (throwable instanceof WebClientResponseException wcre) {
+            int status = wcre.getStatusCode().value();
+            return status == 429 || status == 500 || status == 502 || status == 503 || status == 504;
+        }
+        return throwable instanceof TmdbApiException || throwable instanceof java.io.IOException;
+    }
+
     private TmdbPageDTO<TmdbDTO> fetchPaginatedData(String path) {
         try {
             String body = webClient.get()
@@ -56,14 +67,14 @@ public class MovieService {
                                     .map(err -> new TmdbApiException(
                                             "Erro ao buscar dados do TMDB: status " + response.statusCode().value())))
                     .bodyToMono(String.class)
+                    .retryWhen(Retry.backoff(3, Duration.ofMillis(250))
+                            .filter(this::isRetryable))
                     .block();
 
             return objectMapper.readValue(body, new TypeReference<TmdbPageDTO<TmdbDTO>>() {});
-        } catch (TmdbApiException e) {
-            throw e;
         } catch (Exception e) {
-            logger.error("Erro ao buscar dados do TMDB ({}): {}", path, e.getMessage(), e);
-            throw new TmdbApiException("Erro ao buscar dados do TMDB: " + e.getMessage(), e);
+            logger.warn("TMDB indisponível ou instável ao buscar ({}), retornando fallback vazio. Erro: {}", path, e.getMessage());
+            return new TmdbPageDTO<>(1, Collections.emptyList(), 0, 0);
         }
     }
 
@@ -92,10 +103,12 @@ public class MovieService {
                                     .map(err -> new TmdbApiException(
                                             "Erro ao buscar detalhes do filme: status " + response.statusCode().value())))
                     .bodyToMono(String.class)
+                    .retryWhen(Retry.backoff(3, Duration.ofMillis(250))
+                            .filter(this::isRetryable))
                     .block();
 
             return objectMapper.readValue(body, TmdbDTO.class);
-        } catch (ResourceNotFoundException | TmdbApiException e) {
+        } catch (ResourceNotFoundException e) {
             throw e;
         } catch (WebClientResponseException e) {
             logger.error("Erro HTTP ao buscar detalhes do filme {}: {}", movieId, e.getMessage());
@@ -106,14 +119,6 @@ public class MovieService {
         }
     }
 
-    /**
-     * Busca em paralelo detalhes de vários filmes pelo TMDB, aproveitando o cache
-     * individual de {@link #getMovieDetails(String, boolean)}. IDs que falharem
-     * (404 ou erro de rede) são silenciosamente omitidos do mapa resultante.
-     *
-     * @param movieIds lista de IDs do TMDB a serem consultados (máx {@value BATCH_MAX_SIZE}).
-     * @return mapa com IDs solicitados como chave e detalhes do filme como valor.
-     */
     public Map<String, TmdbDTO> getMoviesBatch(List<String> movieIds) {
         if (movieIds == null || movieIds.isEmpty()) return Map.of();
         if (movieIds.size() > BATCH_MAX_SIZE) {
