@@ -56,8 +56,6 @@ export function RatingDialog({
     setIsSubmitting(true);
     try {
       await onSubmit(selectedRating.toString(), comment.trim() || undefined);
-      
-      import("@/lib/celebrations").then(({ celebrateAction }) => celebrateAction("rating"));
 
       toast.success("Avaliação enviada!", {
         description: `Sua avaliação d${itemType === "filme" ? "o filme" : "a série"} "${itemTitle}" foi registrada com sucesso.`,

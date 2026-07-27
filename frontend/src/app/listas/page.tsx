@@ -993,6 +993,15 @@ export default function UserListsPage() {
           isOpen={!!selectedMovie}
           onClose={() => setSelectedMovie(null)}
           isLoggedIn={!!user}
+          onRateSuccess={(rating, comment) => {
+            if (selectedMovie) {
+              const key = `movie_${selectedMovie.tmdb.id}`;
+              setUserRatingsMap((prev) => ({
+                ...prev,
+                [key]: { rating, comment },
+              }));
+            }
+          }}
         />
       )}
 
@@ -1003,6 +1012,15 @@ export default function UserListsPage() {
           isOpen={!!selectedSerie}
           onClose={() => setSelectedSerie(null)}
           isLoggedIn={!!user}
+          onRateSuccess={(rating, comment) => {
+            if (selectedSerie) {
+              const key = `serie_${selectedSerie.tmdb.id}`;
+              setUserRatingsMap((prev) => ({
+                ...prev,
+                [key]: { rating, comment },
+              }));
+            }
+          }}
         />
       )}
     </div>

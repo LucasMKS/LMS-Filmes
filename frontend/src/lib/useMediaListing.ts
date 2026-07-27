@@ -320,10 +320,6 @@ export function useMediaListing<T extends { id: number }, C extends string>({
         // Garantir que o estado final condiz com o servidor
         setFavoriteStatus((prev) => ({ ...prev, [mediaId]: result.data!.isFavorite }));
         favoriteStatusRef.current[mediaId] = result.data!.isFavorite;
-        
-        if (result.data!.isFavorite) {
-          import("@/lib/celebrations").then(({ celebrateAction }) => celebrateAction("favorite"));
-        }
 
         toast.success(
           result.data!.isFavorite ? messages.toggleAddSuccess : messages.toggleRemoveSuccess,
