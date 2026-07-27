@@ -28,7 +28,7 @@ import {
   moviesApi,
   seriesApi,
 } from "@/lib/api";
-import { getUserLists } from "@/lib/userLists";
+import { getUserLists, fetchUserLists } from "@/lib/userLists";
 import AuthService from "@/lib/auth";
 import {
   RatedMovieResponse,
@@ -87,12 +87,13 @@ export default function StatisticsPage() {
   const loadStatistics = async (email: string) => {
     setLoading(true);
     try {
-      // 1. Buscar filmes e séries avaliados via endpoints paginados do backend de avaliação
-      const [moviesRes, seriesRes, watchlistMovies, watchlistSeries] = await Promise.all([
+      // 1. Buscar filmes/séries avaliados, watchlists e listas personalizadas do backend
+      const [moviesRes, seriesRes, watchlistMovies, watchlistSeries, userLists] = await Promise.all([
         ratingMoviesApi.getRatedMoviesPaged(0, 100).catch(() => ({ content: [] })),
         ratingSeriesApi.getRatedSeriesPaged(0, 100).catch(() => ({ content: [] })),
         watchlistMoviesApi.getWatchlistMovies().catch(() => []),
         watchlistSeriesApi.getWatchlistSeries().catch(() => []),
+        fetchUserLists(email).catch(() => []),
       ]);
 
       const moviesList = moviesRes?.content || [];
@@ -115,7 +116,6 @@ export default function StatisticsPage() {
       setWatchlistMoviesCount(watchlistMovies?.length || 0);
       setWatchlistSeriesCount(watchlistSeries?.length || 0);
 
-      const userLists = getUserLists(email);
       setCustomListsCount(userLists.length);
       const totalItems = userLists.reduce((sum, list) => sum + list.items.length, 0);
       setCustomListItemsCount(totalItems);

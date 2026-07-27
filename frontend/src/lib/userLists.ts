@@ -1,3 +1,6 @@
+import Cookies from "js-cookie";
+import { customListsApi } from "./api";
+
 export interface CustomListItem {
   id: string; // TMDB ID or string ID
   type: "movie" | "serie";
@@ -22,7 +25,6 @@ const EVENT_NAME = "lms-user-lists-updated";
 
 function getStorageKey(userEmail?: string): string {
   if (!userEmail) {
-    // Try to get current user from auth cookie/localStorage if available
     try {
       const userDataStr = typeof window !== "undefined" ? localStorage.getItem("user_data") : null;
       if (userDataStr) {
@@ -45,37 +47,127 @@ export function notifyListsChanged() {
   }
 }
 
-export function getUserLists(userEmail?: string): CustomList[] {
-  if (typeof window === "undefined") return [];
+export function isAuthenticated(): boolean {
+  return !!Cookies.get("auth_token");
+}
+
+let memoryListsCache: CustomList[] | null = null;
+
+// Synchronous local storage read/write for guest or fast fallback
+export function getLocalUserLists(userEmail?: string): CustomList[] {
+  if (typeof window === "undefined") return memoryListsCache || [];
   try {
     const key = getStorageKey(userEmail);
     const data = localStorage.getItem(key);
-    if (!data) return [];
+    if (!data) return memoryListsCache || [];
     return JSON.parse(data);
   } catch (error) {
-    console.error("Erro ao ler listas personalizadas:", error);
-    return [];
+    console.error("Erro ao ler listas locais:", error);
+    return memoryListsCache || [];
   }
 }
 
-export function getListById(listId: string, userEmail?: string): CustomList | undefined {
-  const lists = getUserLists(userEmail);
-  return lists.find((l) => l.id === listId);
-}
-
-function saveUserLists(lists: CustomList[], userEmail?: string): void {
+export function saveLocalUserLists(lists: CustomList[], userEmail?: string): void {
+  memoryListsCache = lists;
   if (typeof window === "undefined") return;
   try {
     const key = getStorageKey(userEmail);
     localStorage.setItem(key, JSON.stringify(lists));
     notifyListsChanged();
   } catch (error) {
-    console.error("Erro ao salvar listas personalizadas:", error);
+    console.error("Erro ao salvar listas locais:", error);
   }
 }
 
-export function createList(name: string, description?: string, userEmail?: string): CustomList {
+/**
+ * Carrega listas personalizadas do Backend (DB) se autenticado, ou do localStorage se convidado.
+ */
+export async function fetchUserLists(userEmail?: string): Promise<CustomList[]> {
+  if (isAuthenticated()) {
+    try {
+      // Check if there are local guest lists to sync into backend database
+      const localGuestLists = getLocalUserLists("guest");
+      if (localGuestLists.length > 0) {
+        try {
+          const syncPayload = localGuestLists.map((l) => ({
+            name: l.name,
+            description: l.description,
+            items: l.items.map((i) => ({
+              id: i.id,
+              type: i.type,
+              title: i.title,
+              posterPath: i.posterPath,
+              backdropPath: i.backdropPath,
+              voteAverage: i.voteAverage,
+              releaseYear: i.releaseYear,
+            })),
+          }));
+          const synced = await customListsApi.syncLocalLists(syncPayload);
+          // Clear local guest cache after successful DB sync
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("lms_user_lists_guest");
+          }
+          saveLocalUserLists(synced, userEmail);
+          return synced;
+        } catch (e) {
+          console.warn("Falha ao sincronizar listas locais com o backend:", e);
+        }
+      }
+
+      const lists = await customListsApi.getUserLists();
+      saveLocalUserLists(lists, userEmail);
+      return lists;
+    } catch (error) {
+      console.error("Erro ao buscar listas do backend:", error);
+      return getLocalUserLists(userEmail);
+    }
+  }
+
+  return getLocalUserLists(userEmail);
+}
+
+/**
+ * Retorna as listas de forma síncrona usando o cache mais recente.
+ */
+export function getUserLists(userEmail?: string): CustomList[] {
+  return getLocalUserLists(userEmail);
+}
+
+export function getListById(listId: string, userEmail?: string): CustomList | undefined {
   const lists = getUserLists(userEmail);
+  return lists.find((l) => String(l.id) === String(listId));
+}
+
+/**
+ * Cria uma nova lista no Backend (se autenticado) e no cache.
+ */
+export async function createCustomList(
+  name: string,
+  description?: string,
+  userEmail?: string
+): Promise<CustomList> {
+  if (isAuthenticated()) {
+    try {
+      const created = await customListsApi.createList({ name, description });
+      const currentLists = getLocalUserLists(userEmail);
+      const updated = [created, ...currentLists.filter((l) => String(l.id) !== String(created.id))];
+      saveLocalUserLists(updated, userEmail);
+      return created;
+    } catch (error) {
+      console.error("Erro ao criar lista no backend:", error);
+    }
+  }
+
+  // Fallback local
+  return createListLocal(name, description, userEmail);
+}
+
+export function createList(name: string, description?: string, userEmail?: string): CustomList {
+  return createListLocal(name, description, userEmail);
+}
+
+function createListLocal(name: string, description?: string, userEmail?: string): CustomList {
+  const lists = getLocalUserLists(userEmail);
   const newList: CustomList = {
     id: `list_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     name: name.trim(),
@@ -86,8 +178,38 @@ export function createList(name: string, description?: string, userEmail?: strin
   };
 
   const updatedLists = [newList, ...lists];
-  saveUserLists(updatedLists, userEmail);
+  saveLocalUserLists(updatedLists, userEmail);
   return newList;
+}
+
+/**
+ * Renomeia/atualiza uma lista no Backend (se autenticado) e no cache.
+ */
+export async function updateCustomList(
+  listId: string,
+  newName: string,
+  newDescription?: string,
+  userEmail?: string
+): Promise<CustomList | null> {
+  if (isAuthenticated() && !listId.startsWith("list_")) {
+    try {
+      const updated = await customListsApi.updateList(listId, {
+        name: newName,
+        description: newDescription,
+      });
+      const currentLists = getLocalUserLists(userEmail);
+      const idx = currentLists.findIndex((l) => String(l.id) === String(listId));
+      if (idx !== -1) {
+        currentLists[idx] = updated;
+        saveLocalUserLists([...currentLists], userEmail);
+      }
+      return updated;
+    } catch (error) {
+      console.error("Erro ao atualizar lista no backend:", error);
+    }
+  }
+
+  return renameListLocal(listId, newName, newDescription, userEmail);
 }
 
 export function renameList(
@@ -96,8 +218,17 @@ export function renameList(
   newDescription?: string,
   userEmail?: string
 ): CustomList | null {
-  const lists = getUserLists(userEmail);
-  const index = lists.findIndex((l) => l.id === listId);
+  return renameListLocal(listId, newName, newDescription, userEmail);
+}
+
+function renameListLocal(
+  listId: string,
+  newName: string,
+  newDescription?: string,
+  userEmail?: string
+): CustomList | null {
+  const lists = getLocalUserLists(userEmail);
+  const index = lists.findIndex((l) => String(l.id) === String(listId));
   if (index === -1) return null;
 
   lists[index] = {
@@ -107,17 +238,76 @@ export function renameList(
     updatedAt: new Date().toISOString(),
   };
 
-  saveUserLists(lists, userEmail);
+  saveLocalUserLists(lists, userEmail);
   return lists[index];
 }
 
+/**
+ * Exclui uma lista no Backend (se autenticado) e no cache.
+ */
+export async function deleteCustomList(listId: string, userEmail?: string): Promise<boolean> {
+  if (isAuthenticated() && !listId.startsWith("list_")) {
+    try {
+      await customListsApi.deleteList(listId);
+      const currentLists = getLocalUserLists(userEmail);
+      const filtered = currentLists.filter((l) => String(l.id) !== String(listId));
+      saveLocalUserLists(filtered, userEmail);
+      return true;
+    } catch (error) {
+      console.error("Erro ao deletar lista no backend:", error);
+    }
+  }
+
+  return deleteListLocal(listId, userEmail);
+}
+
 export function deleteList(listId: string, userEmail?: string): boolean {
-  const lists = getUserLists(userEmail);
-  const filtered = lists.filter((l) => l.id !== listId);
+  return deleteListLocal(listId, userEmail);
+}
+
+function deleteListLocal(listId: string, userEmail?: string): boolean {
+  const lists = getLocalUserLists(userEmail);
+  const filtered = lists.filter((l) => String(l.id) !== String(listId));
   if (filtered.length === lists.length) return false;
 
-  saveUserLists(filtered, userEmail);
+  saveLocalUserLists(filtered, userEmail);
   return true;
+}
+
+/**
+ * Adiciona um item a uma lista no Backend (se autenticado) e no cache.
+ */
+export async function addItemToCustomList(
+  listId: string,
+  item: Omit<CustomListItem, "addedAt">,
+  userEmail?: string
+): Promise<CustomList | null> {
+  if (isAuthenticated() && !listId.startsWith("list_")) {
+    try {
+      const updated = await customListsApi.addItemToList(listId, {
+        id: String(item.id),
+        type: item.type,
+        title: item.title,
+        posterPath: item.posterPath,
+        backdropPath: item.backdropPath,
+        voteAverage: item.voteAverage,
+        releaseYear: item.releaseYear,
+      });
+      const currentLists = getLocalUserLists(userEmail);
+      const idx = currentLists.findIndex((l) => String(l.id) === String(listId));
+      if (idx !== -1) {
+        currentLists[idx] = updated;
+        saveLocalUserLists([...currentLists], userEmail);
+      } else {
+        saveLocalUserLists([updated, ...currentLists], userEmail);
+      }
+      return updated;
+    } catch (error) {
+      console.error("Erro ao adicionar item à lista no backend:", error);
+    }
+  }
+
+  return addItemToListLocal(listId, item, userEmail);
 }
 
 export function addItemToList(
@@ -125,8 +315,16 @@ export function addItemToList(
   item: Omit<CustomListItem, "addedAt">,
   userEmail?: string
 ): CustomList | null {
-  const lists = getUserLists(userEmail);
-  const index = lists.findIndex((l) => l.id === listId);
+  return addItemToListLocal(listId, item, userEmail);
+}
+
+function addItemToListLocal(
+  listId: string,
+  item: Omit<CustomListItem, "addedAt">,
+  userEmail?: string
+): CustomList | null {
+  const lists = getLocalUserLists(userEmail);
+  const index = lists.findIndex((l) => String(l.id) === String(listId));
   if (index === -1) return null;
 
   const currentList = lists[index];
@@ -149,8 +347,35 @@ export function addItemToList(
     items: [newItem, ...currentList.items],
   };
 
-  saveUserLists(lists, userEmail);
+  saveLocalUserLists(lists, userEmail);
   return lists[index];
+}
+
+/**
+ * Remove um item de uma lista no Backend (se autenticado) e no cache.
+ */
+export async function removeItemFromCustomList(
+  listId: string,
+  itemId: string,
+  itemType: "movie" | "serie",
+  userEmail?: string
+): Promise<CustomList | null> {
+  if (isAuthenticated() && !listId.startsWith("list_")) {
+    try {
+      const updated = await customListsApi.removeItemFromList(listId, String(itemId), itemType);
+      const currentLists = getLocalUserLists(userEmail);
+      const idx = currentLists.findIndex((l) => String(l.id) === String(listId));
+      if (idx !== -1) {
+        currentLists[idx] = updated;
+        saveLocalUserLists([...currentLists], userEmail);
+      }
+      return updated;
+    } catch (error) {
+      console.error("Erro ao remover item da lista no backend:", error);
+    }
+  }
+
+  return removeItemFromListLocal(listId, itemId, itemType, userEmail);
 }
 
 export function removeItemFromList(
@@ -159,8 +384,17 @@ export function removeItemFromList(
   itemType: "movie" | "serie",
   userEmail?: string
 ): CustomList | null {
-  const lists = getUserLists(userEmail);
-  const index = lists.findIndex((l) => l.id === listId);
+  return removeItemFromListLocal(listId, itemId, itemType, userEmail);
+}
+
+function removeItemFromListLocal(
+  listId: string,
+  itemId: string,
+  itemType: "movie" | "serie",
+  userEmail?: string
+): CustomList | null {
+  const lists = getLocalUserLists(userEmail);
+  const index = lists.findIndex((l) => String(l.id) === String(listId));
   if (index === -1) return null;
 
   const currentList = lists[index];
@@ -175,7 +409,7 @@ export function removeItemFromList(
     items: updatedItems,
   };
 
-  saveUserLists(lists, userEmail);
+  saveLocalUserLists(lists, userEmail);
   return lists[index];
 }
 

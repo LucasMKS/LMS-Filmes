@@ -33,11 +33,12 @@ import { cn } from "@/lib/utils";
 import AuthService from "@/lib/auth";
 import {
   getUserLists,
-  createList,
-  renameList,
-  deleteList,
-  addItemToList,
-  removeItemFromList,
+  fetchUserLists,
+  createCustomList,
+  updateCustomList,
+  deleteCustomList,
+  addItemToCustomList,
+  removeItemFromCustomList,
   isItemInList,
   useListsListener,
   CustomList,
@@ -134,15 +135,15 @@ export default function UserListsPage() {
     return () => clearTimeout(timer);
   }, [addItemSearchQuery]);
 
-  const handleAddSearchResultToList = (item: any) => {
+  const handleAddSearchResultToList = async (item: any) => {
     if (!selectedListId) return;
     const inList = isItemInList(selectedListId, String(item.id), item.type, user?.email);
 
     if (inList) {
-      removeItemFromList(selectedListId, String(item.id), item.type, user?.email);
+      await removeItemFromCustomList(selectedListId, String(item.id), item.type, user?.email);
       toast.success(`Removido da lista`);
     } else {
-      addItemToList(
+      await addItemToCustomList(
         selectedListId,
         {
           id: String(item.id),
@@ -165,7 +166,7 @@ export default function UserListsPage() {
     setIsMounted(true);
     const currentUser = AuthService.getUser();
     setUser(currentUser);
-    setLists(getUserLists(currentUser?.email));
+    fetchUserLists(currentUser?.email).then(setLists);
   }, []);
 
   // Listen to list changes from anywhere in app
@@ -180,26 +181,29 @@ export default function UserListsPage() {
   if (!isMounted) return null;
 
   const currentEmail = user?.email;
-  const selectedList = lists.find((l) => l.id === selectedListId);
+  const selectedList = lists.find((l) => String(l.id) === String(selectedListId));
 
-  const handleCreateList = (e: React.FormEvent) => {
+  const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!listNameInput.trim()) {
       toast.error("Por favor, informe o nome da lista.");
       return;
     }
-    const created = createList(listNameInput.trim(), listDescInput.trim(), currentEmail);
-    toast.success(`Lista "${created.name}" criada com sucesso!`);
-    setListNameInput("");
-    setListDescInput("");
-    setIsCreateModalOpen(false);
-    setSelectedListId(created.id);
+    const created = await createCustomList(listNameInput.trim(), listDescInput.trim(), currentEmail);
+    if (created) {
+      toast.success(`Lista "${created.name}" criada com sucesso!`);
+      setLists(getUserLists(currentEmail));
+      setListNameInput("");
+      setListDescInput("");
+      setIsCreateModalOpen(false);
+      setSelectedListId(String(created.id));
+    }
   };
 
-  const handleRenameList = (e: React.FormEvent) => {
+  const handleRenameList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingList || !listNameInput.trim()) return;
-    const updated = renameList(
+    const updated = await updateCustomList(
       editingList.id,
       listNameInput.trim(),
       listDescInput.trim(),
@@ -207,6 +211,7 @@ export default function UserListsPage() {
     );
     if (updated) {
       toast.success(`Lista atualizada com sucesso!`);
+      setLists(getUserLists(currentEmail));
     }
     setIsRenameModalOpen(false);
     setEditingList(null);
@@ -214,11 +219,12 @@ export default function UserListsPage() {
     setListDescInput("");
   };
 
-  const handleDeleteList = () => {
+  const handleDeleteList = async () => {
     if (!deletingList) return;
-    const success = deleteList(deletingList.id, currentEmail);
+    const success = await deleteCustomList(deletingList.id, currentEmail);
     if (success) {
       toast.success(`Lista "${deletingList.name}" removida.`);
+      setLists(getUserLists(currentEmail));
       if (selectedListId === deletingList.id) {
         setSelectedListId(null);
       }
@@ -226,10 +232,11 @@ export default function UserListsPage() {
     setDeletingList(null);
   };
 
-  const handleRemoveItem = (listId: string, item: CustomListItem, e: React.MouseEvent) => {
+  const handleRemoveItem = async (listId: string, item: CustomListItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    removeItemFromList(listId, item.id, item.type, currentEmail);
+    await removeItemFromCustomList(listId, item.id, item.type, currentEmail);
     toast.success(`"${item.title}" removido da lista.`);
+    setLists(getUserLists(currentEmail));
   };
 
   const handleOpenItem = async (item: CustomListItem) => {

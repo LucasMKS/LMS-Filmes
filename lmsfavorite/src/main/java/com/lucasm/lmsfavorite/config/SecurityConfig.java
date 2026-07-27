@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/favorite/**", "/lms-favorite/favorite/**").hasAnyRole("ADMIN", "USER")
                         .requestMatchers("/watchlist/**", "/lms-favorite/watchlist/**").hasAnyRole("ADMIN", "USER")
                         .requestMatchers("/watched/**", "/lms-favorite/watched/**").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers("/custom-lists/**", "/lms-favorite/custom-lists/**").hasAnyRole("ADMIN", "USER")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

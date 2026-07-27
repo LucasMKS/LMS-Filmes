@@ -362,3 +362,30 @@ export const watchlistSeriesApi = {
   getWatchlistSeries: (): Promise<WatchlistSerie[]> =>
     fetcher("lms-favorite", "/watchlist/series"),
 };
+
+export const customListsApi = {
+  getUserLists: (): Promise<any[]> =>
+    fetcher("lms-favorite", "/custom-lists"),
+
+  getListById: (id: string): Promise<any> =>
+    fetcher("lms-favorite", `/custom-lists/${id}`),
+
+  createList: (payload: { name: String; description?: string }): Promise<any> =>
+    fetcher("lms-favorite", "/custom-lists", { method: "POST", body: JSON.stringify(payload) }),
+
+  updateList: (id: string, payload: { name: string; description?: string }): Promise<any> =>
+    fetcher("lms-favorite", `/custom-lists/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+
+  deleteList: (id: string): Promise<{ success: boolean }> =>
+    fetcher("lms-favorite", `/custom-lists/${id}`, { method: "DELETE" }),
+
+  addItemToList: (listId: string, item: { id: string; type: "movie" | "serie"; title?: string; posterPath?: string | null; backdropPath?: string | null; voteAverage?: number; releaseYear?: string }): Promise<any> =>
+    fetcher("lms-favorite", `/custom-lists/${listId}/items`, { method: "POST", body: JSON.stringify(item) }),
+
+  removeItemFromList: (listId: string, mediaId: string, mediaType: "movie" | "serie"): Promise<any> =>
+    fetcher("lms-favorite", `/custom-lists/${listId}/items?mediaId=${encodeURIComponent(mediaId)}&mediaType=${encodeURIComponent(mediaType)}`, { method: "DELETE" }),
+
+  syncLocalLists: (localLists: any[]): Promise<any[]> =>
+    fetcher("lms-favorite", "/custom-lists/sync", { method: "POST", body: JSON.stringify(localLists) }),
+};
+

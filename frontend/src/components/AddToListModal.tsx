@@ -22,9 +22,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   getUserLists,
-  createList,
-  addItemToList,
-  removeItemFromList,
+  fetchUserLists,
+  createCustomList,
+  addItemToCustomList,
+  removeItemFromCustomList,
   isItemInList,
   useListsListener,
   CustomList,
@@ -57,13 +58,18 @@ export function AddToListModal({
   const [isCreating, setIsCreating] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [newListDesc, setNewListDesc] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const effectiveEmail = userEmail || AuthService.getUser()?.email;
   const itemIdStr = String(item.id);
 
   useEffect(() => {
     if (isOpen) {
-      setLists(getUserLists(effectiveEmail));
+      setIsLoading(true);
+      fetchUserLists(effectiveEmail).then((res) => {
+        setLists(res);
+        setIsLoading(false);
+      });
       setIsCreating(false);
       setNewListName("");
       setNewListDesc("");
@@ -78,14 +84,14 @@ export function AddToListModal({
     return cleanup;
   }, [isOpen, effectiveEmail]);
 
-  const handleToggleList = (list: CustomList) => {
+  const handleToggleList = async (list: CustomList) => {
     const inList = isItemInList(list.id, itemIdStr, item.type, effectiveEmail);
 
     if (inList) {
-      removeItemFromList(list.id, itemIdStr, item.type, effectiveEmail);
+      await removeItemFromCustomList(list.id, itemIdStr, item.type, effectiveEmail);
       toast.success(`Removido de "${list.name}"`);
     } else {
-      addItemToList(
+      await addItemToCustomList(
         list.id,
         {
           id: itemIdStr,
@@ -104,30 +110,31 @@ export function AddToListModal({
     setLists(getUserLists(effectiveEmail));
   };
 
-  const handleCreateNewList = (e: React.FormEvent) => {
+  const handleCreateNewList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newListName.trim()) {
       toast.error("Por favor, digite um nome para a lista");
       return;
     }
 
-    const newList = createList(newListName.trim(), newListDesc.trim(), effectiveEmail);
-    // Add item to newly created list immediately
-    addItemToList(
-      newList.id,
-      {
-        id: itemIdStr,
-        type: item.type,
-        title: item.title,
-        posterPath: item.posterPath,
-        backdropPath: item.backdropPath,
-        voteAverage: item.voteAverage,
-        releaseYear: item.releaseYear,
-      },
-      effectiveEmail
-    );
+    const newList = await createCustomList(newListName.trim(), newListDesc.trim(), effectiveEmail);
+    if (newList) {
+      await addItemToCustomList(
+        newList.id,
+        {
+          id: itemIdStr,
+          type: item.type,
+          title: item.title,
+          posterPath: item.posterPath,
+          backdropPath: item.backdropPath,
+          voteAverage: item.voteAverage,
+          releaseYear: item.releaseYear,
+        },
+        effectiveEmail
+      );
 
-    toast.success(`Lista "${newList.name}" criada e item adicionado!`);
+      toast.success(`Lista "${newList.name}" criada e item adicionado!`);
+    }
     setLists(getUserLists(effectiveEmail));
     setNewListName("");
     setNewListDesc("");
