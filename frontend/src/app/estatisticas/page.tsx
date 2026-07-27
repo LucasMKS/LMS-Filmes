@@ -28,7 +28,7 @@ import {
   moviesApi,
   seriesApi,
 } from "@/lib/api";
-import { getUserLists, fetchUserLists } from "@/lib/userLists";
+import { fetchUserLists } from "@/lib/userLists";
 import AuthService from "@/lib/auth";
 import {
   RatedMovieResponse,
@@ -87,17 +87,44 @@ export default function StatisticsPage() {
   const loadStatistics = async (email: string) => {
     setLoading(true);
     try {
-      // 1. Buscar filmes/séries avaliados, watchlists e listas personalizadas do backend
+      // 1. Buscar filmes/séries avaliados do backend (Tenta paged com limite alto, faz fallback para endpoint simples)
       const [moviesRes, seriesRes, watchlistMovies, watchlistSeries, userLists] = await Promise.all([
-        ratingMoviesApi.getRatedMoviesPaged(0, 100).catch(() => ({ content: [] })),
-        ratingSeriesApi.getRatedSeriesPaged(0, 100).catch(() => ({ content: [] })),
+        ratingMoviesApi.getRatedMoviesPaged(0, 1000).catch(() => ratingMoviesApi.getRatedMovies().catch(() => [])),
+        ratingSeriesApi.getRatedSeriesPaged(0, 1000).catch(() => ratingSeriesApi.getRatedSeries().catch(() => [])),
         watchlistMoviesApi.getWatchlistMovies().catch(() => []),
         watchlistSeriesApi.getWatchlistSeries().catch(() => []),
         fetchUserLists(email).catch(() => []),
       ]);
 
-      const moviesList = moviesRes?.content || [];
-      const seriesList = seriesRes?.content || [];
+      const moviesList: RatedMovieResponse[] = Array.isArray(moviesRes)
+        ? (moviesRes as any[]).map((m: any) => ({
+            id: m.id,
+            movieId: String(m.movieId),
+            title: m.title || null,
+            posterPath: m.posterPath || m.poster_path || null,
+            rating: Number(m.rating),
+            comment: m.comment,
+            createdAt: m.createdAt || new Date().toISOString(),
+          }))
+        : ((moviesRes as any)?.content || []).map((m: any) => ({
+            ...m,
+            rating: Number(m.rating),
+          }));
+
+      const seriesList: RatedSerieResponse[] = Array.isArray(seriesRes)
+        ? (seriesRes as any[]).map((s: any) => ({
+            id: s.id,
+            serieId: String(s.serieId),
+            title: s.title || null,
+            posterPath: s.posterPath || s.poster_path || null,
+            rating: Number(s.rating),
+            comment: s.comment,
+            createdAt: s.createdAt || new Date().toISOString(),
+          }))
+        : ((seriesRes as any)?.content || []).map((s: any) => ({
+            ...s,
+            rating: Number(s.rating),
+          }));
 
       // 2. Buscar lote TMDB para obter os gêneros e posters corretos
       const movieIds = moviesList.map((m) => String(m.movieId));
@@ -133,8 +160,8 @@ export default function StatisticsPage() {
   const totalRatedSeries = ratedSeries.length;
   const totalRatings = totalRatedMovies + totalRatedSeries;
 
-  const sumMovieRatings = ratedMovies.reduce((acc, m) => acc + (m.rating || 0), 0);
-  const sumSeriesRatings = ratedSeries.reduce((acc, s) => acc + (s.rating || 0), 0);
+  const sumMovieRatings = ratedMovies.reduce((acc, m) => acc + (Number(m.rating) || 0), 0);
+  const sumSeriesRatings = ratedSeries.reduce((acc, s) => acc + (Number(s.rating) || 0), 0);
   const avgMovieRating = totalRatedMovies > 0 ? (sumMovieRatings / totalRatedMovies).toFixed(1) : "0.0";
   const avgSeriesRating = totalRatedSeries > 0 ? (sumSeriesRatings / totalRatedSeries).toFixed(1) : "0.0";
 
@@ -170,7 +197,7 @@ export default function StatisticsPage() {
         tmdbId: String(m.movieId),
         type: "movie" as const,
         title: m.title || tmdb?.title || "Filme",
-        rating: m.rating,
+        rating: Number(m.rating),
         comment: m.comment,
         posterPath: m.posterPath || tmdb?.poster_path || null,
         createdAt: m.createdAt || new Date().toISOString(),
@@ -183,7 +210,7 @@ export default function StatisticsPage() {
         tmdbId: String(s.serieId),
         type: "serie" as const,
         title: s.title || tmdb?.name || "Série",
-        rating: s.rating,
+        rating: Number(s.rating),
         comment: s.comment,
         posterPath: s.posterPath || tmdb?.poster_path || null,
         createdAt: s.createdAt || new Date().toISOString(),
@@ -193,12 +220,15 @@ export default function StatisticsPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 8);
 
-  // Histograma de Votos (1 a 10)
+  // Histograma de Votos (1 a 10) - Usa Math.floor para notas fracionadas (ex: 3.5 -> Balde 3)
   const ratingCounts: Record<number, number> = { 10: 0, 9: 0, 8: 0, 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
   [...ratedMovies, ...ratedSeries].forEach((item) => {
-    const rounded = Math.round(item.rating);
-    if (rounded >= 1 && rounded <= 10) {
-      ratingCounts[rounded] = (ratingCounts[rounded] || 0) + 1;
+    const r = Number(item.rating);
+    if (!isNaN(r) && r > 0) {
+      const val = r >= 10 ? 10 : Math.floor(r);
+      if (val >= 1 && val <= 10) {
+        ratingCounts[val] = (ratingCounts[val] || 0) + 1;
+      }
     }
   });
 
