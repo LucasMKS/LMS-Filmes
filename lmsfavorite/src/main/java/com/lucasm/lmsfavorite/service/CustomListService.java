@@ -5,11 +5,12 @@ import com.lucasm.lmsfavorite.model.CustomList;
 import com.lucasm.lmsfavorite.model.CustomListItem;
 import com.lucasm.lmsfavorite.repository.CustomListItemRepository;
 import com.lucasm.lmsfavorite.repository.CustomListRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -20,6 +21,9 @@ public class CustomListService {
     private final CustomListRepository customListRepository;
     private final CustomListItemRepository customListItemRepository;
     private final UserLookupService userLookupService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public CustomListService(CustomListRepository customListRepository,
                              CustomListItemRepository customListItemRepository,
@@ -53,7 +57,11 @@ public class CustomListService {
         list.setDescription(dto.getDescription() != null ? dto.getDescription().trim() : "");
 
         CustomList saved = customListRepository.save(list);
-        return new CustomListResponseDTO(saved);
+        entityManager.flush();
+        entityManager.clear();
+
+        CustomList fresh = customListRepository.findByIdAndUserId(saved.getId(), userId).orElse(saved);
+        return new CustomListResponseDTO(fresh);
     }
 
     @Transactional
@@ -68,7 +76,11 @@ public class CustomListService {
         }
 
         CustomList saved = customListRepository.save(list);
-        return new CustomListResponseDTO(saved);
+        entityManager.flush();
+        entityManager.clear();
+
+        CustomList fresh = customListRepository.findByIdAndUserId(saved.getId(), userId).orElse(saved);
+        return new CustomListResponseDTO(fresh);
     }
 
     @Transactional
@@ -106,10 +118,14 @@ public class CustomListService {
 
             list.setUpdatedAt(LocalDateTime.now());
             customListRepository.save(list);
+
+            entityManager.flush();
+            entityManager.clear();
         }
 
-        // Re-fetch to get updated items
-        CustomList updatedList = customListRepository.findById(listId).orElse(list);
+        // Re-fetch clean instance from DB after flushing L1 persistence context
+        CustomList updatedList = customListRepository.findByIdAndUserId(listId, userId)
+                .orElseThrow(() -> new RuntimeException("Lista não encontrada após adicionar item."));
         return new CustomListResponseDTO(updatedList);
     }
 
@@ -126,7 +142,12 @@ public class CustomListService {
         list.setUpdatedAt(LocalDateTime.now());
         customListRepository.save(list);
 
-        CustomList updatedList = customListRepository.findById(listId).orElse(list);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Re-fetch clean instance from DB after flushing L1 persistence context
+        CustomList updatedList = customListRepository.findByIdAndUserId(listId, userId)
+                .orElseThrow(() -> new RuntimeException("Lista não encontrada após remover item."));
         return new CustomListResponseDTO(updatedList);
     }
 
@@ -139,7 +160,6 @@ public class CustomListService {
             for (SyncCustomListDTO localDto : localLists) {
                 if (localDto.getName() == null || localDto.getName().isBlank()) continue;
 
-                // Check if list with same name exists
                 Optional<CustomList> matchingList = existingUserLists.stream()
                         .filter(l -> l.getName().equalsIgnoreCase(localDto.getName().trim()))
                         .findFirst();
@@ -178,6 +198,9 @@ public class CustomListService {
                 }
             }
         }
+
+        entityManager.flush();
+        entityManager.clear();
 
         List<CustomList> finalLists = customListRepository.findByUserIdOrderByUpdatedAtDesc(userId);
         return finalLists.stream().map(CustomListResponseDTO::new).collect(Collectors.toList());
