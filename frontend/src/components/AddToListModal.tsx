@@ -26,8 +26,10 @@ import {
   addItemToList,
   removeItemFromList,
   isItemInList,
+  useListsListener,
   CustomList,
 } from "@/lib/userLists";
+import AuthService from "@/lib/auth";
 import Image from "next/image";
 
 interface AddToListModalProps {
@@ -56,22 +58,31 @@ export function AddToListModal({
   const [newListName, setNewListName] = useState("");
   const [newListDesc, setNewListDesc] = useState("");
 
+  const effectiveEmail = userEmail || AuthService.getUser()?.email;
   const itemIdStr = String(item.id);
 
   useEffect(() => {
     if (isOpen) {
-      setLists(getUserLists(userEmail));
+      setLists(getUserLists(effectiveEmail));
       setIsCreating(false);
       setNewListName("");
       setNewListDesc("");
     }
-  }, [isOpen, userEmail]);
+  }, [isOpen, effectiveEmail]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const cleanup = useListsListener(() => {
+      setLists(getUserLists(effectiveEmail));
+    });
+    return cleanup;
+  }, [isOpen, effectiveEmail]);
 
   const handleToggleList = (list: CustomList) => {
-    const inList = isItemInList(list.id, itemIdStr, item.type, userEmail);
+    const inList = isItemInList(list.id, itemIdStr, item.type, effectiveEmail);
 
     if (inList) {
-      removeItemFromList(list.id, itemIdStr, item.type, userEmail);
+      removeItemFromList(list.id, itemIdStr, item.type, effectiveEmail);
       toast.success(`Removido de "${list.name}"`);
     } else {
       addItemToList(
@@ -85,12 +96,12 @@ export function AddToListModal({
           voteAverage: item.voteAverage,
           releaseYear: item.releaseYear,
         },
-        userEmail
+        effectiveEmail
       );
       toast.success(`Adicionado a "${list.name}"`);
     }
 
-    setLists(getUserLists(userEmail));
+    setLists(getUserLists(effectiveEmail));
   };
 
   const handleCreateNewList = (e: React.FormEvent) => {
@@ -100,7 +111,7 @@ export function AddToListModal({
       return;
     }
 
-    const newList = createList(newListName.trim(), newListDesc.trim(), userEmail);
+    const newList = createList(newListName.trim(), newListDesc.trim(), effectiveEmail);
     // Add item to newly created list immediately
     addItemToList(
       newList.id,
@@ -113,11 +124,11 @@ export function AddToListModal({
         voteAverage: item.voteAverage,
         releaseYear: item.releaseYear,
       },
-      userEmail
+      effectiveEmail
     );
 
     toast.success(`Lista "${newList.name}" criada e item adicionado!`);
-    setLists(getUserLists(userEmail));
+    setLists(getUserLists(effectiveEmail));
     setNewListName("");
     setNewListDesc("");
     setIsCreating(false);
@@ -223,7 +234,7 @@ export function AddToListModal({
                   list.id,
                   itemIdStr,
                   item.type,
-                  userEmail
+                  effectiveEmail
                 );
                 return (
                   <div

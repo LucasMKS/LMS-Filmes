@@ -199,13 +199,24 @@ export function MovieDialog({
           <div className="relative z-10 px-4 sm:px-6 md:px-10 pb-8 -mt-20 sm:-mt-28 md:-mt-32">
             <div className="flex flex-col md:flex-row gap-5 sm:gap-6 md:gap-8 items-center md:items-end">
               <div className="w-32 sm:w-44 md:w-56 lg:w-64 shrink-0 mx-auto md:mx-0">
-                <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] border-2 border-white/[0.08] bg-white/5">
+                <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] border-2 border-white/[0.08] bg-white/5 group/poster">
                   <Image
                     src={imageUrl}
                     alt={displayMovie.title}
                     fill
                     className="object-cover"
                   />
+                  {displayMovie.homepage && (
+                    <a
+                      href={displayMovie.homepage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Site Oficial"
+                      className="absolute top-2.5 right-2.5 z-20 p-2 rounded-xl bg-black/60 hover:bg-black/90 text-white/70 hover:text-white border border-white/15 backdrop-blur-md transition-all group/link shadow-lg hover:scale-105"
+                    >
+                      <ExternalLink className="w-4 h-4 group-hover/link:scale-110 transition-transform" />
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -236,65 +247,57 @@ export function MovieDialog({
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-5 w-full">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 mt-5 w-full">
                   <button
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold transition-all text-sm"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black hover:bg-white/90 font-bold transition-all text-sm shadow-md"
                     onClick={handleNavigateToDetails}
                   >
                     <Info className="w-4 h-4" />
-                    Mais Detalhes
+                    <span>Mais Detalhes</span>
                   </button>
 
                   {isLoggedIn ? (
                     <>
                       <button
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold shadow-lg shadow-purple-900/30 transition-all text-sm"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold shadow-lg shadow-purple-900/30 transition-all text-sm"
                         onClick={() => setIsRatingOpen(true)}
                         disabled={loadingRating}
                       >
-                        <Star className="w-4 h-4" />
-                        {loadingRating ? "Carregando..." : userRating ? "Editar Avaliação" : "Avaliar Filme"}
+                        <Star className="w-4 h-4 fill-current" />
+                        <span>{loadingRating ? "Carregando..." : userRating ? "Editar Avaliação" : "Avaliar Filme"}</span>
                       </button>
 
+                      {/* Botão Minimalista da Watchlist */}
                       <button
+                        title={isInWatchlist ? "Remover da Watchlist" : "Adicionar à Watchlist"}
                         className={cn(
-                          "w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50",
+                          "p-2.5 rounded-xl border transition-all duration-200 disabled:opacity-50 flex items-center justify-center",
                           isInWatchlist
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-                            : "border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5",
+                            ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
+                            : "bg-white/[0.04] border-white/10 text-white/60 hover:text-white hover:bg-white/10"
                         )}
                         onClick={handleToggleWatchlist}
                         disabled={loadingWatchlist}
                       >
-                        {isInWatchlist ? <Check className="w-4 h-4" /> : <ListPlus className="w-4 h-4" />}
-                        {loadingWatchlist ? "Salvando..." : isInWatchlist ? "Na Watchlist" : "Add à Watchlist"}
+                        {isInWatchlist ? <Check className="w-4 h-4 text-emerald-400 stroke-[3]" /> : <ListPlus className="w-4 h-4" />}
+                      </button>
+
+                      {/* Botão Minimalista de Salvar em Lista */}
+                      <button
+                        title="Salvar em Lista Personalizada"
+                        className="p-2.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/50 transition-all duration-200 flex items-center justify-center"
+                        onClick={() => setIsAddToListOpen(true)}
+                      >
+                        <FolderPlus className="w-4 h-4 text-purple-400" />
                       </button>
                     </>
                   ) : (
                     <button
                       disabled
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 text-white/30 font-semibold border border-white/[0.06] cursor-not-allowed text-sm"
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 text-white/30 font-semibold border border-white/[0.06] cursor-not-allowed text-sm"
                     >
                       <Star className="w-4 h-4 opacity-50" />
-                      Faça login para interagir
-                    </button>
-                  )}
-
-                  <button
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 font-semibold text-sm transition-all"
-                    onClick={() => setIsAddToListOpen(true)}
-                  >
-                    <FolderPlus className="w-4 h-4 text-purple-400" />
-                    Salvar em Lista
-                  </button>
-
-                  {displayMovie.homepage && (
-                    <button
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/5 text-sm font-medium transition-all"
-                      onClick={() => window.open(displayMovie.homepage, "_blank")}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Site Oficial
+                      <span>Faça login para interagir</span>
                     </button>
                   )}
                 </div>

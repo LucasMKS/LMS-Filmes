@@ -26,6 +26,7 @@ import {
   Search,
   Sparkles,
   BookmarkX,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,9 @@ import {
   createList,
   renameList,
   deleteList,
+  addItemToList,
   removeItemFromList,
+  isItemInList,
   useListsListener,
   CustomList,
   CustomListItem,
@@ -72,6 +75,91 @@ export default function UserListsPage() {
     details: TmdbSerie | null;
   } | null>(null);
   const [loadingMediaDetails, setLoadingMediaDetails] = useState(false);
+
+  // Quick Add Item Search State inside selected list
+  const [addItemSearchQuery, setAddItemSearchQuery] = useState("");
+  const [addItemSearchResults, setAddItemSearchResults] = useState<Array<{
+    id: string | number;
+    type: "movie" | "serie";
+    title: string;
+    posterPath: string | null;
+    backdropPath?: string | null;
+    voteAverage?: number;
+    releaseYear?: string;
+  }>>([]);
+  const [isSearchingAddItem, setIsSearchingAddItem] = useState(false);
+
+  useEffect(() => {
+    if (!addItemSearchQuery.trim() || addItemSearchQuery.trim().length < 2) {
+      setAddItemSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingAddItem(true);
+      try {
+        const [moviesRes, seriesRes] = await Promise.all([
+          moviesApi.searchMovies(addItemSearchQuery).catch(() => ({ results: [] })),
+          seriesApi.searchSeries(addItemSearchQuery).catch(() => ({ results: [] })),
+        ]);
+
+        const moviesList = (moviesRes.results || []).slice(0, 5).map((m) => ({
+          id: m.id,
+          type: "movie" as const,
+          title: m.title,
+          posterPath: m.poster_path || null,
+          backdropPath: m.backdrop_path || null,
+          voteAverage: m.vote_average,
+          releaseYear: m.release_date ? new Date(m.release_date).getFullYear().toString() : undefined,
+        }));
+
+        const seriesList = (seriesRes.results || []).slice(0, 5).map((s) => ({
+          id: s.id,
+          type: "serie" as const,
+          title: s.name,
+          posterPath: s.poster_path || null,
+          backdropPath: s.backdrop_path || null,
+          voteAverage: s.vote_average,
+          releaseYear: s.first_air_date ? new Date(s.first_air_date).getFullYear().toString() : undefined,
+        }));
+
+        setAddItemSearchResults([...moviesList, ...seriesList]);
+      } catch (err) {
+        console.error("Erro na busca de títulos:", err);
+      } finally {
+        setIsSearchingAddItem(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [addItemSearchQuery]);
+
+  const handleAddSearchResultToList = (item: any) => {
+    if (!selectedListId) return;
+    const inList = isItemInList(selectedListId, String(item.id), item.type, user?.email);
+
+    if (inList) {
+      removeItemFromList(selectedListId, String(item.id), item.type, user?.email);
+      toast.success(`Removido da lista`);
+    } else {
+      addItemToList(
+        selectedListId,
+        {
+          id: String(item.id),
+          type: item.type,
+          title: item.title,
+          posterPath: item.posterPath,
+          backdropPath: item.backdropPath,
+          voteAverage: item.voteAverage,
+          releaseYear: item.releaseYear,
+        },
+        user?.email
+      );
+      toast.success(`"${item.title}" adicionado à lista!`);
+    }
+
+    setLists(getUserLists(user?.email));
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -274,6 +362,103 @@ export default function UserListsPage() {
                   Excluir Lista
                 </Button>
               </div>
+            </div>
+
+            {/* Widget de Pesquisa & Adição Direta de Títulos */}
+            <div className="bg-[#14141c] border border-purple-500/20 p-4 rounded-3xl space-y-3 relative z-30 shadow-xl my-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-purple-300">
+                  <Plus className="w-4 h-4 text-purple-400" />
+                  <span>Adicionar filmes ou séries a esta lista</span>
+                </div>
+                {addItemSearchQuery && (
+                  <button
+                    onClick={() => {
+                      setAddItemSearchQuery("");
+                      setAddItemSearchResults([]);
+                    }}
+                    className="text-[11px] text-white/40 hover:text-white transition-colors"
+                  >
+                    Limpar busca
+                  </button>
+                )}
+              </div>
+
+              <div className="relative">
+                <Search className="w-4 h-4 text-white/30 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  placeholder="Digite o nome do filme ou série (ex: Batman, Breaking Bad)..."
+                  value={addItemSearchQuery}
+                  onChange={(e) => setAddItemSearchQuery(e.target.value)}
+                  className="pl-10 bg-black/40 border-white/10 text-white placeholder:text-white/30 text-xs rounded-2xl h-10 focus:border-purple-500"
+                />
+              </div>
+
+              {/* Resultados de Pesquisa Instantâneos */}
+              {isSearchingAddItem ? (
+                <div className="p-3 text-center text-xs text-white/40 animate-pulse font-medium">
+                  Buscando no catálogo...
+                </div>
+              ) : addItemSearchResults.length > 0 ? (
+                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                  {addItemSearchResults.map((result) => {
+                    const inList = isItemInList(selectedList.id, String(result.id), result.type, user?.email);
+                    const posterUrl = result.posterPath
+                      ? result.posterPath.startsWith("http")
+                        ? result.posterPath
+                        : `https://image.tmdb.org/t/p/w92${result.posterPath}`
+                      : "/placeholder-movie.jpg";
+
+                    return (
+                      <div
+                        key={`${result.type}_${result.id}`}
+                        className="flex items-center justify-between p-2 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.07] transition-all"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative w-8 h-11 rounded-lg overflow-hidden bg-white/5 shrink-0 border border-white/10">
+                            <Image src={posterUrl} alt={result.title} fill className="object-cover" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={cn("text-[9px] px-1.5 py-0.2 rounded font-semibold border", result.type === "movie" ? "bg-purple-500/10 text-purple-300 border-purple-500/20" : "bg-violet-500/10 text-violet-300 border-violet-500/20")}>
+                                {result.type === "movie" ? "Filme" : "Série"}
+                              </span>
+                              {result.releaseYear && <span className="text-[10px] text-white/40 font-medium">{result.releaseYear}</span>}
+                            </div>
+                            <h5 className="text-xs font-bold text-white line-clamp-1 mt-0.5">{result.title}</h5>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleAddSearchResultToList(result)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5",
+                            inList
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+                              : "bg-purple-600 hover:bg-purple-500 text-white shadow-md"
+                          )}
+                        >
+                          {inList ? (
+                            <>
+                              <Check className="w-3 h-3 stroke-[3]" />
+                              <span>Adicionado</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3 h-3" />
+                              <span>Adicionar</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : addItemSearchQuery.trim().length >= 2 ? (
+                <div className="p-3 text-center text-xs text-white/40 font-medium">
+                  Nenhum título encontrado para "{addItemSearchQuery}".
+                </div>
+              ) : null}
             </div>
 
             {/* Filtros e Busca dentro da Lista */}
