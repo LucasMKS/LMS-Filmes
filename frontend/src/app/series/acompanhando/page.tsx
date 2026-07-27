@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Dices, Check, Trash2, Tv, Search, LayoutGrid, List } from "lucide-react";
+import { Dices, Check, Trash2, Tv, Search, LayoutGrid, List, Star, Users } from "lucide-react";
 import { RatingDialog } from "@/components/RatingDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { watchlistSeriesApi, seriesApi, favoriteSeriesApi, ratingSeriesApi } from "@/lib/api";
@@ -385,11 +385,17 @@ export default function SeriesAcompanhandoPage() {
                           Série
                         </span>
                         {renderSerieStatusBadge(item)}
-                        {item.userRating && (
-                          <span className="px-2 py-0.5 rounded-full bg-yellow-500/90 text-black font-extrabold backdrop-blur-md text-[10px]">
-                            ★ {item.userRating.rating}
+                        {item.userRating ? (
+                          <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 font-extrabold backdrop-blur-md text-[10px] flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                            {item.userRating.rating}
                           </span>
-                        )}
+                        ) : item.tmdbData?.vote_average ? (
+                          <span className="px-2 py-0.5 rounded-full bg-black/60 border border-white/10 text-white backdrop-blur-md text-[10px] font-bold flex items-center gap-1">
+                            <Users className="w-3 h-3 text-white/60" />
+                            {item.tmdbData.vote_average.toFixed(1)}
+                          </span>
+                        ) : null}
                       </div>
 
                       <button
@@ -477,12 +483,18 @@ export default function SeriesAcompanhandoPage() {
                               </span>
                               {renderSerieStatusBadge(item)}
 
-                              {/* Sua Nota Badge */}
-                              {item.userRating && (
-                                <span className="inline-block px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/20 text-[10px] sm:text-xs font-bold">
-                                  ★ {item.userRating.rating}/10
+                              {/* Nota Badge Única */}
+                              {item.userRating ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 text-[10px] sm:text-xs font-extrabold">
+                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                  {item.userRating.rating}
                                 </span>
-                              )}
+                              ) : item.tmdbData?.vote_average ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 border border-white/10 text-white text-[10px] sm:text-xs font-bold">
+                                  <Users className="w-3 h-3 text-white/60" />
+                                  {item.tmdbData.vote_average.toFixed(1)}
+                                </span>
+                              ) : null}
                             </div>
                             <h3 className="mb-1 text-base sm:text-lg md:text-xl font-bold text-white line-clamp-1 group-hover:text-violet-400 transition-colors">
                               {item.title}

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Heart, MessageSquare, Star, Eye, Bookmark, Info, type LucideIcon } from "lucide-react";
+import { Heart, MessageSquare, Star, Eye, Bookmark, Info, Users, type LucideIcon } from "lucide-react";
 
 interface MediaCardProps {
   imageUrl: string;
@@ -51,9 +51,6 @@ export function MediaCard({
   badgeIcon: BadgeIcon,
   badgeClassName,
   overlayRating,
-  overlayIcon: OverlayIcon = Star,
-  overlayIconClassName,
-  userRatingIconClassName,
 }: MediaCardProps) {
   const [imgSrc, setImgSrc] = useState(imageUrl);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,7 +81,7 @@ export function MediaCard({
       {/* Glow decorativo no topo ao hover */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-      {/* Clique principal (Navegação) - Agora com z-0 para ficar atrás dos botões */}
+      {/* Clique principal (Navegação) */}
       <div
         className="absolute inset-0 z-0 cursor-pointer"
         onClick={onClick}
@@ -124,7 +121,7 @@ export function MediaCard({
           {/* Overlay gradiente */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent opacity-60" />
 
-          {/* Botão Quick View / Info - Mais visível em mobile */}
+          {/* Botão Quick View Mobile */}
           {onQuickView && (
             <div className="absolute left-3 bottom-3 z-30 flex sm:hidden pointer-events-auto">
               <Button
@@ -141,7 +138,7 @@ export function MediaCard({
             </div>
           )}
 
-          {/* Botão Quick View Desktop - Center hover */}
+          {/* Botão Quick View Desktop */}
           {onQuickView && (
             <div className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-all duration-300 hidden sm:flex group-hover:opacity-100 group-hover:scale-100 scale-90 pointer-events-auto">
               <Button
@@ -159,18 +156,23 @@ export function MediaCard({
             </div>
           )}
 
-          {/* Overlay com nota global (visível sempre em mobile, hover em desktop) */}
-          <div className="absolute right-3 bottom-3 z-20">
-             <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#0a0a0f]/70 px-2.5 py-1.5 text-white backdrop-blur-md">
-                <OverlayIcon
-                  className={cn("h-3.5 w-3.5 fill-current", overlayIconClassName)}
-                />
+          {/* Badge ÚNICA de Avaliação (Minha Nota em Amarelo com Estrela ou Nota TMDB em Branco com ícone de Público Users) */}
+          <div className="absolute right-3 bottom-3 z-20 pointer-events-none">
+            {hasRating ? (
+              <div className="flex items-center gap-1.5 rounded-xl border border-yellow-500/40 bg-yellow-500/20 px-2.5 py-1 text-xs font-extrabold text-yellow-300 shadow-[0_0_12px_rgba(234,179,8,0.25)] backdrop-blur-md">
+                <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                <span>{userRating.rating}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#0a0a0f]/75 px-2.5 py-1 text-white/90 backdrop-blur-md">
+                <Users className="h-3.5 w-3.5 text-white/60" />
                 <span className="text-xs font-bold">
-                  {typeof overlayRating === "number"
+                  {typeof overlayRating === "number" && overlayRating > 0
                     ? overlayRating.toFixed(1)
                     : "N/A"}
                 </span>
               </div>
+            )}
           </div>
         </div>
 
@@ -194,22 +196,9 @@ export function MediaCard({
         {badgeLabel}
       </Badge>
 
-      {/* Badge de avaliação do usuário */}
-      {userRating && (
-        <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-xl border border-purple-500/30 bg-purple-600/90 px-2.5 py-1 text-xs font-bold text-white shadow-[0_4px_12px_rgba(168,85,247,0.35)] backdrop-blur-md">
-          <Star
-            className={cn("h-3 w-3 fill-current", userRatingIconClassName)}
-          />
-          {userRating.rating}
-        </div>
-      )}
-
       {/* Botão de Ação (Wishlist ou Favorito) */}
       {showActionButtons && (
-        <div className={cn(
-          "absolute z-30 transition-all duration-300 pointer-events-auto",
-          userRating ? "right-3 top-[2.75rem]" : "right-3 top-3"
-        )}>
+        <div className="absolute right-3 top-3 z-30 transition-all duration-300 pointer-events-auto">
           {hasRating ? (
             /* Botão de Favorito (Se já avaliou) */
             <Button
