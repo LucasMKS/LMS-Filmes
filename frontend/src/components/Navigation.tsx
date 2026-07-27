@@ -15,11 +15,14 @@ import {
   User as UserIcon,
   Eye,
   FolderHeart,
+  BarChart3,
+  ChevronDown,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AuthService from "../lib/auth";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { User } from "../lib/types";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -44,6 +47,18 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     setIsMounted(true);
@@ -124,6 +139,15 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       activeBg: "bg-purple-500/10 border-purple-500/20 text-purple-300",
       current: pathname === "/listas" || pathname.startsWith("/listas/"),
       requiresAuth: false,
+    },
+    {
+      name: "Estatísticas",
+      href: "/estatisticas",
+      icon: BarChart3,
+      color: "text-emerald-400",
+      activeBg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-300",
+      current: pathname === "/estatisticas",
+      requiresAuth: true,
     },
   ];
 
@@ -299,23 +323,88 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
             {/* Divisor */}
             <div className="h-5 w-px bg-white/10 mx-1 hidden sm:block" />
 
-            {/* Ações Desktop */}
+            {/* Ações Desktop / Dropdown do Usuário */}
             <div className="hidden sm:flex items-center gap-2">
-              {isAuthenticated ? (
-                <>
-                  {user?.role === "ADMIN" && (
-                    <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                      Admin
-                    </Badge>
-                  )}
+              {isAuthenticated && user ? (
+                <div className="relative" ref={userMenuRef}>
                   <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-200"
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-2 p-1.5 pl-2 pr-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 transition-all duration-200"
                   >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sair</span>
+                    <div className="h-7 w-7 rounded-xl bg-gradient-to-tr from-purple-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
+                      {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                    </div>
+                    <span className="text-xs font-semibold text-white/90 line-clamp-1 max-w-[100px]">
+                      {user.nickname ? `@${user.nickname}` : user.name}
+                    </span>
+                    <ChevronDown className={cn("w-3.5 h-3.5 text-white/40 transition-transform duration-200", isUserMenuOpen && "rotate-180")} />
                   </button>
-                </>
+
+                  {/* Dropdown Popover */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-[#0f0f17]/95 border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <div className="p-2.5 pb-3 border-b border-white/5 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold text-white line-clamp-1">{user.name}</p>
+                          {user.role === "ADMIN" && (
+                            <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-semibold border border-purple-500/30">
+                              Admin
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-white/40 line-clamp-1 font-medium">{user.email}</p>
+                      </div>
+
+                      <div className="py-1 space-y-0.5">
+                        <button
+                          onClick={() => {
+                            router.push("/estatisticas");
+                            setIsUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors text-left"
+                        >
+                          <BarChart3 className="w-4 h-4 text-emerald-400" />
+                          <span>Estatísticas</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            router.push("/listas");
+                            setIsUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors text-left"
+                        >
+                          <FolderHeart className="w-4 h-4 text-purple-400" />
+                          <span>Minhas Listas</span>
+                        </button>
+
+                        <button
+                          disabled
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-white/30 cursor-not-allowed opacity-60 text-left"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Settings className="w-4 h-4" />
+                            <span>Configurações</span>
+                          </div>
+                          <span className="text-[9px] bg-white/5 text-white/40 px-1.5 py-0.5 rounded">Em breve</span>
+                        </button>
+                      </div>
+
+                      <div className="pt-1 border-t border-white/5">
+                        <button
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            handleLogout();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-colors text-left"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Sair da conta</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <button
                   onClick={handleLogin}
