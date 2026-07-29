@@ -12,6 +12,8 @@ import java.util.Optional;
 @Repository
 public interface WatchlistMovieRepository extends JpaRepository<WatchlistMovie, Long> {
 
+    List<WatchlistMovie> findByStatusIn(List<com.lucasm.lmsfavorite.model.WatchlistStatus> statuses);
+
     List<WatchlistMovie> findByUserIdOrderByAddedAtDesc(Long userId);
 
     Optional<WatchlistMovie> findByUserIdAndMovieId(Long userId, String movieId);
