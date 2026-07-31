@@ -11,7 +11,7 @@ import { MediaCardSkeleton } from "../../components/MediaCardSkeleton";
 import { MovieDialog } from "../../components/MovieDialog";
 import { SerieDialog } from "../../components/SerieDialog";
 import { Input } from "@/components/ui/input";
-import { Star, Film, Tv, Search, Filter, TrendingUp, X, ChevronDown, Loader2 } from "lucide-react";
+import { Star, Film, Tv, Search, Filter, TrendingUp, X, ChevronDown, Loader2, Columns2, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { keepPreviousData, useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -61,6 +61,19 @@ export default function RatingsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterRating, setFilterRating] = useState("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">("all");
+  const [viewMode, setViewMode] = useState<"split" | "unified">("split");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("lms_avaliacoes_view_mode");
+    if (saved === "split" || saved === "unified") {
+      setViewMode(saved);
+    }
+  }, []);
+
+  const handleViewModeChange = (mode: "split" | "unified") => {
+    setViewMode(mode);
+    localStorage.setItem("lms_avaliacoes_view_mode", mode);
+  };
 
   const isAuth = AuthService.isAuthenticated();
 
@@ -296,25 +309,57 @@ export default function RatingsPage() {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/25 pointer-events-none" />
               </div>
 
-              <div className="flex gap-1.5 bg-[#0a0a0f]/60 p-1.5 rounded-xl border border-white/[0.06] overflow-x-auto shrink-0">
-                <button
-                  onClick={() => setTypeFilter("all")}
-                  className={tabBtn(typeFilter === "all", "bg-white/10 text-white/80")}
-                >
-                  Todos
-                </button>
-                <button
-                  onClick={() => setTypeFilter("movie")}
-                  className={tabBtn(typeFilter === "movie", "bg-purple-500/15 text-purple-300 border-purple-500/20")}
-                >
-                  <Film className="w-3.5 h-3.5" /> Filmes
-                </button>
-                <button
-                  onClick={() => setTypeFilter("serie")}
-                  className={tabBtn(typeFilter === "serie", "bg-violet-500/15 text-violet-300 border-violet-500/20")}
-                >
-                  <Tv className="w-3.5 h-3.5" /> Séries
-                </button>
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <div className="flex gap-1.5 bg-[#0a0a0f]/60 p-1.5 rounded-xl border border-white/[0.06] overflow-x-auto shrink-0">
+                  <button
+                    onClick={() => setTypeFilter("all")}
+                    className={tabBtn(typeFilter === "all", "bg-white/10 text-white/80")}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => setTypeFilter("movie")}
+                    className={tabBtn(typeFilter === "movie", "bg-purple-500/15 text-purple-300 border-purple-500/20")}
+                  >
+                    <Film className="w-3.5 h-3.5" /> Filmes
+                  </button>
+                  <button
+                    onClick={() => setTypeFilter("serie")}
+                    className={tabBtn(typeFilter === "serie", "bg-violet-500/15 text-violet-300 border-violet-500/20")}
+                  >
+                    <Tv className="w-3.5 h-3.5" /> Séries
+                  </button>
+                </div>
+
+                {/* Seletor de Layout (Apenas no Desktop) */}
+                <div className="hidden lg:flex items-center gap-1 bg-[#0a0a0f]/60 p-1.5 rounded-xl border border-white/[0.06]">
+                  <button
+                    onClick={() => handleViewModeChange("split")}
+                    title="Visão Lado a Lado (3 Filmes | 3 Séries por linha)"
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
+                      viewMode === "split"
+                        ? "bg-amber-500/15 text-amber-300 border border-amber-500/20 shadow-sm"
+                        : "text-white/35 hover:text-white/60 border border-transparent",
+                    )}
+                  >
+                    <Columns2 className="w-3.5 h-3.5" />
+                    <span>Lado a Lado</span>
+                  </button>
+                  <button
+                    onClick={() => handleViewModeChange("unified")}
+                    title="Grid Unificado (Todos os cards num só grid)"
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
+                      viewMode === "unified"
+                        ? "bg-white/10 text-white border border-white/10 shadow-sm"
+                        : "text-white/35 hover:text-white/60 border border-transparent",
+                    )}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Grid Único</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -385,47 +430,142 @@ export default function RatingsPage() {
                 )}
               </div>
             ) : (
-              <div
-                className={cn(
-                  "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 mb-10 transition-opacity duration-200",
-                  isRefetching && "opacity-60",
-                )}
-              >
-                {visibleMovies.map((m) => {
-                  const movieIdStr = String(m.movieId);
-                  const isFav = favoriteMovieIds.has(movieIdStr);
-                  return (
-                    <MovieCard
-                      key={`movie-${m.id}`}
-                      movie={m.tmdb ?? toTmdbMovieFallback(m)}
-                      onClick={() => handleMovieClick(m)}
-                      userRating={{ rating: String(m.rating), comment: m.comment }}
-                      showActionButtons={isAuth}
-                      isFavorite={isFav}
-                      onFavoriteToggle={() =>
-                        toggleFavoriteMutation.mutate({ type: "movie", id: movieIdStr })
-                      }
-                    />
-                  );
-                })}
-                {visibleSeries.map((s) => {
-                  const serieIdStr = String(s.serieId);
-                  const isFav = favoriteSerieIds.has(serieIdStr);
-                  return (
-                    <SerieCard
-                      key={`serie-${s.id}`}
-                      serie={s.tmdb ?? toTmdbSerieFallback(s)}
-                      onClick={() => handleSerieClick(s)}
-                      userRating={{ rating: String(s.rating), comment: s.comment }}
-                      showActionButtons={isAuth}
-                      isFavorite={isFav}
-                      onFavoriteToggle={() =>
-                        toggleFavoriteMutation.mutate({ type: "serie", id: serieIdStr })
-                      }
-                    />
-                  );
-                })}
-              </div>
+            <>
+                {/* Split View (Desktop default) */}
+                <div
+                  className={cn(
+                    "mb-10 transition-opacity duration-200",
+                    isRefetching && "opacity-60",
+                    viewMode === "split" ? "hidden lg:grid grid-cols-1 lg:grid-cols-2 gap-8" : "hidden",
+                  )}
+                >
+                  {/* Coluna da Esquerda: Filmes */}
+                  <div className="bg-[#14141c]/50 border border-white/[0.06] rounded-2xl p-5 shadow-xl flex flex-col">
+                    <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/[0.06]">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                          <Film className="w-4 h-4" />
+                        </div>
+                        <h3 className="font-bold text-white text-base">Filmes Avaliados</h3>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-bold">
+                        {visibleMovies.length}
+                      </span>
+                    </div>
+                    {visibleMovies.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center py-12 text-center border border-dashed border-white/[0.06] rounded-xl bg-[#0a0a0f]/30">
+                        <Film className="w-8 h-8 text-white/15 mb-2" />
+                        <p className="text-white/40 text-sm font-medium">Nenhum filme avaliado</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                        {visibleMovies.map((m) => {
+                          const movieIdStr = String(m.movieId);
+                          const isFav = favoriteMovieIds.has(movieIdStr);
+                          return (
+                            <MovieCard
+                              key={`movie-${m.id}`}
+                              movie={m.tmdb ?? toTmdbMovieFallback(m)}
+                              onClick={() => handleMovieClick(m)}
+                              userRating={{ rating: String(m.rating), comment: m.comment }}
+                              showActionButtons={isAuth}
+                              isFavorite={isFav}
+                              onFavoriteToggle={() =>
+                                toggleFavoriteMutation.mutate({ type: "movie", id: movieIdStr })
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Coluna da Direita: Séries */}
+                  <div className="bg-[#14141c]/50 border border-white/[0.06] rounded-2xl p-5 shadow-xl flex flex-col">
+                    <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/[0.06]">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400">
+                          <Tv className="w-4 h-4" />
+                        </div>
+                        <h3 className="font-bold text-white text-base">Séries Avaliadas</h3>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-bold">
+                        {visibleSeries.length}
+                      </span>
+                    </div>
+                    {visibleSeries.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center py-12 text-center border border-dashed border-white/[0.06] rounded-xl bg-[#0a0a0f]/30">
+                        <Tv className="w-8 h-8 text-white/15 mb-2" />
+                        <p className="text-white/40 text-sm font-medium">Nenhuma série avaliada</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                        {visibleSeries.map((s) => {
+                          const serieIdStr = String(s.serieId);
+                          const isFav = favoriteSerieIds.has(serieIdStr);
+                          return (
+                            <SerieCard
+                              key={`serie-${s.id}`}
+                              serie={s.tmdb ?? toTmdbSerieFallback(s)}
+                              onClick={() => handleSerieClick(s)}
+                              userRating={{ rating: String(s.rating), comment: s.comment }}
+                              showActionButtons={isAuth}
+                              isFavorite={isFav}
+                              onFavoriteToggle={() =>
+                                toggleFavoriteMutation.mutate({ type: "serie", id: serieIdStr })
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Unified View (Always active on mobile < lg, and on desktop when viewMode === "unified") */}
+                <div
+                  className={cn(
+                    "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 mb-10 transition-opacity duration-200",
+                    isRefetching && "opacity-60",
+                    viewMode === "split" && "lg:hidden",
+                  )}
+                >
+                  {visibleMovies.map((m) => {
+                    const movieIdStr = String(m.movieId);
+                    const isFav = favoriteMovieIds.has(movieIdStr);
+                    return (
+                      <MovieCard
+                        key={`movie-${m.id}`}
+                        movie={m.tmdb ?? toTmdbMovieFallback(m)}
+                        onClick={() => handleMovieClick(m)}
+                        userRating={{ rating: String(m.rating), comment: m.comment }}
+                        showActionButtons={isAuth}
+                        isFavorite={isFav}
+                        onFavoriteToggle={() =>
+                          toggleFavoriteMutation.mutate({ type: "movie", id: movieIdStr })
+                        }
+                      />
+                    );
+                  })}
+                  {visibleSeries.map((s) => {
+                    const serieIdStr = String(s.serieId);
+                    const isFav = favoriteSerieIds.has(serieIdStr);
+                    return (
+                      <SerieCard
+                        key={`serie-${s.id}`}
+                        serie={s.tmdb ?? toTmdbSerieFallback(s)}
+                        onClick={() => handleSerieClick(s)}
+                        userRating={{ rating: String(s.rating), comment: s.comment }}
+                        showActionButtons={isAuth}
+                        isFavorite={isFav}
+                        onFavoriteToggle={() =>
+                          toggleFavoriteMutation.mutate({ type: "serie", id: serieIdStr })
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </>
             )}
 
             {hasMore && (

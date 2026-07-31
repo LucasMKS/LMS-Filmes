@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import AuthService from "../../lib/auth";
 import {
@@ -26,7 +26,7 @@ import { MediaCardSkeleton } from "../../components/MediaCardSkeleton";
 import { MovieDialog } from "../../components/MovieDialog";
 import { SerieDialog } from "../../components/SerieDialog";
 import { Input } from "@/components/ui/input";
-import { Heart, Film, Tv, Search, Filter, X } from "lucide-react";
+import { Heart, Film, Tv, Search, Filter, X, Columns2, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -42,6 +42,19 @@ export default function FavoritesPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">("all");
+  const [viewMode, setViewMode] = useState<"split" | "unified">("split");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("lms_favoritos_view_mode");
+    if (saved === "split" || saved === "unified") {
+      setViewMode(saved);
+    }
+  }, []);
+
+  const handleViewModeChange = (mode: "split" | "unified") => {
+    setViewMode(mode);
+    localStorage.setItem("lms_favoritos_view_mode", mode);
+  };
 
   const isAuth = AuthService.isAuthenticated();
 
@@ -239,30 +252,63 @@ export default function FavoritesPage() {
               )}
             </div>
 
-            <div className="flex gap-1.5 bg-[#0a0a0f]/60 p-1 rounded-xl border border-white/[0.06] shrink-0">
-              {[
-                { value: "all", label: "Todos" },
-                { value: "movie", label: "Filmes", icon: Film },
-                { value: "serie", label: "Séries", icon: Tv },
-              ].map(({ value, label, icon: Icon }) => (
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              {/* Seletor de Tipo */}
+              <div className="flex gap-1.5 bg-[#0a0a0f]/60 p-1 rounded-xl border border-white/[0.06]">
+                {[
+                  { value: "all", label: "Todos" },
+                  { value: "movie", label: "Filmes", icon: Film },
+                  { value: "serie", label: "Séries", icon: Tv },
+                ].map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setTypeFilter(value as any)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                      typeFilter === value
+                        ? value === "movie"
+                          ? "bg-purple-500/15 text-purple-300 border border-purple-500/20"
+                          : value === "serie"
+                            ? "bg-violet-500/15 text-violet-300 border border-violet-500/20"
+                            : "bg-white/10 text-white border border-white/10"
+                        : "text-white/40 hover:text-white/70 border border-transparent",
+                    )}
+                  >
+                    {Icon && <Icon className="w-3.5 h-3.5" />}
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Seletor de Layout (Apenas no Desktop) */}
+              <div className="hidden lg:flex items-center gap-1 bg-[#0a0a0f]/60 p-1 rounded-xl border border-white/[0.06]">
                 <button
-                  key={value}
-                  onClick={() => setTypeFilter(value as any)}
+                  onClick={() => handleViewModeChange("split")}
+                  title="Visão Lado a Lado (3 Filmes | 3 Séries por linha)"
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
-                    typeFilter === value
-                      ? value === "movie"
-                        ? "bg-purple-500/15 text-purple-300 border border-purple-500/20"
-                        : value === "serie"
-                          ? "bg-violet-500/15 text-violet-300 border border-violet-500/20"
-                          : "bg-white/10 text-white border border-white/10"
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
+                    viewMode === "split"
+                      ? "bg-pink-500/15 text-pink-300 border border-pink-500/20 shadow-sm"
                       : "text-white/40 hover:text-white/70 border border-transparent",
                   )}
                 >
-                  {Icon && <Icon className="w-3.5 h-3.5" />}
-                  {label}
+                  <Columns2 className="w-3.5 h-3.5" />
+                  <span>Lado a Lado</span>
                 </button>
-              ))}
+                <button
+                  onClick={() => handleViewModeChange("unified")}
+                  title="Grid Unificado (Todos os cards num só grid)"
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
+                    viewMode === "unified"
+                      ? "bg-white/10 text-white border border-white/10 shadow-sm"
+                      : "text-white/40 hover:text-white/70 border border-transparent",
+                  )}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Grid Único</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -328,47 +374,143 @@ export default function FavoritesPage() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 mb-10">
-                {[
-                  ...filteredMovies.map((movie) => ({
-                    type: "movie" as const,
-                    item: movie,
-                    key: `movie-${movie.movieId}`,
-                  })),
-                  ...filteredSeries.map((serie) => ({
-                    type: "serie" as const,
-                    item: serie,
-                    key: `serie-${serie.serieId}`,
-                  })),
-                ].map(({ type, item, key }) => (
-                  <div key={key}>
-                    {type === "movie" && item.tmdbData && (
-                      <MovieCard
-                        movie={item.tmdbData}
-                        onClick={() => handleMovieClick(item)}
-                        showActionButtons={true}
-                        isFavorite={true}
-                        onFavoriteToggle={() =>
-                          toggleFavoriteMutation.mutate({ type: "movie", id: item.movieId })
-                        }
-                        userRating={item.userRating}
-                      />
-                    )}
-                    {type === "serie" && item.tmdbData && (
-                      <SerieCard
-                        serie={item.tmdbData}
-                        onClick={() => handleSerieClick(item)}
-                        showActionButtons={true}
-                        isFavorite={true}
-                        onFavoriteToggle={() =>
-                          toggleFavoriteMutation.mutate({ type: "serie", id: item.serieId })
-                        }
-                        userRating={item.userRating}
-                      />
+            <>
+                {/* Split View (Desktop default) */}
+                <div
+                  className={cn(
+                    "mb-10",
+                    viewMode === "split" ? "hidden lg:grid grid-cols-1 lg:grid-cols-2 gap-8" : "hidden",
+                  )}
+                >
+                  {/* Coluna da Esquerda: Filmes */}
+                  <div className="bg-[#14141c]/50 border border-white/[0.06] rounded-2xl p-5 shadow-xl flex flex-col">
+                    <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/[0.06]">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                          <Film className="w-4 h-4" />
+                        </div>
+                        <h3 className="font-bold text-white text-base">Filmes Favoritos</h3>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-bold">
+                        {filteredMovies.length}
+                      </span>
+                    </div>
+                    {filteredMovies.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center py-12 text-center border border-dashed border-white/[0.06] rounded-xl bg-[#0a0a0f]/30">
+                        <Film className="w-8 h-8 text-white/15 mb-2" />
+                        <p className="text-white/40 text-sm font-medium">Nenhum filme favorito</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                        {filteredMovies.map((movie) => (
+                          <div key={`movie-${movie.movieId}`}>
+                            {movie.tmdbData && (
+                              <MovieCard
+                                movie={movie.tmdbData}
+                                onClick={() => handleMovieClick(movie)}
+                                showActionButtons={true}
+                                isFavorite={true}
+                                onFavoriteToggle={() =>
+                                  toggleFavoriteMutation.mutate({ type: "movie", id: movie.movieId })
+                                }
+                                userRating={movie.userRating}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                ))}
-              </div>
+
+                  {/* Coluna da Direita: Séries */}
+                  <div className="bg-[#14141c]/50 border border-white/[0.06] rounded-2xl p-5 shadow-xl flex flex-col">
+                    <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/[0.06]">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400">
+                          <Tv className="w-4 h-4" />
+                        </div>
+                        <h3 className="font-bold text-white text-base">Séries Favoritas</h3>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-bold">
+                        {filteredSeries.length}
+                      </span>
+                    </div>
+                    {filteredSeries.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center py-12 text-center border border-dashed border-white/[0.06] rounded-xl bg-[#0a0a0f]/30">
+                        <Tv className="w-8 h-8 text-white/15 mb-2" />
+                        <p className="text-white/40 text-sm font-medium">Nenhuma série favorita</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                        {filteredSeries.map((serie) => (
+                          <div key={`serie-${serie.serieId}`}>
+                            {serie.tmdbData && (
+                              <SerieCard
+                                serie={serie.tmdbData}
+                                onClick={() => handleSerieClick(serie)}
+                                showActionButtons={true}
+                                isFavorite={true}
+                                onFavoriteToggle={() =>
+                                  toggleFavoriteMutation.mutate({ type: "serie", id: serie.serieId })
+                                }
+                                userRating={serie.userRating}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Unified View (Always active on mobile < lg, and on desktop when viewMode === "unified") */}
+                <div
+                  className={cn(
+                    "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 mb-10",
+                    viewMode === "split" && "lg:hidden",
+                  )}
+                >
+                  {[
+                    ...filteredMovies.map((movie) => ({
+                      type: "movie" as const,
+                      item: movie,
+                      key: `movie-${movie.movieId}`,
+                    })),
+                    ...filteredSeries.map((serie) => ({
+                      type: "serie" as const,
+                      item: serie,
+                      key: `serie-${serie.serieId}`,
+                    })),
+                  ].map(({ type, item, key }) => (
+                    <div key={key}>
+                      {type === "movie" && item.tmdbData && (
+                        <MovieCard
+                          movie={item.tmdbData}
+                          onClick={() => handleMovieClick(item)}
+                          showActionButtons={true}
+                          isFavorite={true}
+                          onFavoriteToggle={() =>
+                            toggleFavoriteMutation.mutate({ type: "movie", id: item.movieId })
+                          }
+                          userRating={item.userRating}
+                        />
+                      )}
+                      {type === "serie" && item.tmdbData && (
+                        <SerieCard
+                          serie={item.tmdbData}
+                          onClick={() => handleSerieClick(item)}
+                          showActionButtons={true}
+                          isFavorite={true}
+                          onFavoriteToggle={() =>
+                            toggleFavoriteMutation.mutate({ type: "serie", id: item.serieId })
+                          }
+                          userRating={item.userRating}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </>
         )}
