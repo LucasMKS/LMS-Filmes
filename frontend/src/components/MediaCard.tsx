@@ -23,6 +23,7 @@ interface MediaCardProps {
   onFavoriteToggle?: () => void;
   isInWatchlist?: boolean;
   onWatchlistToggle?: () => void;
+  actionType?: "favorite" | "watchlist" | "auto";
   cardClassName?: string;
   badgeLabel: string;
   badgeIcon: LucideIcon;
@@ -46,6 +47,7 @@ export function MediaCard({
   onFavoriteToggle,
   isInWatchlist = false,
   onWatchlistToggle,
+  actionType,
   cardClassName,
   badgeLabel,
   badgeIcon: BadgeIcon,
@@ -68,6 +70,16 @@ export function MediaCard({
   }, [imgSrc]);
 
   const hasRating = !!userRating && !!userRating.rating && userRating.rating !== "0";
+
+  const showFavoriteButton =
+    actionType === "favorite" ||
+    (!actionType && !!onFavoriteToggle && !onWatchlistToggle) ||
+    (!actionType && !!onFavoriteToggle && !!onWatchlistToggle && hasRating);
+
+  const showWatchlistButton =
+    actionType === "watchlist" ||
+    (!actionType && !!onWatchlistToggle && !onFavoriteToggle) ||
+    (!actionType && !!onFavoriteToggle && !!onWatchlistToggle && !hasRating);
 
   return (
     <div
@@ -206,8 +218,8 @@ export function MediaCard({
       {/* Botão de Ação (Topo Direito - Wishlist ou Favorito) */}
       {showActionButtons && (
         <div className="absolute right-3 top-3 z-30 transition-all duration-300 pointer-events-auto">
-          {hasRating ? (
-            /* Botão de Favorito (Se já avaliou) */
+          {showFavoriteButton ? (
+            /* Botão de Favorito */
             <Button
               variant="ghost"
               size="icon"
@@ -225,8 +237,8 @@ export function MediaCard({
             >
               <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
             </Button>
-          ) : (
-            /* Botão de Wishlist (Se NÃO avaliou) */
+          ) : showWatchlistButton ? (
+            /* Botão de Wishlist */
             <Button
               variant="ghost"
               size="icon"
@@ -244,7 +256,7 @@ export function MediaCard({
             >
               <Bookmark className={cn("h-4 w-4", isInWatchlist && "fill-current")} />
             </Button>
-          )}
+          ) : null}
         </div>
       )}
     </div>

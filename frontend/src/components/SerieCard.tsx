@@ -16,6 +16,7 @@ interface SerieCardProps {
   onFavoriteToggle?: () => void;
   isInWatchlist?: boolean;
   onWatchlistToggle?: () => void;
+  actionType?: "favorite" | "watchlist" | "auto";
 }
 
 function SerieCardComponent({
@@ -27,6 +28,7 @@ function SerieCardComponent({
   onFavoriteToggle,
   isInWatchlist = false,
   onWatchlistToggle,
+  actionType,
 }: SerieCardProps) {
   const router = useRouter();
 
@@ -67,6 +69,7 @@ function SerieCardComponent({
       onFavoriteToggle={onFavoriteToggle}
       isInWatchlist={isInWatchlist}
       onWatchlistToggle={onWatchlistToggle}
+      actionType={actionType}
       badgeLabel="Série"
       badgeIcon={Tv}
       badgeClassName="bg-violet-600/90"

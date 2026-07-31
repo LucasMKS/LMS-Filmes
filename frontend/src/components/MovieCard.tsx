@@ -18,6 +18,7 @@ interface MovieCardProps {
   onFavoriteToggle?: () => void;
   isInWatchlist?: boolean;
   onWatchlistToggle?: () => void;
+  actionType?: "favorite" | "watchlist" | "auto";
 }
 
 function MovieCardComponent({
@@ -29,6 +30,7 @@ function MovieCardComponent({
   onFavoriteToggle,
   isInWatchlist = false,
   onWatchlistToggle,
+  actionType,
 }: MovieCardProps) {
   const router = useRouter();
 
@@ -60,6 +62,7 @@ function MovieCardComponent({
       onFavoriteToggle={onFavoriteToggle}
       isInWatchlist={isInWatchlist}
       onWatchlistToggle={onWatchlistToggle}
+      actionType={actionType}
       badgeLabel="Filme"
       badgeIcon={Film}
       badgeClassName="bg-purple-600/90"

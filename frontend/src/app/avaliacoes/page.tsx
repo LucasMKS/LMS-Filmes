@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import AuthService from "../../lib/auth";
-import { ratingMoviesApi, ratingSeriesApi, moviesApi, seriesApi } from "../../lib/api";
+import { ratingMoviesApi, ratingSeriesApi, moviesApi, seriesApi, favoriteMoviesApi, favoriteSeriesApi } from "../../lib/api";
 import { RatedMovieResponse, RatedSerieResponse, TmdbMovie, TmdbSerie } from "../../lib/types";
 import { MovieCard } from "../../components/MovieCard";
 import { SerieCard } from "../../components/SerieCard";
@@ -12,7 +13,7 @@ import { SerieDialog } from "../../components/SerieDialog";
 import { Input } from "@/components/ui/input";
 import { Star, Film, Tv, Search, Filter, TrendingUp, X, ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 400;
@@ -48,6 +49,7 @@ const avg = (values: number[]) => {
 };
 
 export default function RatingsPage() {
+  const queryClient = useQueryClient();
   const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>(null);
   const [selectedSerie, setSelectedSerie] = useState<TmdbSerie | null>(null);
   const [movieDetails, setMovieDetails] = useState<TmdbMovie | null>(null);
@@ -61,6 +63,56 @@ export default function RatingsPage() {
   const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "serie">("all");
 
   const isAuth = AuthService.isAuthenticated();
+
+  const { data: favoriteMovies = [] } = useQuery({
+    queryKey: ["favorites", "movies"],
+    queryFn: async () => {
+      const response = await favoriteMoviesApi.getFavoriteMovies();
+      return response || [];
+    },
+    enabled: isAuth,
+  });
+
+  const { data: favoriteSeries = [] } = useQuery({
+    queryKey: ["favorites", "series"],
+    queryFn: async () => {
+      const response = await favoriteSeriesApi.getFavoriteSeries();
+      return response || [];
+    },
+    enabled: isAuth,
+  });
+
+  const favoriteMovieIds = useMemo(
+    () => new Set((favoriteMovies || []).map((m: any) => String(m.movieId))),
+    [favoriteMovies],
+  );
+
+  const favoriteSerieIds = useMemo(
+    () => new Set((favoriteSeries || []).map((s: any) => String(s.serieId))),
+    [favoriteSeries],
+  );
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async ({ type, id }: { type: "movie" | "serie"; id: string }) => {
+      if (type === "movie") return favoriteMoviesApi.toggleFavorite(id);
+      return favoriteSeriesApi.toggleFavorite(id);
+    },
+    onSuccess: (res, { type }) => {
+      toast.success(
+        res.isFavorite
+          ? type === "movie"
+            ? "Filme adicionado aos favoritos!"
+            : "Série adicionada aos favoritos!"
+          : type === "movie"
+            ? "Filme removido dos favoritos!"
+            : "Série removida dos favoritos!",
+      );
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
+    },
+    onError: () => {
+      toast.error("Erro ao atualizar favoritos");
+    },
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), DEBOUNCE_MS);
@@ -339,22 +391,40 @@ export default function RatingsPage() {
                   isRefetching && "opacity-60",
                 )}
               >
-                {visibleMovies.map((m) => (
-                  <MovieCard
-                    key={`movie-${m.id}`}
-                    movie={m.tmdb ?? toTmdbMovieFallback(m)}
-                    onClick={() => handleMovieClick(m)}
-                    userRating={{ rating: String(m.rating), comment: m.comment }}
-                  />
-                ))}
-                {visibleSeries.map((s) => (
-                  <SerieCard
-                    key={`serie-${s.id}`}
-                    serie={s.tmdb ?? toTmdbSerieFallback(s)}
-                    onClick={() => handleSerieClick(s)}
-                    userRating={{ rating: String(s.rating), comment: s.comment }}
-                  />
-                ))}
+                {visibleMovies.map((m) => {
+                  const movieIdStr = String(m.movieId);
+                  const isFav = favoriteMovieIds.has(movieIdStr);
+                  return (
+                    <MovieCard
+                      key={`movie-${m.id}`}
+                      movie={m.tmdb ?? toTmdbMovieFallback(m)}
+                      onClick={() => handleMovieClick(m)}
+                      userRating={{ rating: String(m.rating), comment: m.comment }}
+                      showActionButtons={isAuth}
+                      isFavorite={isFav}
+                      onFavoriteToggle={() =>
+                        toggleFavoriteMutation.mutate({ type: "movie", id: movieIdStr })
+                      }
+                    />
+                  );
+                })}
+                {visibleSeries.map((s) => {
+                  const serieIdStr = String(s.serieId);
+                  const isFav = favoriteSerieIds.has(serieIdStr);
+                  return (
+                    <SerieCard
+                      key={`serie-${s.id}`}
+                      serie={s.tmdb ?? toTmdbSerieFallback(s)}
+                      onClick={() => handleSerieClick(s)}
+                      userRating={{ rating: String(s.rating), comment: s.comment }}
+                      showActionButtons={isAuth}
+                      isFavorite={isFav}
+                      onFavoriteToggle={() =>
+                        toggleFavoriteMutation.mutate({ type: "serie", id: serieIdStr })
+                      }
+                    />
+                  );
+                })}
               </div>
             )}
 

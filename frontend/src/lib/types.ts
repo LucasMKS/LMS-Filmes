@@ -270,12 +270,19 @@ export interface TmdbSerie {
   tagline?: string;
 }
 
+export interface RatingStatus {
+  rating: string;
+  comment?: string;
+}
+
 export interface FavoriteMovieEnriched extends FavoriteMovie {
   tmdbData?: TmdbMovie;
+  userRating?: RatingStatus | null;
 }
 
 export interface FavoriteSerieEnriched extends FavoriteSerie {
   tmdbData?: TmdbSerie;
+  userRating?: RatingStatus | null;
 }
 
 export interface AppApiResponse<T> {

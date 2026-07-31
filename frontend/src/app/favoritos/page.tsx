@@ -8,6 +8,8 @@ import {
   favoriteSeriesApi,
   moviesApi,
   seriesApi,
+  ratingMoviesApi,
+  ratingSeriesApi,
 } from "../../lib/api";
 import {
   FavoriteMovie,
@@ -16,6 +18,7 @@ import {
   FavoriteSerieEnriched,
   TmdbMovie,
   TmdbSerie,
+  RatingStatus,
 } from "../../lib/types";
 import { MovieCard } from "../../components/MovieCard";
 import { SerieCard } from "../../components/SerieCard";
@@ -46,13 +49,26 @@ export default function FavoritesPage() {
     queryKey: ["favorites", "movies"],
     queryFn: async () => {
       const response = await favoriteMoviesApi.getFavoriteMovies();
+      const movieIds = (response || []).map((m: FavoriteMovie) => m.movieId);
+      const ratingStatuses =
+        movieIds.length > 0
+          ? await ratingMoviesApi.getRatingStatuses(movieIds).catch(() => ({} as Record<string, RatingStatus>))
+          : {};
+
       const enriched = await Promise.all(
         (response || []).map(async (movie: FavoriteMovie) => {
           try {
             const tmdbData = await moviesApi.getMovieDetails(parseInt(movie.movieId));
-            return { ...movie, tmdbData };
+            return {
+              ...movie,
+              tmdbData,
+              userRating: ratingStatuses[movie.movieId] || null,
+            };
           } catch {
-            return movie;
+            return {
+              ...movie,
+              userRating: ratingStatuses[movie.movieId] || null,
+            };
           }
         }),
       );
@@ -65,13 +81,26 @@ export default function FavoritesPage() {
     queryKey: ["favorites", "series"],
     queryFn: async () => {
       const response = await favoriteSeriesApi.getFavoriteSeries();
+      const serieIds = (response || []).map((s: FavoriteSerie) => s.serieId);
+      const ratingStatuses =
+        serieIds.length > 0
+          ? await ratingSeriesApi.getRatingStatuses(serieIds).catch(() => ({} as Record<string, RatingStatus>))
+          : {};
+
       const enriched = await Promise.all(
         (response || []).map(async (serie: FavoriteSerie) => {
           try {
             const tmdbData = await seriesApi.getSerieDetails(parseInt(serie.serieId));
-            return { ...serie, tmdbData };
+            return {
+              ...serie,
+              tmdbData,
+              userRating: ratingStatuses[serie.serieId] || null,
+            };
           } catch {
-            return serie;
+            return {
+              ...serie,
+              userRating: ratingStatuses[serie.serieId] || null,
+            };
           }
         }),
       );
@@ -322,7 +351,7 @@ export default function FavoritesPage() {
                         onFavoriteToggle={() =>
                           toggleFavoriteMutation.mutate({ type: "movie", id: item.movieId })
                         }
-                        userRating={{ rating: "10" }} // Placeholder para forçar o ícone de coração nos favoritos
+                        userRating={item.userRating}
                       />
                     )}
                     {type === "serie" && item.tmdbData && (
@@ -334,7 +363,7 @@ export default function FavoritesPage() {
                         onFavoriteToggle={() =>
                           toggleFavoriteMutation.mutate({ type: "serie", id: item.serieId })
                         }
-                        userRating={{ rating: "10" }} // Placeholder para forçar o ícone de coração nos favoritos
+                        userRating={item.userRating}
                       />
                     )}
                   </div>
