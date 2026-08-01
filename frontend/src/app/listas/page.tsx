@@ -776,6 +776,7 @@ export default function UserListsPage() {
                   return (
                     <div key={`${item.type}_${item.id}`} className="relative group">
                       <MediaCard
+                        href={item.type === "movie" ? `/filmes/${item.id}` : `/series/${item.id}`}
                         imageUrl={posterUrl}
                         altText={item.title}
                         title={item.title}

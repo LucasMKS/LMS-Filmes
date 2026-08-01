@@ -17,6 +17,7 @@ interface SerieCardProps {
   isInWatchlist?: boolean;
   onWatchlistToggle?: () => void;
   actionType?: "favorite" | "watchlist" | "auto";
+  href?: string;
 }
 
 function SerieCardComponent({
@@ -29,6 +30,7 @@ function SerieCardComponent({
   isInWatchlist = false,
   onWatchlistToggle,
   actionType,
+  href,
 }: SerieCardProps) {
   const router = useRouter();
 
@@ -55,8 +57,11 @@ function SerieCardComponent({
     router.push(`/series/${serie.id}`);
   };
 
+  const targetHref = href || `/series/${serie.id}`;
+
   return (
     <MediaCard
+      href={targetHref}
       imageUrl={imageUrl}
       altText={serie.name}
       title={serie.name}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,8 @@ interface MediaCardProps {
   altText: string;
   title: string;
   subtitle: string;
-  onClick: () => void;
+  onClick?: () => void;
+  href?: string;
   onQuickView?: () => void;
   userRating?: {
     rating: string;
@@ -40,6 +42,7 @@ export function MediaCard({
   title,
   subtitle,
   onClick,
+  href,
   onQuickView,
   userRating,
   showActionButtons = false,
@@ -94,19 +97,32 @@ export function MediaCard({
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
       {/* Clique principal (Navegação) */}
-      <div
-        className="absolute inset-0 z-0 cursor-pointer"
-        onClick={onClick}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onClick();
-          }
-        }}
-        aria-label={`Ver detalhes de ${title}`}
-      />
+      {href ? (
+        <Link
+          href={href}
+          className="absolute inset-0 z-0 cursor-pointer"
+          aria-label={`Ver detalhes de ${title}`}
+          onClick={(e) => {
+            if (onClick) {
+              onClick();
+            }
+          }}
+        />
+      ) : (
+        <div
+          className="absolute inset-0 z-0 cursor-pointer"
+          onClick={onClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onClick?.();
+            }
+          }}
+          aria-label={`Ver detalhes de ${title}`}
+        />
+      )}
 
       <div className="relative z-10 pointer-events-none">
         {/* Imagem / Pôster */}

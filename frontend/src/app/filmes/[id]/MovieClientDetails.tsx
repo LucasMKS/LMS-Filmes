@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { TmdbMovie, Movie as UserRatingMovie } from "@/lib/types";
 import { RatingDialog } from "@/components/RatingDialog";
 import {
@@ -437,10 +438,10 @@ export function MovieClientDetails({
                 </h3>
                 <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x w-full">
                   {filteredRecommendations.map((rec) => (
-                    <div
+                    <Link
                       key={rec.id}
-                      className="w-32 sm:w-36 shrink-0 snap-start cursor-pointer group"
-                      onClick={() => router.push(`/filmes/${rec.id}`)}
+                      href={`/filmes/${rec.id}`}
+                      className="w-32 sm:w-36 shrink-0 snap-start cursor-pointer group block"
                     >
                       <div className="relative w-full aspect-[2/3] mb-3 rounded-xl overflow-hidden bg-white/5 border border-white/[0.06] shadow-md">
                         <Image
@@ -463,7 +464,7 @@ export function MovieClientDetails({
                       >
                         {rec.title}
                       </h4>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

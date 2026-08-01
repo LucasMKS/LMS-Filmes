@@ -19,6 +19,7 @@ interface MovieCardProps {
   isInWatchlist?: boolean;
   onWatchlistToggle?: () => void;
   actionType?: "favorite" | "watchlist" | "auto";
+  href?: string;
 }
 
 function MovieCardComponent({
@@ -31,6 +32,7 @@ function MovieCardComponent({
   isInWatchlist = false,
   onWatchlistToggle,
   actionType,
+  href,
 }: MovieCardProps) {
   const router = useRouter();
 
@@ -48,8 +50,11 @@ function MovieCardComponent({
     router.push(`/filmes/${movie.id}`);
   };
 
+  const targetHref = href || `/filmes/${movie.id}`;
+
   return (
     <MediaCard
+      href={targetHref}
       imageUrl={imageUrl}
       altText={movie.title}
       title={movie.title}

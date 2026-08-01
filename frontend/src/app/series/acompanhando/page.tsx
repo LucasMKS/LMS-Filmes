@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Dices, Check, Trash2, Tv, Search, LayoutGrid, List, Star, Users } from "lucide-react";
@@ -364,14 +365,18 @@ export default function SeriesAcompanhandoPage() {
                 {filteredSeries.map((item) => (
                   <div
                     key={item.internalId}
-                    onClick={() => handleNavigate(item.id)}
-                    className="group relative bg-[#14141c] border border-white/[0.06] hover:border-violet-500/40 rounded-3xl overflow-hidden transition-all duration-300 cursor-pointer flex flex-col justify-between hover:-translate-y-1 hover:shadow-2xl hover:shadow-violet-950/20"
+                    className="group relative bg-[#14141c] border border-white/[0.06] hover:border-violet-500/40 rounded-3xl overflow-hidden transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 hover:shadow-2xl hover:shadow-violet-950/20"
                   >
+                    <Link
+                      href={`/series/${item.id}`}
+                      className="absolute inset-0 z-0 cursor-pointer"
+                      aria-label={`Ver detalhes de ${item.title}`}
+                    />
                     {/* Glow decorativo no topo */}
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
 
                     {/* Capa Grid */}
-                    <div className="relative aspect-[16/10] w-full bg-white/5 overflow-hidden">
+                    <div className="relative aspect-[16/10] w-full bg-white/5 overflow-hidden pointer-events-none">
                       <Image
                         src={item.backdrop || item.poster}
                         alt={item.title}
@@ -406,14 +411,14 @@ export default function SeriesAcompanhandoPage() {
                         }}
                         disabled={removeMutation.isPending}
                         title="Parar de Acompanhar"
-                        className="absolute top-3 right-3 p-1.5 rounded-xl bg-black/60 hover:bg-red-600 text-white/70 hover:text-white backdrop-blur-md border border-white/10 transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                        className="pointer-events-auto absolute top-3 right-3 p-1.5 rounded-xl bg-black/60 hover:bg-red-600 text-white/70 hover:text-white backdrop-blur-md border border-white/10 transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 z-20"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
                     {/* Conteúdo compacto Grid (sem a descrição) */}
-                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3 pointer-events-none">
                       <div>
                         <h3 className="text-base font-bold text-white group-hover:text-violet-400 transition-colors line-clamp-1">
                           {item.title}
@@ -426,7 +431,7 @@ export default function SeriesAcompanhandoPage() {
                       </div>
 
                       {/* Botões de Ação Grid */}
-                      <div className="flex gap-2 pt-1">
+                      <div className="flex gap-2 pt-1 pointer-events-auto z-20">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -447,9 +452,13 @@ export default function SeriesAcompanhandoPage() {
                 {filteredSeries.map((item) => (
                   <div
                     key={item.internalId}
-                    onClick={() => handleNavigate(item.id)}
-                    className="relative overflow-hidden transition-all duration-300 border border-white/[0.06] bg-[#14141c] hover:border-white/10 hover:shadow-xl cursor-pointer group rounded-2xl"
+                    className="relative overflow-hidden transition-all duration-300 border border-white/[0.06] bg-[#14141c] hover:border-white/10 hover:shadow-xl group rounded-2xl"
                   >
+                    <Link
+                      href={`/series/${item.id}`}
+                      className="absolute inset-0 z-0 cursor-pointer"
+                      aria-label={`Ver detalhes de ${item.title}`}
+                    />
                     {item.backdrop && (
                       <div className="hidden sm:block absolute inset-0 z-0 pointer-events-none">
                         <Image
@@ -462,7 +471,7 @@ export default function SeriesAcompanhandoPage() {
                       </div>
                     )}
 
-                    <div className="relative z-10 flex flex-row items-stretch p-0">
+                    <div className="relative z-10 flex flex-row items-stretch p-0 pointer-events-none">
                       {/* Pôster */}
                       <div className="relative shrink-0 w-24 sm:w-28 md:w-36 aspect-[2/3]">
                         <Image
@@ -523,7 +532,7 @@ export default function SeriesAcompanhandoPage() {
                           </div>
 
                           {/* Botões Desktop */}
-                          <div className="hidden sm:flex flex-col gap-2 shrink-0">
+                          <div className="hidden sm:flex flex-col gap-2 shrink-0 pointer-events-auto z-20">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -548,7 +557,7 @@ export default function SeriesAcompanhandoPage() {
                         </div>
 
                         {/* Botões Mobile */}
-                        <div className="flex sm:hidden gap-2 mt-auto pt-2">
+                        <div className="flex sm:hidden gap-2 mt-auto pt-2 pointer-events-auto z-20">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
