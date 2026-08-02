@@ -142,6 +142,24 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
       current: pathname.includes("/favoritos"),
       requiresAuth: true,
     },
+    {
+      name: "Minhas Listas",
+      href: `/${userSlug}/listas`,
+      icon: FolderHeart,
+      color: "text-purple-400",
+      activeBg: "bg-purple-500/10 border-purple-500/20 text-purple-300",
+      current: pathname.includes("/listas"),
+      requiresAuth: true,
+    },
+    {
+      name: "Estatísticas",
+      href: "/estatisticas",
+      icon: BarChart3,
+      color: "text-emerald-400",
+      activeBg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-300",
+      current: pathname === "/estatisticas",
+      requiresAuth: true,
+    },
   ];
 
   const navigationItems = allNavigationItems.filter(
@@ -225,9 +243,9 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                 </SheetTrigger>
                 <SheetContent
                   side="left"
-                  className="w-[280px] sm:w-[350px] bg-[#0a0a0f] border-white/10 p-0"
+                  className="w-[280px] sm:w-[350px] bg-[#0a0a0f] border-white/10 p-0 flex flex-col"
                 >
-                  <SheetHeader className="p-6 text-left border-b border-white/5">
+                  <SheetHeader className="p-6 text-left border-b border-white/5 shrink-0">
                     <div className="flex items-center gap-2.5">
                       <div className="bg-gradient-to-br from-purple-500 to-violet-700 p-1.5 rounded-xl shadow-lg shadow-purple-500/20">
                         <Play className="w-4 h-4 text-white fill-current" />
@@ -238,8 +256,8 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                     </div>
                   </SheetHeader>
 
-                  <div className="flex flex-col h-[calc(100%-80px)] justify-between">
-                    <nav className="flex flex-col gap-1 p-4">
+                  <div className="flex flex-col flex-1 overflow-hidden justify-between">
+                    <nav className="flex flex-col gap-1 p-4 overflow-y-auto max-h-[calc(100vh-220px)]">
                       {navigationItems.map((item) => {
                         const Icon = item.icon;
                         return (
@@ -268,9 +286,9 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                       })}
                     </nav>
 
-                    <div className="p-4 mt-auto border-t border-white/5 bg-[#14141c]/30">
+                    <div className="p-4 mt-auto border-t border-white/5 bg-[#14141c]/30 shrink-0">
                       {isAuthenticated && user ? (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <div className="flex items-center gap-3 px-2">
                             <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-600 to-violet-600 flex items-center justify-center text-white font-bold border border-white/10 shadow-lg">
                               {user.name.charAt(0).toUpperCase()}
@@ -287,9 +305,25 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                             </div>
                           </div>
                           <Separator className="bg-white/5" />
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => navigateTo(`/${userSlug}/listas`)}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 transition-colors"
+                            >
+                              <FolderHeart className="w-4 h-4 text-purple-400" />
+                              <span className="truncate">Minhas Listas</span>
+                            </button>
+                            <button
+                              onClick={() => navigateTo("/estatisticas")}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors"
+                            >
+                              <BarChart3 className="w-4 h-4 text-emerald-400" />
+                              <span className="truncate">Estatísticas</span>
+                            </button>
+                          </div>
                           <button
                             onClick={handleLogout}
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-400/80 hover:text-red-400 hover:bg-red-500/10 w-full transition-colors"
+                            className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-red-400/80 hover:text-red-400 hover:bg-red-500/10 w-full transition-colors"
                           >
                             <LogOut className="w-4.5 h-4.5" />
                             Sair da conta
@@ -310,8 +344,8 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
               </Sheet>
             </div>
 
-            {/* Ações Desktop / Dropdown do Usuário */}
-            <div className="hidden sm:flex items-center gap-2">
+            {/* Ações / Dropdown do Usuário (Desktop e Mobile) */}
+            <div className="flex items-center gap-2">
               {isAuthenticated && user ? (
                 <div className="relative" ref={userMenuRef}>
                   <button
@@ -321,7 +355,7 @@ export function Navigation({ title, showBackButton = true }: NavigationProps) {
                     <div className="h-7 w-7 rounded-xl bg-gradient-to-tr from-purple-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
                       {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                     </div>
-                    <span className="text-xs font-semibold text-white/90 line-clamp-1 max-w-[100px]">
+                    <span className="hidden sm:inline text-xs font-semibold text-white/90 line-clamp-1 max-w-[100px]">
                       {user.nickname ? `@${user.nickname}` : user.name}
                     </span>
                     <ChevronDown
